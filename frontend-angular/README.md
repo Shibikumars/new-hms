@@ -1,6 +1,10 @@
 # Angular Frontend (Separated)
 
-This frontend connects to the API Gateway at `http://localhost:8080`.
+## Important URLs
+- Frontend UI: `http://localhost:4200`
+- API Gateway: `http://localhost:8080`
+
+> `http://localhost:8080` is backend-only. Opening it directly in browser root path will show Spring Whitelabel 404 unless a route is mapped.
 
 ## Features
 - Registration and login pages.

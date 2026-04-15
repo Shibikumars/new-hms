@@ -15,6 +15,7 @@
             "outputPath": "dist/healthcare-frontend",
             "index": "src/index.html",
             "browser": "src/main.ts",
+            "polyfills": ["src/polyfills.ts"],
             "tsConfig": "tsconfig.app.json",
             "assets": ["src/favicon.ico"],
             "styles": ["src/styles.css"]
