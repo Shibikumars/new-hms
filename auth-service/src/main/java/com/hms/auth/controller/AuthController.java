@@ -1,8 +1,12 @@
 package com.hms.auth.controller;
 
-import com.hms.auth.entity.User;
+import com.hms.auth.dto.AuthRequest;
+import com.hms.auth.dto.AuthResponse;
+import com.hms.auth.dto.RegisterRequest;
+import com.hms.auth.dto.UserResponse;
 import com.hms.auth.security.JwtUtil;
 import com.hms.auth.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,22 +26,21 @@ public class AuthController {
     private JwtUtil jwtUtil;
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) {
-        User saved = authService.register(user);
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+        UserResponse saved = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody User user) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         try {
-            String token = authService.login(user.getUsername(), user.getPassword());
-            return ResponseEntity.ok(token);
+            String token = authService.login(request.getUsername(), request.getPassword());
+            return ResponseEntity.ok(new AuthResponse(token));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 
-    // ✅ NEW — validate token, return username + role
     @GetMapping("/validate")
     public ResponseEntity<?> validate(@RequestHeader("Authorization") String authHeader) {
         try {
@@ -46,7 +49,7 @@ public class AuthController {
             }
             String token = authHeader.substring(7);
             String username = jwtUtil.extractUsername(token);
-            String role     = jwtUtil.extractRole(token);
+            String role = jwtUtil.extractRole(token);
 
             Map<String, String> result = new HashMap<>();
             result.put("username", username);
