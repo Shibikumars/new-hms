@@ -6,7 +6,7 @@ spring:
     name: DOCTOR-SERVICE
 
   datasource:
-    url: jdbc:mysql://localhost:3306/doctor_db
+    url: jdbc:mysql://localhost:3306/doctor_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: root
 

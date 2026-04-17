@@ -6,7 +6,7 @@ spring:
     name: PATIENT-SERVICE
 
   datasource:
-    url: jdbc:mysql://localhost:3306/patient_db
+    url: jdbc:mysql://localhost:3306/patient_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: root
 

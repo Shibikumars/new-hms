@@ -9,18 +9,32 @@ spring:
     gateway:
 
       globalcors:
-        cors-configurations:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
           '[/**]':
             allowedOrigins:
               - "http://localhost:4200"
+              - "http://127.0.0.1:4200"
             allowedMethods:
               - GET
               - POST
               - PUT
               - DELETE
               - OPTIONS
-            allowedHeaders: "*"
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - X-Requested-With
+              - Accept
+              - Origin
+              - Access-Control-Request-Method
+              - Access-Control-Request-Headers
+            exposedHeaders:
+              - Authorization
             allowCredentials: true
+      default-filters:
+        # If both gateway and downstream service add CORS headers, the browser rejects multiple values.
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
       routes:
 
         - id: auth-service
@@ -60,9 +74,49 @@ spring:
         - id: lab-service
           uri: lb://LAB-SERVICE
           predicates:
-            - Path=/lab/**
+            - Path=/lab/**,/labs/**,/lab-results/**
           filters:
             - JwtFilter
+
+        - id: medical-records-service
+          uri: lb://MEDICAL-RECORDS-SERVICE
+          predicates:
+            - Path=/records/**,/diagnoses/**
+          filters:
+            - JwtFilter
+
+        - id: pharmacy-service
+          uri: lb://PHARMACY-SERVICE
+          predicates:
+            - Path=/prescriptions/**,/medications/**
+          filters:
+            - JwtFilter
+
+        - id: billing-service
+          uri: lb://BILLING-SERVICE
+          predicates:
+            - Path=/invoices/**,/payments/**
+          filters:
+            - JwtFilter
+
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/notifications/**
+          filters:
+            - JwtFilter
+
+        - id: reporting-service
+          uri: lb://REPORTING-SERVICE
+          predicates:
+            - Path=/reporting/**
+          filters:
+            - JwtFilter
+
+        - id: notification-ws
+          uri: lb:ws://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/ws/**
 
 eureka:
   client:

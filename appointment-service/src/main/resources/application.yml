@@ -6,7 +6,7 @@ spring:
     name: APPOINTMENT-SERVICE
 
   datasource:
-    url: jdbc:mysql://localhost:3306/appointment_db
+    url: jdbc:mysql://localhost:3306/appointment_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: root
 
@@ -19,8 +19,12 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
 
-# ✅ ADD THIS — Feign timeout so it fails fast instead of hanging
+  instance:
+    prefer-ip-address: true
+
 feign:
   client:
     config:

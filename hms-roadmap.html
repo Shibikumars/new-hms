@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HMS — World-Class Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;
+  --bg2:#0d1117;
+  --bg3:#141923;
+  --surface:#1a2232;
+  --surface2:#1f2a3d;
+  --border:#253045;
+  --border2:#2e3d56;
+  --teal:#00d4aa;
+  --teal2:#00b893;
+  --teal-dim:#00d4aa22;
+  --teal-glow:#00d4aa15;
+  --amber:#f0a500;
+  --amber-dim:#f0a50020;
+  --red:#ff5566;
+  --red-dim:#ff556620;
+  --blue:#4f9eff;
+  --blue-dim:#4f9eff20;
+  --purple:#a78bfa;
+  --purple-dim:#a78bfa20;
+  --green:#22c55e;
+  --green-dim:#22c55e20;
+  --text:#e8f0fe;
+  --text2:#8ea3c3;
+  --text3:#5a7396;
+  --font-display:'Syne',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+  --font-mono:'DM Mono',monospace;
+  --r:8px;
+  --r2:12px;
+  --r3:16px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.6;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(7,9,15,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;gap:0;height:52px}
+.nav-logo{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--teal);letter-spacing:0.04em;margin-right:32px;white-space:nowrap}
+.nav-links{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;flex:1}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{color:var(--text3);font-size:12px;font-weight:500;text-decoration:none;padding:0 14px;height:52px;display:flex;align-items:center;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.2s;letter-spacing:0.02em}
+.nav-links a:hover{color:var(--text);border-bottom-color:var(--border2)}
+.nav-links a.active{color:var(--teal);border-bottom-color:var(--teal)}
+
+/* ── LAYOUT ── */
+.wrapper{max-width:1200px;margin:0 auto;padding:80px 32px 80px}
+
+/* ── HERO ── */
+.hero{padding:72px 0 64px;border-bottom:1px solid var(--border)}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--teal-dim);border:1px solid var(--teal2);border-radius:40px;padding:4px 14px;font-size:11px;font-weight:600;color:var(--teal);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:24px}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+h1{font-family:var(--font-display);font-size:clamp(36px,5vw,64px);font-weight:800;line-height:1.05;letter-spacing:-0.02em;color:var(--text);margin-bottom:16px}
+h1 span{color:var(--teal)}
+.hero-sub{font-size:16px;color:var(--text2);max-width:600px;line-height:1.7;margin-bottom:40px}
+.hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.stat{background:var(--bg2);padding:20px 24px}
+.stat-n{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--teal);line-height:1}
+.stat-l{font-size:11px;color:var(--text3);margin-top:6px;letter-spacing:0.04em;text-transform:uppercase}
+
+/* ── SECTION HEADERS ── */
+.section{margin-top:80px}
+.section-tag{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal);margin-bottom:12px}
+h2{font-family:var(--font-display);font-size:clamp(22px,3vw,32px);font-weight:700;color:var(--text);line-height:1.2;letter-spacing:-0.01em;margin-bottom:8px}
+.section-desc{color:var(--text2);font-size:15px;line-height:1.7;max-width:720px;margin-bottom:40px}
+
+/* ── TECH STACK ── */
+.stack-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:40px}
+.stack-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;position:relative;overflow:hidden}
+.stack-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,var(--teal))}
+.stack-card h4{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:0.02em}
+.stack-card p{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.tag-row{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-flex;align-items:center;background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:2px 8px;font-family:var(--font-mono);font-size:10px;color:var(--text2)}
+
+/* ── SERVICE MAP ── */
+.service-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.svc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative}
+.svc-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;flex-shrink:0}
+.svc-name{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;margin-bottom:6px}
+.svc-port{font-family:var(--font-mono);font-size:10px;color:var(--text3);margin-bottom:8px}
+.svc-desc{font-size:11px;color:var(--text2);line-height:1.5}
+.svc-new{position:absolute;top:10px;right:10px;background:var(--amber-dim);border:1px solid var(--amber);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;color:var(--amber);letter-spacing:0.06em;text-transform:uppercase}
+.svc-fix{position:absolute;top:10px;right:10px;background:var(--blue-dim);border:1px solid var(--blue);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;color:var(--blue);letter-spacing:0.06em;text-transform:uppercase}
+
+/* ── SCREENS ── */
+.screen{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r3);margin-bottom:24px;overflow:hidden}
+.screen-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;cursor:pointer;user-select:none}
+.screen-header:hover{background:var(--surface)}
+.screen-title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.screen-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.screen-meta h3{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.01em}
+.screen-meta p{font-size:12px;color:var(--text3);margin-top:2px}
+.screen-badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase}
+.badge-role{background:var(--purple-dim);color:var(--purple);border:1px solid var(--purple)}
+.badge-api{background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal2)}
+.badge-new{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
+.badge-fix{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue)}
+.chevron{color:var(--text3);transition:transform 0.3s;font-size:18px;flex-shrink:0}
+.screen-body{display:none;padding:0}
+.screen-body.open{display:block}
+
+.screen-inner{display:grid;grid-template-columns:1fr 1fr;gap:0}
+@media(max-width:768px){.screen-inner{grid-template-columns:1fr}}
+.ui-panel{padding:24px;border-right:1px solid var(--border)}
+.ui-panel:last-child{border-right:none}
+.panel-title{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+/* mockup frame */
+.mockup{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);overflow:hidden;margin-bottom:16px}
+.mockup-bar{background:var(--surface);padding:8px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border)}
+.mb-dot{width:8px;height:8px;border-radius:50%}
+.mockup-content{padding:16px;font-size:12px}
+.m-nav{background:var(--surface2);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-radius:var(--r);margin-bottom:12px}
+.m-logo{font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--teal)}
+.m-nav-items{display:flex;gap:10px}
+.m-nav-item{font-size:10px;color:var(--text3);padding:3px 8px;border-radius:4px}
+.m-nav-item.active{background:var(--teal-dim);color:var(--teal)}
+.m-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.m-card{background:var(--surface2);border-radius:var(--r);padding:10px}
+.m-card-n{font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--teal)}
+.m-card-l{font-size:9px;color:var(--text3);margin-top:2px}
+.m-section{margin-bottom:12px}
+.m-section-title{font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.m-table-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);align-items:center}
+.m-table-row.header{color:var(--text3);font-size:9px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
+.m-table-row:not(.header){font-size:10px}
+.m-status{padding:2px 6px;border-radius:4px;font-size:8px;font-weight:700;text-align:center}
+.m-status.confirmed{background:var(--green-dim);color:var(--green)}
+.m-status.pending{background:var(--amber-dim);color:var(--amber)}
+.m-status.cancelled{background:var(--red-dim);color:var(--red)}
+.m-avatar{width:18px;height:18px;border-radius:50%;background:var(--teal-dim);border:1px solid var(--teal2);display:inline-flex;align-items:center;justify-content:center;font-size:8px;color:var(--teal);font-weight:700}
+.m-sidebar{display:grid;grid-template-columns:100px 1fr;gap:8px}
+.m-sidebar-nav{background:var(--surface2);border-radius:var(--r);padding:8px}
+.m-sidebar-item{padding:5px 8px;border-radius:4px;font-size:9px;color:var(--text3);display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.m-sidebar-item.active{background:var(--teal-dim);color:var(--teal)}
+.m-main{background:var(--surface2);border-radius:var(--r);padding:8px}
+.m-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.m-cal-day{background:var(--surface);border-radius:3px;padding:4px;text-align:center;font-size:8px;color:var(--text3)}
+.m-cal-day.today{background:var(--teal-dim);color:var(--teal);font-weight:700}
+.m-cal-day.has-apt{position:relative}
+.m-cal-day.has-apt::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--amber)}
+.m-chart-bar{display:flex;align-items:flex-end;gap:3px;height:40px;padding:0 4px}
+.bar-col{background:var(--teal-dim);border-radius:2px 2px 0 0;flex:1;border:1px solid var(--teal2)}
+.m-form-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.m-field{background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:6px 8px}
+.m-field-label{font-size:8px;color:var(--text3);margin-bottom:2px}
+.m-field-val{font-size:10px;color:var(--text)}
+.m-search{background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:5px 8px;font-size:10px;color:var(--text3);display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.m-pill{display:inline-flex;align-items:center;background:var(--teal-dim);border:1px solid var(--teal2);border-radius:40px;padding:2px 8px;font-size:9px;color:var(--teal)}
+.m-slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.m-slot{background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:4px;text-align:center;font-size:8px;color:var(--text2)}
+.m-slot.booked{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+.m-slot.available{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.m-slot.selected{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
+.m-lab-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:10px}
+.m-lab-range{font-size:8px;color:var(--text3)}
+.m-lab-val{font-family:var(--font-mono);font-size:10px}
+.m-lab-val.normal{color:var(--green)}
+.m-lab-val.high{color:var(--red)}
+.m-lab-val.low{color:var(--amber)}
+.m-invoice{background:var(--surface2);border-radius:var(--r);padding:10px}
+.m-invoice-row{display:flex;justify-content:space-between;font-size:10px;padding:4px 0;border-bottom:1px solid var(--border)}
+.m-invoice-row:last-child{border-bottom:none;font-weight:600;color:var(--teal)}
+.m-rx-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:8px;margin-bottom:6px}
+.m-rx-name{font-family:var(--font-display);font-size:10px;font-weight:700;color:var(--text);margin-bottom:2px}
+.m-rx-dose{font-size:9px;color:var(--text2)}
+.m-notif{background:var(--surface);border-left:3px solid var(--teal);border-radius:0 var(--r) var(--r) 0;padding:8px;margin-bottom:6px}
+.m-notif.alert{border-left-color:var(--red)}
+.m-notif.warn{border-left-color:var(--amber)}
+.m-notif-title{font-size:10px;font-weight:600;color:var(--text);margin-bottom:2px}
+.m-notif-sub{font-size:9px;color:var(--text3)}
+
+/* component specs */
+.comp-list{list-style:none}
+.comp-list li{padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.comp-list li::before{content:'▸';color:var(--teal);font-size:10px;flex-shrink:0;margin-top:2px}
+.comp-list li strong{color:var(--text);font-weight:600}
+.comp-list li:last-child{border-bottom:none}
+
+/* api connections */
+.api-row{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.api-row:last-child{border-bottom:none}
+.api-method{font-family:var(--font-mono);font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;flex-shrink:0;min-width:40px;text-align:center}
+.api-method.get{background:var(--green-dim);color:var(--green)}
+.api-method.post{background:var(--blue-dim);color:var(--blue)}
+.api-method.put{background:var(--amber-dim);color:var(--amber)}
+.api-method.delete{background:var(--red-dim);color:var(--red)}
+.api-method.ws{background:var(--purple-dim);color:var(--purple)}
+.api-path{font-family:var(--font-mono);font-size:10px;color:var(--teal);flex:1}
+.api-desc{color:var(--text3);font-size:11px;flex:1.5}
+
+/* ── BACKEND SECTION ── */
+.be-change{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:12px}
+.be-change-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.be-change p{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px}
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-family:var(--font-mono);font-size:11px;color:var(--teal);overflow-x:auto;line-height:1.6;margin-top:8px}
+.code-block .c{color:var(--text3)}
+.code-block .s{color:var(--amber)}
+.code-block .k{color:var(--purple)}
+
+/* ── CONNECTION MAP ── */
+.conn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.conn-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px}
+.conn-screen{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.conn-arrow{color:var(--border2);font-size:10px}
+.conn-svc{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border)}
+.conn-svc:last-child{border-bottom:none}
+.conn-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:40px 32px;text-align:center;color:var(--text3);font-size:12px;margin-top:80px}
+
+/* toggle */
+.screen-header.open .chevron{transform:rotate(180deg)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">HMS Roadmap</div>
+  <div class="nav-links">
+    <a href="#stack">Stack</a>
+    <a href="#backend">Backend</a>
+    <a href="#auth">Auth</a>
+    <a href="#admin">Admin</a>
+    <a href="#doctor">Doctor</a>
+    <a href="#patient">Patient</a>
+    <a href="#appointments">Appointments</a>
+    <a href="#records">Records</a>
+    <a href="#pharmacy">Pharmacy</a>
+    <a href="#billing">Billing</a>
+    <a href="#lab">Lab</a>
+    <a href="#notifications">Notifications</a>
+    <a href="#analytics">Analytics</a>
+    <a href="#connections">API Map</a>
+  </div>
+</nav>
+
+<div class="wrapper">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">World-class hospital management system blueprint</div>
+  <h1>The Complete HMS<br><span>Frontend & Backend</span><br>Overhaul Roadmap</h1>
+  <p class="hero-sub">Your current codebase has 5 backend microservices and an Angular frontend with 3 screens. This document maps every interface, every component, every API connection, and every backend service needed to build something hospitals actually want.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-n">15</div><div class="stat-l">Screens to build</div></div>
+    <div class="stat"><div class="stat-n">8</div><div class="stat-l">New backend services</div></div>
+    <div class="stat"><div class="stat-n">3</div><div class="stat-l">Role dashboards</div></div>
+    <div class="stat"><div class="stat-n">60+</div><div class="stat-l">API endpoints</div></div>
+    <div class="stat"><div class="stat-n">100%</div><div class="stat-l">Angular 18 compatible</div></div>
+  </div>
+</div>
+
+<!-- TECH STACK -->
+<div class="section" id="stack">
+  <div class="section-tag">Technology</div>
+  <h2>Frontend Stack Upgrade</h2>
+  <p class="section-desc">Keep Angular 18. What you're missing is a design system, a state manager, real-time infrastructure, and a data visualization layer. Here's the exact stack to add.</p>
+  <div class="stack-grid">
+    <div class="stack-card" style="--accent:var(--teal)">
+      <h4>UI Component Library</h4>
+      <p>Replace raw HTML forms and inline styles with a production-ready component library. PrimeNG 17+ has a medical-grade component set out of the box.</p>
+      <div class="tag-row"><span class="tag">PrimeNG 17+</span><span class="tag">primeflex</span><span class="tag">primicons</span></div>
+    </div>
+    <div class="stack-card" style="--accent:var(--amber)">
+      <h4>State Management</h4>
+      <p>Your current app uses component-level state. With 3 roles and 15 screens you need global state for auth, notifications, and shared data.</p>
+      <div class="tag-row"><span class="tag">NgRx 18</span><span class="tag">@ngrx/signals</span><span class="tag">@ngrx/effects</span></div>
+    </div>
+    <div class="stack-card" style="--accent:var(--blue)">
+      <h4>Charts & Visualization</h4>
+      <p>Admin dashboards, lab trend graphs, appointment heatmaps. You need a chart library that works natively with Angular's change detection.</p>
+      <div class="tag-row"><span class="tag">ApexCharts</span><span class="tag">ng-apexcharts</span><span class="tag">Chart.js</span></div>
+    </div>
+    <div class="stack-card" style="--accent:var(--purple)">
+      <h4>Calendar & Scheduling</h4>
+      <p>The appointment dashboard currently uses date/time inputs. You need a real calendar for slot picking, schedule views, and drag-to-reschedule.</p>
+      <div class="tag-row"><span class="tag">FullCalendar</span><span class="tag">@fullcalendar/angular</span></div>
+    </div>
+    <div class="stack-card" style="--accent:var(--green)">
+      <h4>Real-time Layer</h4>
+      <p>Doctors need live appointment updates. Patients need live queue position. Add STOMP over WebSocket using the existing Spring backend's support for it.</p>
+      <div class="tag-row"><span class="tag">@stomp/ng2-stompjs</span><span class="tag">rxjs/webSocket</span></div>
+    </div>
+    <div class="stack-card" style="--accent:var(--red)">
+      <h4>Forms & Validation</h4>
+      <p>Upgrade from raw reactive forms to a richer form layer. Medical data has strict validation rules — drug dosages, date ranges, ID formats.</p>
+      <div class="tag-row"><span class="tag">Angular Reactive Forms</span><span class="tag">Zod (TS validation)</span></div>
+    </div>
+    <div class="stack-card" style="--accent:var(--teal)">
+      <h4>Utilities</h4>
+      <p>Date math, debounce, deep cloning — use battle-tested utilities instead of re-inventing.</p>
+      <div class="tag-row"><span class="tag">date-fns</span><span class="tag">lodash-es</span><span class="tag">ngx-toastr</span><span class="tag">jspdf</span></div>
+    </div>
+    <div class="stack-card" style="--accent:var(--amber)">
+      <h4>Routing Architecture</h4>
+      <p>The current app has a flat route array. You need role-based lazy-loaded module routes with nested child routing per role dashboard.</p>
+      <div class="tag-row"><span class="tag">Angular Router v18</span><span class="tag">canActivate guards</span><span class="tag">canMatch guards</span></div>
+    </div>
+  </div>
+
+  <!-- Route Architecture -->
+  <div class="be-change">
+    <div class="be-change-title"><span style="color:var(--teal)">▸</span> Route Architecture — Replace the flat routes array</div>
+    <p>Your current <code>app.routes.ts</code> has 3 routes with a single guard. The new structure needs role-based lazy modules so the PATIENT user never downloads ADMIN code.</p>
+    <div class="code-block"><span class="k">export const</span> routes: Routes = [
+  { path: <span class="s">''</span>, redirectTo: <span class="s">'auth/login'</span>, pathMatch: <span class="s">'full'</span> },
+  { path: <span class="s">'auth'</span>,    loadChildren: <span class="c">() =></span> import(<span class="s">'./features/auth/auth.routes'</span>) },
+  {
+    path: <span class="s">'admin'</span>,
+    loadChildren: <span class="c">() =></span> import(<span class="s">'./features/admin/admin.routes'</span>),
+    canActivate: [authGuard],
+    canMatch: [roleGuard(<span class="s">'ADMIN'</span>)]
+  },
+  {
+    path: <span class="s">'doctor'</span>,
+    loadChildren: <span class="c">() =></span> import(<span class="s">'./features/doctor/doctor.routes'</span>),
+    canActivate: [authGuard],
+    canMatch: [roleGuard(<span class="s">'DOCTOR'</span>)]
+  },
+  {
+    path: <span class="s">'patient'</span>,
+    loadChildren: <span class="c">() =></span> import(<span class="s">'./features/patient/patient.routes'</span>),
+    canActivate: [authGuard],
+    canMatch: [roleGuard(<span class="s">'PATIENT'</span>)]
+  },
+  { path: <span class="s">'**'</span>, redirectTo: <span class="s">'auth/login'</span> }
+];</div>
+  </div>
+</div>
+
+<!-- BACKEND -->
+<div class="section" id="backend">
+  <div class="section-tag">Backend</div>
+  <h2>Backend Services — What Exists & What's Missing</h2>
+  <p class="section-desc">You have a solid microservice skeleton. The appointment-service already has Feign clients pointing at a patient-service that doesn't exist yet. Here's the full service map.</p>
+
+  <div style="margin-bottom:12px;font-size:11px;display:flex;gap:16px">
+    <span style="color:var(--green)">● Exists</span>
+    <span style="color:var(--amber)">● Needs to be built</span>
+    <span style="color:var(--blue)">● Needs significant changes</span>
+  </div>
+
+  <div class="service-grid">
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--green)"></span>discovery-service</div><div class="svc-port">Port 8761 — Eureka</div><div class="svc-desc">Service registry. Stable. No changes needed.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--blue)"></span>api-gateway</div><div class="svc-port">Port 8080 — Spring Cloud Gateway</div><div class="svc-fix">changes</div><div class="svc-desc">Add routes for 7 new services. Add rate limiting per role. Add CORS for prod domains.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--blue)"></span>auth-service</div><div class="svc-port">Port 8081</div><div class="svc-fix">changes</div><div class="svc-desc">Add MFA support, token refresh endpoint, password reset, OAuth2/SSO for hospital SSO systems.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--blue)"></span>appointment-service</div><div class="svc-port">Port 8082</div><div class="svc-fix">changes</div><div class="svc-desc">Add WebSocket broadcasting for real-time updates, recurring appointments, cancellation with reason.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--blue)"></span>doctor-service</div><div class="svc-port">Port 8083</div><div class="svc-fix">changes</div><div class="svc-desc">Add specialty taxonomy, schedule/availability management, license verification fields.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--amber)"></span>patient-service</div><div class="svc-port">Port 8084 — NEW</div><div class="svc-new">build this</div><div class="svc-desc">Feign clients already call this — it must be built. Full patient CRUD, demographics, emergency contacts, insurance.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--amber)"></span>medical-records-service</div><div class="svc-port">Port 8085 — NEW</div><div class="svc-new">build this</div><div class="svc-desc">EMR/EHR core. Diagnoses, clinical notes, visit summaries, attachments (S3/MinIO), audit trail.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--amber)"></span>pharmacy-service</div><div class="svc-port">Port 8086 — NEW</div><div class="svc-new">build this</div><div class="svc-desc">Prescription issuance, drug inventory, dispense tracking, interaction checking.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--amber)"></span>lab-service</div><div class="svc-port">Port 8087 — NEW</div><div class="svc-new">build this</div><div class="svc-desc">Lab test ordering, result entry, normal-range flagging, PDF result generation.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--amber)"></span>billing-service</div><div class="svc-port">Port 8088 — NEW</div><div class="svc-new">build this</div><div class="svc-desc">Invoice generation, insurance claim processing, payment tracking, receipt PDFs.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--amber)"></span>notification-service</div><div class="svc-port">Port 8089 — NEW</div><div class="svc-new">build this</div><div class="svc-desc">Email/SMS/push via Kafka events. Appointment reminders, lab result alerts, billing notifications.</div></div>
+    <div class="svc"><div class="svc-name"><span class="svc-dot" style="background:var(--amber)"></span>reporting-service</div><div class="svc-port">Port 8090 — NEW</div><div class="svc-new">build this</div><div class="svc-desc">Aggregated analytics — patient volumes, revenue reports, bed occupancy, doctor performance.</div></div>
+  </div>
+
+  <!-- Key backend changes -->
+  <div class="be-change">
+    <div class="be-change-title"><span style="color:var(--amber)">⚡</span> patient-service — Build this first, everything depends on it</div>
+    <p>Your <code>appointment-service</code> has a <code>PatientClient</code> Feign interface calling <code>patient-service</code> at <code>/patients/{id}</code>. Until this service exists, appointments can't fully resolve patient data. This is the highest-priority backend gap.</p>
+    <div class="code-block"><span class="c">// appointment-service already has this Feign client pointing at it</span>
+@FeignClient(name = <span class="s">"patient-service"</span>)
+<span class="k">public interface</span> PatientClient {
+  @GetMapping(<span class="s">"/patients/{id}"</span>)
+  PatientDTO getPatient(@PathVariable <span class="s">"id"</span> Long id);
+}
+
+<span class="c">// patient-service Entity needs at minimum:</span>
+<span class="c">// id, firstName, lastName, dob, gender, bloodGroup,</span>
+<span class="c">// phone, email, address, emergencyContact,</span>
+<span class="c">// insuranceProvider, insurancePolicyNumber</span></div>
+  </div>
+
+  <div class="be-change">
+    <div class="be-change-title"><span style="color:var(--blue)">🔧</span> api-gateway — Add routes for all new services + WebSocket support</div>
+    <p>Add WebSocket proxy support in Spring Cloud Gateway for the notification real-time channel, and add predicates for each new service path.</p>
+    <div class="code-block"><span class="c"># application.yml additions</span>
+spring.cloud.gateway.routes:
+  - id: patient-service
+    uri: lb://patient-service
+    predicates: [Path=/patients/**]
+  - id: medical-records-service
+    uri: lb://medical-records-service
+    predicates: [Path=/records/**, /diagnoses/**]
+  - id: pharmacy-service
+    uri: lb://pharmacy-service
+    predicates: [Path=/prescriptions/**, /medications/**]
+  - id: lab-service
+    uri: lb://lab-service
+    predicates: [Path=/labs/**, /lab-results/**]
+  - id: billing-service
+    uri: lb://billing-service
+    predicates: [Path=/invoices/**, /payments/**]
+  - id: notification-ws
+    uri: lb:ws://notification-service
+    predicates: [Path=/ws/**]</div>
+  </div>
+
+  <div class="be-change">
+    <div class="be-change-title"><span style="color:var(--blue)">🔧</span> auth-service — Add token refresh + role-to-redirect handshake</div>
+    <p>Add a <code>/auth/refresh</code> endpoint and include the user's role in the JWT response so the frontend can route to the correct dashboard on login without a separate profile fetch.</p>
+    <div class="code-block"><span class="c">// AuthResponse DTO — add role</span>
+<span class="k">public record</span> AuthResponse(
+  String token,
+  String refreshToken,  <span class="c">// ADD</span>
+  String role,          <span class="c">// ADD — ADMIN | DOCTOR | PATIENT</span>
+  Long expiresIn        <span class="c">// ADD</span>
+) {}</div>
+  </div>
+
+  <div class="be-change">
+    <div class="be-change-title"><span style="color:var(--amber)">⚡</span> notification-service — Event-driven via Kafka + WebSocket broadcast</div>
+    <p>All other services publish events to Kafka topics. Notification service consumes them and pushes to WebSocket clients or sends email/SMS via SendGrid/Twilio. Frontend connects to <code>ws://api/ws</code> with the JWT token.</p>
+    <div class="code-block"><span class="c">// Topics consumed by notification-service</span>
+appointment.created  → reminder email 24h before + SMS
+appointment.cancelled → immediate SMS + email  
+lab-result.ready     → push notification + email
+invoice.generated    → email with PDF attachment
+prescription.issued  → pharmacy pickup SMS</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ SCREENS ════════════════════════════ -->
+<div class="section" id="auth">
+  <div class="section-tag">Screens</div>
+  <h2>Auth & Onboarding</h2>
+  <p class="section-desc">The current login/register screens are functional but completely bare. The redesign needs role-based visual identity — the moment a user selects DOCTOR vs PATIENT vs ADMIN, the visual should telegraph their world.</p>
+</div>
+
+<!-- LOGIN -->
+<div class="screen" id="s-login">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--teal-dim)">🔐</div>
+        <div class="screen-meta">
+          <h3>Login Page — Redesign</h3>
+          <p>All roles · Entry point</p>
+        </div>
+        <div class="screen-badges">
+          <span class="badge badge-role">ALL ROLES</span>
+          <span class="badge badge-fix">REDESIGN</span>
+          <span class="badge badge-api">auth-service</span>
+        </div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup — What it looks like</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content" style="display:grid;grid-template-columns:1fr 1fr;min-height:200px">
+            <div style="background:linear-gradient(135deg,#0a1628,#0d2140);padding:16px;display:flex;flex-direction:column;justify-content:center">
+              <div style="font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--teal);margin-bottom:8px">HMS</div>
+              <div style="font-size:11px;color:var(--text3);line-height:1.6">Connecting doctors,<br>patients, and care teams<br>in one platform.</div>
+              <div style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap">
+                <div class="m-pill">500+ Doctors</div>
+                <div class="m-pill">50k+ Patients</div>
+              </div>
+            </div>
+            <div style="padding:16px">
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Welcome back</div>
+              <div style="font-size:9px;color:var(--text3);margin-bottom:12px">Sign in to continue</div>
+              <div class="m-field" style="margin-bottom:6px"><div class="m-field-label">Username</div><div class="m-field-val">dr.sharma</div></div>
+              <div class="m-field" style="margin-bottom:10px"><div class="m-field-label">Password</div><div class="m-field-val">••••••••</div></div>
+              <div style="background:var(--teal);border-radius:4px;padding:6px;text-align:center;font-size:10px;font-weight:700;color:#000;margin-bottom:8px">Sign In</div>
+              <div style="font-size:9px;color:var(--text3);text-align:center">Forgot password? <span style="color:var(--teal)">Reset</span></div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--text3);line-height:1.6">Split layout — left side is a living brand panel with animated hospital stats that update in real time (total patients seen today, doctors online). Right side has the form. On mobile it collapses to a full-screen form with the logo at top.</p>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Split layout</strong> — brand panel (left, animated) + form panel (right). Replace the current centered card.</li>
+          <li><strong>Role auto-detect</strong> — after successful login, read the <code>role</code> field from the JWT response and redirect: ADMIN→/admin/dashboard, DOCTOR→/doctor/dashboard, PATIENT→/patient/portal.</li>
+          <li><strong>Forgot password flow</strong> — "Reset" link opens an inline slide-in panel with email input. Calls <code>POST /auth/forgot-password</code>.</li>
+          <li><strong>Persistent login</strong> — "Remember me" checkbox. When checked, store the refresh token in localStorage and auto-rehydrate the session on next visit.</li>
+          <li><strong>Error handling</strong> — replace the current plain text error string with a PrimeNG <code>p-message</code> toast. Show specific messages: account locked, wrong password (with attempt count).</li>
+          <li><strong>Hospital logo</strong> — make it configurable from an environment variable so each hospital deployment shows its own brand.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/auth/login</span><span class="api-desc">Returns token + role + refreshToken</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/auth/forgot-password</span><span class="api-desc">Triggers reset email</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/auth/refresh</span><span class="api-desc">Exchange refresh token for new JWT</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--purple-dim)">✍️</div>
+        <div class="screen-meta"><h3>Register — Role Selection Flow</h3><p>All roles · Multi-step</p></div>
+        <div class="screen-badges"><span class="badge badge-role">ALL ROLES</span><span class="badge badge-fix">REDESIGN</span><span class="badge badge-api">auth-service</span><span class="badge badge-api">patient-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div style="font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">Create Account</div>
+            <div style="font-size:9px;color:var(--text3);margin-bottom:12px">Step 1 of 3 — Select your role</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+              <div style="background:var(--teal-dim);border:2px solid var(--teal);border-radius:6px;padding:10px;text-align:center">
+                <div style="font-size:16px;margin-bottom:4px">👨‍⚕️</div>
+                <div style="font-size:9px;font-weight:700;color:var(--teal)">Doctor</div>
+              </div>
+              <div style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:10px;text-align:center">
+                <div style="font-size:16px;margin-bottom:4px">🏥</div>
+                <div style="font-size:9px;color:var(--text2)">Patient</div>
+              </div>
+              <div style="background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:10px;text-align:center">
+                <div style="font-size:16px;margin-bottom:4px">⚙️</div>
+                <div style="font-size:9px;color:var(--text2)">Admin</div>
+              </div>
+            </div>
+            <div style="font-size:9px;color:var(--text3);margin-bottom:8px">Step 2 — Doctor details</div>
+            <div class="m-form-row">
+              <div class="m-field"><div class="m-field-label">First Name</div><div class="m-field-val">Priya</div></div>
+              <div class="m-field"><div class="m-field-label">Last Name</div><div class="m-field-val">Sharma</div></div>
+            </div>
+            <div class="m-form-row">
+              <div class="m-field"><div class="m-field-label">Specialty</div><div class="m-field-val">Cardiology</div></div>
+              <div class="m-field"><div class="m-field-label">License No.</div><div class="m-field-val">MCI-2024-8821</div></div>
+            </div>
+            <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px">
+              <div style="background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:5px 10px;font-size:9px;color:var(--text2)">Back</div>
+              <div style="background:var(--teal);border-radius:4px;padding:5px 10px;font-size:9px;font-weight:700;color:#000">Next →</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>3-step wizard</strong> — Step 1: role selection (visual cards). Step 2: role-specific fields (doctors get specialty + license; patients get DOB + blood group + insurance). Step 3: credentials (username + password).</li>
+          <li><strong>Role selection cards</strong> — large visual cards with icons. Admin registration should only be accessible via a secret invite link, not the public UI.</li>
+          <li><strong>Doctor extra fields</strong> — specialty (from a controlled dropdown fed by doctor-service), license number, years of experience, hospital department.</li>
+          <li><strong>Patient extra fields</strong> — DOB, gender, blood group, emergency contact, insurance provider + policy number. These get stored in patient-service after auth registration.</li>
+          <li><strong>Post-register flow</strong> — after JWT returned, if role is PATIENT, immediately call <code>POST /patients</code> with the form data, then redirect to patient portal.</li>
+          <li><strong>Progress stepper</strong> — PrimeNG <code>p-steps</code> showing position in the multi-step flow.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/auth/register</span><span class="api-desc">Creates user with role</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/patients</span><span class="api-desc">Creates patient profile (patient-service)</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/doctors</span><span class="api-desc">Creates doctor profile (doctor-service)</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/doctors/specialties</span><span class="api-desc">Dropdown data for specialty selector</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div class="section" id="admin">
+  <h2>Admin Dashboard</h2>
+  <p class="section-desc">The admin has no dashboard at all right now. This is the command center — every metric, every department, every anomaly surfaces here.</p>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--amber-dim)">⚙️</div>
+        <div class="screen-meta"><h3>Admin Overview Dashboard</h3><p>Admin only · Mission control</p></div>
+        <div class="screen-badges"><span class="badge badge-role">ADMIN</span><span class="badge badge-new">NEW SCREEN</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div class="m-nav">
+              <div class="m-logo">HMS Admin</div>
+              <div class="m-nav-items">
+                <div class="m-nav-item active">Dashboard</div>
+                <div class="m-nav-item">Patients</div>
+                <div class="m-nav-item">Doctors</div>
+                <div class="m-nav-item">Reports</div>
+              </div>
+            </div>
+            <div class="m-cards">
+              <div class="m-card"><div class="m-card-n">1,482</div><div class="m-card-l">Total Patients</div></div>
+              <div class="m-card"><div class="m-card-n" style="color:var(--blue)">47</div><div class="m-card-l">Doctors Active</div></div>
+              <div class="m-card"><div class="m-card-n" style="color:var(--amber)">234</div><div class="m-card-l">Today's Apts</div></div>
+              <div class="m-card"><div class="m-card-n" style="color:var(--green)">₹4.2L</div><div class="m-card-l">Today Revenue</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:8px">
+              <div>
+                <div class="m-section-title">Appointments This Week</div>
+                <div class="m-chart-bar">
+                  <div class="bar-col" style="height:60%"></div>
+                  <div class="bar-col" style="height:80%"></div>
+                  <div class="bar-col" style="height:45%"></div>
+                  <div class="bar-col" style="height:90%"></div>
+                  <div class="bar-col" style="height:70%"></div>
+                  <div class="bar-col" style="height:55%"></div>
+                  <div class="bar-col" style="height:100%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="m-section-title">Dept Load</div>
+                <div style="font-size:9px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Cardiology</span><span style="color:var(--teal)">92%</span></div>
+                  <div style="height:3px;background:var(--surface);border-radius:2px;margin-bottom:6px"><div style="height:100%;background:var(--teal);width:92%;border-radius:2px"></div></div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Ortho</span><span style="color:var(--amber)">64%</span></div>
+                  <div style="height:3px;background:var(--surface);border-radius:2px;margin-bottom:6px"><div style="height:100%;background:var(--amber);width:64%;border-radius:2px"></div></div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:var(--text2)">Neuro</span><span style="color:var(--blue)">78%</span></div>
+                  <div style="height:3px;background:var(--surface);border-radius:2px"><div style="height:100%;background:var(--blue);width:78%;border-radius:2px"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>KPI cards row</strong> — Total patients, active doctors, today's appointments, revenue. Each card shows delta vs yesterday with up/down indicator.</li>
+          <li><strong>ApexCharts area chart</strong> — appointment volume over the past 30 days. Overlay beds occupied vs beds available.</li>
+          <li><strong>Department load bar chart</strong> — horizontal bars per specialty showing appointment load as % of capacity. Clicking a bar drills into that department.</li>
+          <li><strong>Live activity feed</strong> — WebSocket-powered right panel showing real-time events: new patient registered, appointment booked, lab result uploaded. Feeds from notification-service WS.</li>
+          <li><strong>Doctor availability heatmap</strong> — 7×24 grid showing which hours have doctor coverage across all specialties.</li>
+          <li><strong>Alert panel</strong> — critical alerts: overbooked slots, unpaid invoices older than 30 days, expired doctor licenses.</li>
+          <li><strong>Sidebar navigation</strong> — PrimeNG <code>p-menu</code> with sections: Overview, Patients, Doctors, Appointments, Billing, Reports, Settings.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/dashboard/summary</span><span class="api-desc">KPI cards data</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/appointments/volume?range=30d</span><span class="api-desc">Chart series data</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/departments/load</span><span class="api-desc">Dept bar chart data</span></div>
+        <div class="api-row"><span class="api-method ws">WS</span><span class="api-path">/ws/admin/activity</span><span class="api-desc">Live activity feed stream</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DOCTOR DASHBOARD -->
+<div class="section" id="doctor">
+  <h2>Doctor Dashboard</h2>
+  <p class="section-desc">Doctors currently land on the same appointment list as everyone else. They need a personalized workspace — their schedule, their patients, their prescribing tools.</p>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--blue-dim)">👨‍⚕️</div>
+        <div class="screen-meta"><h3>Doctor Dashboard — Today's Schedule</h3><p>Doctor only · Primary workspace</p></div>
+        <div class="screen-badges"><span class="badge badge-role">DOCTOR</span><span class="badge badge-new">NEW SCREEN</span><span class="badge badge-api">appointment-service</span><span class="badge badge-api">patient-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div class="m-sidebar">
+              <div class="m-sidebar-nav">
+                <div style="font-size:9px;font-weight:700;color:var(--text3);margin-bottom:8px;padding:0 4px">DR. SHARMA</div>
+                <div class="m-sidebar-item active">📅 Today</div>
+                <div class="m-sidebar-item">👥 Patients</div>
+                <div class="m-sidebar-item">📋 Records</div>
+                <div class="m-sidebar-item">💊 Prescribe</div>
+                <div class="m-sidebar-item">🧪 Lab Orders</div>
+                <div class="m-sidebar-item">📊 Schedule</div>
+              </div>
+              <div class="m-main">
+                <div style="font-size:9px;font-weight:700;color:var(--text2);margin-bottom:6px">Today — Apr 16</div>
+                <div style="background:var(--surface);border-left:2px solid var(--teal);padding:6px;border-radius:0 4px 4px 0;margin-bottom:4px">
+                  <div style="font-size:9px;color:var(--teal);font-weight:700">9:00 AM</div>
+                  <div style="font-size:9px;color:var(--text)">Rajesh Kumar</div>
+                  <div style="font-size:8px;color:var(--text3)">Follow-up · Chest pain</div>
+                </div>
+                <div style="background:var(--surface);border-left:2px solid var(--blue);padding:6px;border-radius:0 4px 4px 0;margin-bottom:4px">
+                  <div style="font-size:9px;color:var(--blue);font-weight:700">10:00 AM</div>
+                  <div style="font-size:9px;color:var(--text)">Meena Pillai</div>
+                  <div style="font-size:8px;color:var(--text3)">New patient · Hypertension</div>
+                </div>
+                <div style="background:var(--surface);border-left:2px solid var(--amber);padding:6px;border-radius:0 4px 4px 0;">
+                  <div style="font-size:9px;color:var(--amber);font-weight:700">11:30 AM</div>
+                  <div style="font-size:9px;color:var(--text)">Arjun Nair</div>
+                  <div style="font-size:8px;color:var(--text3)">Lab review · ECG results</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Today's timeline</strong> — vertical timeline of appointments for the day. Each card shows patient name, chief complaint, and appointment type (new/follow-up/lab-review). Click opens patient chart inline.</li>
+          <li><strong>Patient quick-view drawer</strong> — clicking an appointment slides in a right drawer with: patient photo/avatar, age, blood group, allergies, last visit summary, and current medications. No full page navigate.</li>
+          <li><strong>Queue indicator</strong> — real-time badge on each appointment slot showing "Patient arrived" vs "Waiting" vs "In progress". Updated via WebSocket.</li>
+          <li><strong>Appointment action buttons</strong> — Start Consultation, Mark Complete, Write Prescription, Order Lab. Each triggers the relevant sub-module.</li>
+          <li><strong>Week view toggle</strong> — switch from today's list view to a 7-day week grid showing all time slots with appointments colored by type.</li>
+          <li><strong>Absence/leave marking</strong> — doctor can mark a date range as unavailable. Calls <code>PUT /doctors/{id}/availability</code>. Blocks booking for those slots.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/appointments?doctorId=&date=today</span><span class="api-desc">Today's appointment list</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/patients/{id}</span><span class="api-desc">Patient quick-view data</span></div>
+        <div class="api-row"><span class="api-method put">PUT</span><span class="api-path">/appointments/{id}/status</span><span class="api-desc">Mark in-progress/complete</span></div>
+        <div class="api-row"><span class="api-method ws">WS</span><span class="api-path">/ws/doctor/{doctorId}/queue</span><span class="api-desc">Live patient arrival updates</span></div>
+        <div class="api-row"><span class="api-method put">PUT</span><span class="api-path">/doctors/{id}/availability</span><span class="api-desc">Set leave/unavailability</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PATIENT PORTAL -->
+<div class="section" id="patient">
+  <h2>Patient Portal</h2>
+  <p class="section-desc">Patients currently enter a raw ID number to see appointments. They need a self-service portal — book appointments, view history, see prescriptions, pay bills, all without calling reception.</p>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--green-dim)">🏥</div>
+        <div class="screen-meta"><h3>Patient Portal — Home</h3><p>Patient only · Self-service hub</p></div>
+        <div class="screen-badges"><span class="badge badge-role">PATIENT</span><span class="badge badge-new">NEW SCREEN</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div class="m-nav">
+              <div class="m-logo">My Health</div>
+              <div class="m-nav-items">
+                <div class="m-nav-item active">Home</div>
+                <div class="m-nav-item">Appointments</div>
+                <div class="m-nav-item">Records</div>
+                <div class="m-nav-item">Bills</div>
+              </div>
+            </div>
+            <div style="background:linear-gradient(135deg,var(--teal-dim),var(--blue-dim));border:1px solid var(--teal2);border-radius:var(--r);padding:12px;margin-bottom:10px">
+              <div style="font-size:9px;color:var(--text3)">Hello,</div>
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text)">Rajesh Kumar</div>
+              <div style="font-size:8px;color:var(--text3);margin-top:4px">Blood: O+ · DOB: 12 Mar 1985 · ID: P-001</div>
+              <div style="margin-top:8px;display:flex;gap:6px">
+                <div style="background:var(--teal);border-radius:4px;padding:4px 8px;font-size:9px;font-weight:700;color:#000">+ Book Appointment</div>
+                <div style="background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:4px 8px;font-size:9px;color:var(--text2)">View Records</div>
+              </div>
+            </div>
+            <div class="m-section-title">Upcoming</div>
+            <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:10px;font-weight:600;color:var(--text)">Dr. Priya Sharma</div>
+                <div style="font-size:8px;color:var(--text3)">Cardiology · Apr 18, 10:00 AM</div>
+              </div>
+              <div class="m-status confirmed">Confirmed</div>
+            </div>
+            <div class="m-section-title">Pending Bills</div>
+            <div style="background:var(--amber-dim);border:1px solid var(--amber);border-radius:var(--r);padding:8px;display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:10px;color:var(--text)">Invoice #INV-2042</div>
+              <div style="font-size:10px;font-weight:700;color:var(--amber)">₹2,400</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Patient identity card</strong> — hero banner with name, blood group, DOB, patient ID. Quick access to emergency contacts. This replaces "Enter Patient ID" — patient ID is read from their JWT, not typed.</li>
+          <li><strong>Upcoming appointments widget</strong> — next 3 upcoming appointments with doctor name, specialty, date/time, and status badge. One-click cancel or reschedule.</li>
+          <li><strong>Pending bills alert</strong> — amber banner if there are unpaid invoices. One-click takes to billing section.</li>
+          <li><strong>Quick book button</strong> — prominent CTA. Opens the appointment booking flow (see Appointments section) directly from this screen.</li>
+          <li><strong>Recent prescriptions widget</strong> — last 2 active prescriptions with medication name and refill status.</li>
+          <li><strong>Lab results notification</strong> — if new lab results are available and unread, show a teal dot indicator with the test name.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/patients/me</span><span class="api-desc">Patient profile from JWT sub</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/appointments/patient/{id}?upcoming=true</span><span class="api-desc">Next appointments</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/invoices/patient/{id}?status=unpaid</span><span class="api-desc">Pending bills count</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/prescriptions/patient/{id}?active=true</span><span class="api-desc">Active medications</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/lab-results/patient/{id}?unread=true</span><span class="api-desc">New unread results</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APPOINTMENTS -->
+<div class="section" id="appointments">
+  <h2>Appointment Booking & Management</h2>
+  <p class="section-desc">The current booking form asks for a raw doctor ID number. Nobody knows their doctor's database ID. This needs a real doctor search + visual slot picker.</p>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--teal-dim)">📅</div>
+        <div class="screen-meta"><h3>Book Appointment — Search & Slot Picker</h3><p>Patient · 3-step flow</p></div>
+        <div class="screen-badges"><span class="badge badge-role">PATIENT</span><span class="badge badge-fix">MAJOR REDESIGN</span><span class="badge badge-api">appointment-service</span><span class="badge badge-api">doctor-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div style="font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">Book Appointment</div>
+            <div class="m-search">🔍 <span>Search by doctor name or specialty...</span></div>
+            <div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap">
+              <div class="m-pill">Cardiology</div>
+              <div style="display:inline-flex;background:var(--surface);border:1px solid var(--border2);border-radius:40px;padding:2px 8px;font-size:9px;color:var(--text3)">Ortho</div>
+              <div style="display:inline-flex;background:var(--surface);border:1px solid var(--border2);border-radius:40px;padding:2px 8px;font-size:9px;color:var(--text3)">Neuro</div>
+              <div style="display:inline-flex;background:var(--surface);border:1px solid var(--border2);border-radius:40px;padding:2px 8px;font-size:9px;color:var(--text3)">Derma</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:8px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+              <div class="m-avatar">PS</div>
+              <div style="flex:1">
+                <div style="font-size:10px;font-weight:600;color:var(--text)">Dr. Priya Sharma</div>
+                <div style="font-size:8px;color:var(--text3)">Cardiology · ⭐ 4.9 · 12 yrs exp</div>
+              </div>
+              <div style="font-size:8px;color:var(--green)">Available today</div>
+            </div>
+            <div class="m-section-title" style="margin-top:10px">Pick a slot — Apr 18</div>
+            <div class="m-slot-grid">
+              <div class="m-slot booked">9:00</div>
+              <div class="m-slot available">9:30</div>
+              <div class="m-slot selected">10:00</div>
+              <div class="m-slot available">10:30</div>
+              <div class="m-slot booked">11:00</div>
+              <div class="m-slot available">11:30</div>
+              <div class="m-slot available">2:00</div>
+              <div class="m-slot available">2:30</div>
+            </div>
+            <div style="margin-top:10px;background:var(--teal);border-radius:4px;padding:6px;text-align:center;font-size:9px;font-weight:700;color:#000">Confirm Booking — Apr 18, 10:00 AM</div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes — This is the biggest frontend change</div>
+        <ul class="comp-list">
+          <li><strong>Doctor search autocomplete</strong> — PrimeNG <code>p-autocomplete</code> that queries <code>GET /doctors?search=</code> on keystroke (debounced 300ms). Shows name, photo, specialty, rating in dropdown.</li>
+          <li><strong>Specialty filter chips</strong> — horizontal scrollable chip row fetched from <code>GET /doctors/specialties</code>. Clicking a chip filters the doctor list.</li>
+          <li><strong>Doctor cards</strong> — each result shows avatar, name, specialty, experience, rating, consultation fee, and "next available" indicator in plain English.</li>
+          <li><strong>Visual slot grid</strong> — replace time inputs with a 4-column slot grid showing each 30-min slot as: Available (green), Booked (red), Selected (teal). Fetched from <code>GET /appointments/timeslots?doctorId=&date=</code>.</li>
+          <li><strong>Date picker</strong> — PrimeNG <code>p-calendar</code> inline. Dates with full schedule are greyed out. Fetched from doctor's availability endpoint.</li>
+          <li><strong>Booking confirmation modal</strong> — summary of doctor + date + time + consultation fee. "Confirm" calls <code>POST /appointments</code>. On success, shows a celebration card with appointment details.</li>
+          <li><strong>Chief complaint input</strong> — free text field for the patient to describe their reason for the visit. Stored in the appointment notes field.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/doctors?search=&specialty=</span><span class="api-desc">Doctor search with filters</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/doctors/specialties</span><span class="api-desc">Specialty filter chip data</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/appointments/timeslots?doctorId=&date=</span><span class="api-desc">Visual slot availability grid</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/appointments</span><span class="api-desc">Book the appointment</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/doctors/{id}/availability?month=</span><span class="api-desc">Disabled dates for calendar</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MEDICAL RECORDS -->
+<div class="section" id="records">
+  <h2>Medical Records — EMR</h2>
+  <p class="section-desc">The most complex screen in the system. A doctor needs to write clinical notes, attach diagnoses, upload documents — all during or after a consultation. A patient needs read-only access to their history.</p>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--blue-dim)">📋</div>
+        <div class="screen-meta"><h3>Patient Chart — EMR View</h3><p>Doctor (write) · Patient (read-only)</p></div>
+        <div class="screen-badges"><span class="badge badge-role">DOCTOR</span><span class="badge badge-role">PATIENT</span><span class="badge badge-new">NEW SCREEN</span><span class="badge badge-api">medical-records-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <div class="m-avatar" style="width:30px;height:30px;font-size:11px">RK</div>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text)">Rajesh Kumar, 39M</div>
+                <div style="font-size:8px;color:var(--text3)">O+ · Hypertension · Penicillin allergy</div>
+              </div>
+              <div style="margin-left:auto;display:flex;gap:4px">
+                <div style="background:var(--teal);border-radius:4px;padding:3px 7px;font-size:8px;font-weight:700;color:#000">+ New Visit Note</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:4px;margin-bottom:8px;font-size:9px">
+              <div style="background:var(--teal-dim);border:1px solid var(--teal2);border-radius:4px;padding:3px 8px;color:var(--teal)">Visit Notes</div>
+              <div style="background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;color:var(--text3)">Diagnoses</div>
+              <div style="background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;color:var(--text3)">Documents</div>
+              <div style="background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;color:var(--text3)">Vitals</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:8px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <div style="font-size:9px;font-weight:600;color:var(--text)">Visit — Apr 10, 2025</div>
+                <div style="font-size:8px;color:var(--text3)">Dr. Priya Sharma</div>
+              </div>
+              <div style="font-size:9px;color:var(--text2);line-height:1.5">Patient presents with persistent chest discomfort. BP 148/92. ECG ordered. Diagnosed with hypertension stage 2. Started on Amlodipine 5mg.</div>
+              <div style="margin-top:6px;display:flex;gap:4px">
+                <div style="background:var(--purple-dim);border:1px solid var(--purple);border-radius:4px;padding:2px 6px;font-size:8px;color:var(--purple)">ICD: I10 Hypertension</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Patient header bar</strong> — fixed at top: name, age+gender, blood group, chronic conditions, allergies. Color-coded allergy alert (red pill) that flashes when prescribing a conflicting drug.</li>
+          <li><strong>Tabbed chart sections</strong> — Visit Notes, Diagnoses (ICD-10 coded), Documents (PDF/image upload), Vitals chart (BP/HR/SpO2 over time), Lab Results.</li>
+          <li><strong>Rich text visit note editor</strong> — PrimeNG <code>p-editor</code> (Quill-based). Doctor types SOAP notes (Subjective, Objective, Assessment, Plan). Save creates a timestamped, immutable record.</li>
+          <li><strong>ICD-10 diagnosis code search</strong> — type-ahead search for diagnosis codes. Selected codes attach to the visit note. This is the foundation for billing.</li>
+          <li><strong>Document upload</strong> — drag-and-drop zone. PDFs and images upload to the backend which streams to MinIO/S3. Each document shows thumbnail + date + uploader.</li>
+          <li><strong>Vitals chart</strong> — sparkline chart (ApexCharts) showing the last 10 readings for BP, heart rate, weight, SpO2. Entered manually or imported from lab service.</li>
+          <li><strong>Print/export</strong> — "Export as PDF" button generates a clean patient summary PDF using jsPDF, including all visit notes, diagnoses, and current medications.</li>
+          <li><strong>Role-gated editing</strong> — patients see the same screen but all input controls are hidden. They only see read-only rendered content.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/records/patient/{id}/visits</span><span class="api-desc">Visit note history list</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/records/visits</span><span class="api-desc">Create new visit note</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/records/visits/{id}/documents</span><span class="api-desc">File upload (multipart)</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/records/patient/{id}/vitals</span><span class="api-desc">Vitals chart data series</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/records/icd10?search=</span><span class="api-desc">ICD-10 diagnosis code search</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHARMACY -->
+<div class="section" id="pharmacy">
+  <h2>Pharmacy & Prescriptions</h2>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--green-dim)">💊</div>
+        <div class="screen-meta"><h3>Prescription Writer & Pharmacy View</h3><p>Doctor (write) · Pharmacy/Patient (read)</p></div>
+        <div class="screen-badges"><span class="badge badge-role">DOCTOR</span><span class="badge badge-role">PATIENT</span><span class="badge badge-new">NEW SCREEN</span><span class="badge badge-api">pharmacy-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup — Doctor writing a prescription</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div style="font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px">New Prescription</div>
+            <div class="m-search" style="margin-bottom:8px">🔍 <span>Search drug name or generic...</span></div>
+            <div class="m-rx-card">
+              <div class="m-rx-name">Amlodipine 5mg</div>
+              <div class="m-form-row" style="margin-top:6px">
+                <div class="m-field"><div class="m-field-label">Dose</div><div class="m-field-val">1 tablet</div></div>
+                <div class="m-field"><div class="m-field-label">Frequency</div><div class="m-field-val">Once daily</div></div>
+              </div>
+              <div class="m-form-row">
+                <div class="m-field"><div class="m-field-label">Duration</div><div class="m-field-val">30 days</div></div>
+                <div class="m-field"><div class="m-field-label">Route</div><div class="m-field-val">Oral</div></div>
+              </div>
+              <div style="font-size:8px;color:var(--red);margin-top:4px">⚠ Check allergy: Penicillin — not relevant for this drug</div>
+            </div>
+            <div class="m-rx-card">
+              <div class="m-rx-name">Atorvastatin 20mg</div>
+              <div class="m-rx-dose">1 tablet · Nightly · 90 days</div>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px">
+              <div style="background:var(--teal);border-radius:4px;padding:5px 10px;font-size:9px;font-weight:700;color:#000;flex:1;text-align:center">Issue Prescription</div>
+              <div style="background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:5px 10px;font-size:9px;color:var(--text2)">Print</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Drug search autocomplete</strong> — searches the pharmacy-service drug database on keystroke. Shows generic name, brand names, and strength options. Filters out drugs the patient is allergic to with a warning badge.</li>
+          <li><strong>Prescription line items</strong> — each added drug becomes a card with: dose, frequency (OD/BD/TDS/QID), duration, route (oral/IV/topical), special instructions. These are structured form fields, not free text.</li>
+          <li><strong>Drug interaction checker</strong> — when two drugs are added, call <code>POST /pharmacy/check-interactions</code>. If interaction found, show a red warning that the doctor must acknowledge before issuing.</li>
+          <li><strong>Issue & Print</strong> — "Issue Prescription" call triggers <code>POST /prescriptions</code>. Backend generates a signed prescription PDF with digital signature. Patient receives SMS with pharmacy pickup code.</li>
+          <li><strong>Patient view</strong> — read-only card stack showing current active prescriptions with refill status, days remaining, and "Request Refill" button.</li>
+          <li><strong>Prescription history</strong> — table of all past prescriptions sorted by date. Each row expands to show full details. Filter by doctor or date range.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/medications?search=</span><span class="api-desc">Drug name autocomplete</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/pharmacy/check-interactions</span><span class="api-desc">Drug-drug + drug-allergy check</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/prescriptions</span><span class="api-desc">Issue the prescription</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/prescriptions/patient/{id}</span><span class="api-desc">Patient prescription history</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/prescriptions/{id}/pdf</span><span class="api-desc">Download prescription PDF</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BILLING -->
+<div class="section" id="billing">
+  <h2>Billing & Invoicing</h2>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--amber-dim)">💳</div>
+        <div class="screen-meta"><h3>Invoice & Payment Screen</h3><p>Patient (pay) · Admin (manage)</p></div>
+        <div class="screen-badges"><span class="badge badge-role">PATIENT</span><span class="badge badge-role">ADMIN</span><span class="badge badge-new">NEW SCREEN</span><span class="badge badge-api">billing-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div class="m-invoice">
+              <div style="font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px">Invoice #INV-2042</div>
+              <div style="font-size:8px;color:var(--text3);margin-bottom:8px">Apr 10, 2025 · Dr. Priya Sharma · Cardiology</div>
+              <div class="m-invoice-row"><span style="color:var(--text2)">Consultation fee</span><span>₹800</span></div>
+              <div class="m-invoice-row"><span style="color:var(--text2)">ECG (Procedure)</span><span>₹600</span></div>
+              <div class="m-invoice-row"><span style="color:var(--text2)">Amlodipine 5mg (30 tabs)</span><span>₹240</span></div>
+              <div class="m-invoice-row"><span style="color:var(--text2)">Lab: Lipid Panel</span><span>₹760</span></div>
+              <div class="m-invoice-row"><span>Total</span><span>₹2,400</span></div>
+            </div>
+            <div style="margin-top:8px">
+              <div style="font-size:9px;color:var(--text3);margin-bottom:6px">Insurance claim status</div>
+              <div style="background:var(--blue-dim);border:1px solid var(--blue);border-radius:4px;padding:6px;font-size:9px;color:var(--blue)">⏳ Claim submitted to Star Health · Processing (2-5 days)</div>
+            </div>
+            <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div style="background:var(--teal);border-radius:4px;padding:5px;text-align:center;font-size:9px;font-weight:700;color:#000">Pay ₹2,400</div>
+              <div style="background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:5px;text-align:center;font-size:9px;color:var(--text2)">Download PDF</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Itemized invoice view</strong> — line items grouped by category: consultation, procedures, pharmacy, lab tests. Each shows the CPT/billing code alongside the description and price.</li>
+          <li><strong>Insurance claim status tracker</strong> — visual progress steps: Submitted → Under Review → Approved/Rejected → Settled. Updated in real-time from the billing-service.</li>
+          <li><strong>Payment gateway integration</strong> — "Pay" button integrates with Razorpay (for India) or Stripe. The frontend loads the payment widget, backend verifies the payment event and marks the invoice as paid.</li>
+          <li><strong>Invoice PDF download</strong> — <code>GET /invoices/{id}/pdf</code> streams a formatted invoice PDF with hospital letterhead, patient details, itemized charges, and GST breakdown.</li>
+          <li><strong>Bill history table</strong> — paginated table of all past invoices with columns: invoice ID, date, service, total, insurance covered, patient due, status. Filterable by date range and status.</li>
+          <li><strong>Admin billing view</strong> — admin sees all invoices across all patients. Can mark invoices as waived, add write-offs, and run daily collection reports.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/invoices/patient/{id}</span><span class="api-desc">All patient invoices</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/invoices/{id}</span><span class="api-desc">Single invoice details</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/invoices/{id}/pay</span><span class="api-desc">Initiate payment (Razorpay order)</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/invoices/{id}/pdf</span><span class="api-desc">Streamed invoice PDF</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/invoices/{id}/claim-status</span><span class="api-desc">Insurance claim tracking</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LAB RESULTS -->
+<div class="section" id="lab">
+  <h2>Lab Results</h2>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--blue-dim)">🧪</div>
+        <div class="screen-meta"><h3>Lab Results — Order, Enter & View</h3><p>Doctor (order/enter) · Patient (view)</p></div>
+        <div class="screen-badges"><span class="badge badge-role">DOCTOR</span><span class="badge badge-role">PATIENT</span><span class="badge badge-new">NEW SCREEN</span><span class="badge badge-api">lab-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup — Patient viewing results</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text)">Lab Results</div>
+              <div style="font-size:8px;color:var(--text3)">Apr 10, 2025 · Lipid Panel</div>
+            </div>
+            <div style="background:var(--surface);border-radius:var(--r);padding:8px;margin-bottom:8px">
+              <div class="m-lab-row">
+                <span style="color:var(--text)">Total Cholesterol</span>
+                <span class="m-lab-range">Normal: &lt;200 mg/dL</span>
+                <span class="m-lab-val high">248 ↑</span>
+              </div>
+              <div class="m-lab-row">
+                <span style="color:var(--text)">LDL Cholesterol</span>
+                <span class="m-lab-range">Normal: &lt;130 mg/dL</span>
+                <span class="m-lab-val high">162 ↑</span>
+              </div>
+              <div class="m-lab-row">
+                <span style="color:var(--text)">HDL Cholesterol</span>
+                <span class="m-lab-range">Normal: &gt;40 mg/dL</span>
+                <span class="m-lab-val normal">52</span>
+              </div>
+              <div class="m-lab-row">
+                <span style="color:var(--text)">Triglycerides</span>
+                <span class="m-lab-range">Normal: &lt;150 mg/dL</span>
+                <span class="m-lab-val normal">128</span>
+              </div>
+              <div class="m-lab-row">
+                <span style="color:var(--text)">Fasting Glucose</span>
+                <span class="m-lab-range">Normal: 70-100</span>
+                <span class="m-lab-val low">64 ↓</span>
+              </div>
+            </div>
+            <div style="font-size:8px;background:var(--red-dim);border:1px solid var(--red);border-radius:4px;padding:6px;color:var(--red)">2 values out of range. Review with your doctor.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Lab order form (Doctor)</strong> — doctor selects from a test panel catalog (CBC, Lipid Panel, LFT, KFT, etc.). Multiple tests can be ordered at once. Order goes to the lab technician queue.</li>
+          <li><strong>Result entry interface (Lab tech)</strong> — simple form for each ordered test with value input + unit. The backend auto-flags values outside the normal reference range for that test and patient demographics (age/gender specific ranges).</li>
+          <li><strong>Results display (Patient)</strong> — tabular view with columns: test name, result value, normal range, unit, flag (↑/↓/normal). Out-of-range values are color-coded red (high) or amber (low).</li>
+          <li><strong>Trend chart</strong> — click on a test name to see a sparkline of that test's values over the past 6 reports. Powered by ApexCharts line chart.</li>
+          <li><strong>PDF report download</strong> — generates a formatted lab report PDF with hospital header and lab accreditation number.</li>
+          <li><strong>Notification trigger</strong> — when results are marked "Ready", the lab-service publishes an event to Kafka. Notification-service sends SMS/email to patient and doctor. The patient portal shows a "New Results" badge.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/labs/tests-catalog</span><span class="api-desc">Available lab test panels</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/labs/orders</span><span class="api-desc">Doctor orders lab tests</span></div>
+        <div class="api-row"><span class="api-method put">PUT</span><span class="api-path">/labs/orders/{id}/results</span><span class="api-desc">Lab tech enters results</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/lab-results/patient/{id}</span><span class="api-desc">All patient lab history</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/lab-results/{id}/pdf</span><span class="api-desc">Download PDF report</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/lab-results/patient/{id}/trend?test=LDL</span><span class="api-desc">Trend chart data per test</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div class="section" id="notifications">
+  <h2>Notification Center</h2>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--purple-dim)">🔔</div>
+        <div class="screen-meta"><h3>Global Notification Panel</h3><p>All roles · Real-time</p></div>
+        <div class="screen-badges"><span class="badge badge-role">ALL ROLES</span><span class="badge badge-new">NEW SCREEN</span><span class="badge badge-api">notification-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text)">Notifications</div>
+              <div style="font-size:8px;color:var(--teal)">Mark all read</div>
+            </div>
+            <div class="m-notif">
+              <div class="m-notif-title">Appointment confirmed — Dr. Sharma</div>
+              <div class="m-notif-sub">Apr 18 at 10:00 AM · Cardiology</div>
+            </div>
+            <div class="m-notif alert">
+              <div class="m-notif-title">Lab results ready</div>
+              <div class="m-notif-sub">Your Lipid Panel results are available · 2 values out of range</div>
+            </div>
+            <div class="m-notif warn">
+              <div class="m-notif-title">Payment due</div>
+              <div class="m-notif-sub">Invoice #INV-2042 · ₹2,400 outstanding</div>
+            </div>
+            <div class="m-notif" style="border-left-color:var(--text3)">
+              <div class="m-notif-title">Prescription issued</div>
+              <div class="m-notif-sub">Dr. Sharma issued 2 medications · Pick up at pharmacy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Notification bell in navbar</strong> — badge count on the bell icon, real-time updated via WebSocket. Clicking opens a slide-over drawer (not a full page) showing the notification list.</li>
+          <li><strong>Notification types with color coding</strong> — Teal: info/confirmation. Red: alert (lab abnormal, critical). Amber: warning (bill due, appointment reminder). Grey: neutral updates.</li>
+          <li><strong>Actionable notifications</strong> — each notification has a primary action button inline. "View Lab Results" → navigates directly to that result. "Pay Now" → opens billing. No hunting through menus.</li>
+          <li><strong>Notification preferences page</strong> — in Settings, users can toggle: email on appointment confirmation, SMS 24h reminder, push notification for lab results, etc. Settings stored per user in auth-service.</li>
+          <li><strong>WebSocket connection management</strong> — use STOMP over WebSocket. Connect on login, subscribe to <code>/user/queue/notifications</code>. Reconnect with exponential backoff on disconnect.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method ws">WS</span><span class="api-path">/ws/user/queue/notifications</span><span class="api-desc">Real-time notification stream</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/notifications/me</span><span class="api-desc">Notification history list</span></div>
+        <div class="api-row"><span class="api-method put">PUT</span><span class="api-path">/notifications/{id}/read</span><span class="api-desc">Mark as read</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/notifications/preferences</span><span class="api-desc">User notification settings</span></div>
+        <div class="api-row"><span class="api-method put">PUT</span><span class="api-path">/notifications/preferences</span><span class="api-desc">Update preferences</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="section" id="analytics">
+  <h2>Reports & Analytics</h2>
+</div>
+
+<div class="screen">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--amber-dim)">📊</div>
+        <div class="screen-meta"><h3>Admin Reports & Analytics Dashboard</h3><p>Admin only · Data command center</p></div>
+        <div class="screen-badges"><span class="badge badge-role">ADMIN</span><span class="badge badge-new">NEW SCREEN</span><span class="badge badge-api">reporting-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">UI Mockup</div>
+        <div class="mockup">
+          <div class="mockup-bar"><div class="mb-dot" style="background:#ff5f57"></div><div class="mb-dot" style="background:#febc2e"></div><div class="mb-dot" style="background:#28c840"></div></div>
+          <div class="mockup-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div style="font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text)">Analytics</div>
+              <div style="display:flex;gap:4px;font-size:8px">
+                <div style="background:var(--teal-dim);border:1px solid var(--teal2);border-radius:4px;padding:2px 6px;color:var(--teal)">Last 30 days</div>
+                <div style="background:var(--surface);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;color:var(--text3)">Export</div>
+              </div>
+            </div>
+            <div class="m-cards" style="grid-template-columns:1fr 1fr;margin-bottom:8px">
+              <div class="m-card">
+                <div class="m-card-n">₹18.4L</div>
+                <div class="m-card-l">Monthly Revenue</div>
+                <div style="font-size:8px;color:var(--green);margin-top:3px">↑ 12% vs last month</div>
+              </div>
+              <div class="m-card">
+                <div class="m-card-n" style="color:var(--amber)">87%</div>
+                <div class="m-card-l">Bed Occupancy</div>
+                <div style="font-size:8px;color:var(--red);margin-top:3px">↑ 4% vs last month</div>
+              </div>
+            </div>
+            <div class="m-section-title">Revenue by Department (₹ Lakhs)</div>
+            <div class="m-chart-bar" style="height:50px">
+              <div class="bar-col" style="height:90%;background:var(--teal-dim);border-color:var(--teal2)"></div>
+              <div class="bar-col" style="height:60%"></div>
+              <div class="bar-col" style="height:75%"></div>
+              <div class="bar-col" style="height:40%"></div>
+              <div class="bar-col" style="height:50%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-around;font-size:7px;color:var(--text3);margin-top:2px">
+              <span>Cardio</span><span>Ortho</span><span>Neuro</span><span>Derma</span><span>Peds</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Components & Changes</div>
+        <ul class="comp-list">
+          <li><strong>Date range picker</strong> — PrimeNG <code>p-calendar</code> in range mode. Presets: Today, Last 7 days, Last 30 days, This month, Custom. All charts and KPIs re-fetch with the selected range.</li>
+          <li><strong>Revenue charts</strong> — ApexCharts stacked bar chart broken down by department. Line overlay showing target vs actual. Drill-down by clicking a bar to see that department's breakdown by service type.</li>
+          <li><strong>Patient volume trends</strong> — area chart of new vs returning patients per day. Overlay showing appointment cancellation rate as a red dashed line.</li>
+          <li><strong>Top doctors table</strong> — sorted by patient count, revenue generated, and satisfaction rating. Clickable rows expand to show that doctor's individual performance over time.</li>
+          <li><strong>Disease prevalence heatmap</strong> — calendar heatmap of ICD-10 diagnosis codes across the month. Useful for outbreak detection.</li>
+          <li><strong>Export to Excel/PDF</strong> — "Export" button triggers <code>GET /reporting/export?type=revenue&format=xlsx&range=30d</code>. Backend streams the file. Frontend triggers download via a blob URL.</li>
+        </ul>
+        <div class="panel-title" style="margin-top:20px">API Connections</div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/revenue?from=&to=&groupBy=department</span><span class="api-desc">Revenue chart data</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/patients/volume?range=30d</span><span class="api-desc">Patient volume trend</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/doctors/performance</span><span class="api-desc">Top doctors table</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/diagnoses/heatmap?month=</span><span class="api-desc">Disease prevalence data</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/export?type=&format=xlsx</span><span class="api-desc">File export (blob download)</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PATIENT MGMT & DOCTOR MGMT screens (collapsed summary) -->
+<div class="screen" style="margin-top:24px">
+  <div class="screen-header" onclick="toggle(this)">
+    <div>
+      <div class="screen-title-row">
+        <div class="screen-icon" style="background:var(--teal-dim)">👥</div>
+        <div class="screen-meta"><h3>Patient & Doctor Management (Admin)</h3><p>Admin only · CRUD + search + profile views</p></div>
+        <div class="screen-badges"><span class="badge badge-role">ADMIN</span><span class="badge badge-new">NEW SCREEN</span><span class="badge badge-api">patient-service</span><span class="badge badge-api">doctor-service</span></div>
+      </div>
+    </div>
+    <div class="chevron">⌄</div>
+  </div>
+  <div class="screen-body">
+    <div class="screen-inner">
+      <div class="ui-panel">
+        <div class="panel-title">Patient Management — Key UI Elements</div>
+        <ul class="comp-list">
+          <li><strong>PrimeNG <code>p-table</code> with virtual scroll</strong> — handles thousands of patients. Columns: photo, name, patient ID, age, blood group, last visit, status. Sortable + filterable per column.</li>
+          <li><strong>Global search</strong> — debounced search bar that hits <code>GET /patients?search=</code> across name, phone, and patient ID simultaneously. Results highlight the matching term.</li>
+          <li><strong>Patient profile page</strong> — clicking any row opens a full patient profile with tabs: Demographics, Medical History, Appointments, Prescriptions, Lab Results, Invoices. Each tab is its own lazy API call.</li>
+          <li><strong>Add/Edit patient form</strong> — PrimeNG <code>p-dialog</code> overlay with a multi-section form. Validates phone number format, blood group value, and insurance policy number pattern.</li>
+          <li><strong>Bulk actions</strong> — multi-select rows to: export selected patients to CSV, send bulk SMS reminder, deactivate accounts.</li>
+        </ul>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/patients?search=&page=&size=</span><span class="api-desc">Paginated patient list</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/patients/{id}</span><span class="api-desc">Full patient profile</span></div>
+        <div class="api-row"><span class="api-method post">POST</span><span class="api-path">/patients</span><span class="api-desc">Create patient</span></div>
+        <div class="api-row"><span class="api-method put">PUT</span><span class="api-path">/patients/{id}</span><span class="api-desc">Update patient</span></div>
+      </div>
+      <div class="ui-panel">
+        <div class="panel-title">Doctor Management — Key UI Elements</div>
+        <ul class="comp-list">
+          <li><strong>Doctor cards grid</strong> — on desktop, show doctors as cards with photo, specialty badge, rating, and today's appointment count. Toggle to table view for bulk operations.</li>
+          <li><strong>Schedule management</strong> — admin can set a doctor's weekly schedule: which days they work, start/end times, slot duration (e.g., 30 min), max concurrent patients. This feeds the slot-picker on the booking screen.</li>
+          <li><strong>Doctor profile</strong> — education, experience, specializations, publications, languages spoken, consultation fee. This is public-facing data that patients see when booking.</li>
+          <li><strong>License expiry alert</strong> — dashboard shows doctors whose license expires in the next 90 days. Color-coded: green (>90 days), amber (30-90 days), red (<30 days).</li>
+          <li><strong>Performance metrics panel</strong> — per doctor: total patients seen, average rating, cancellation rate, revenue generated. All pulled from reporting-service.</li>
+        </ul>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/doctors?specialty=&search=&page=</span><span class="api-desc">Doctor list with filters</span></div>
+        <div class="api-row"><span class="api-method put">PUT</span><span class="api-path">/doctors/{id}/schedule</span><span class="api-desc">Set weekly schedule</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><span class="api-path">/reporting/doctors/{id}/performance</span><span class="api-desc">Doctor performance metrics</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- API CONNECTION MAP -->
+<div class="section" id="connections">
+  <div class="section-tag">Architecture</div>
+  <h2>Frontend → Backend Connection Map</h2>
+  <p class="section-desc">Every Angular feature module and which backend services it talks to. This is your dependency map for planning what to build in which order.</p>
+
+  <div class="conn-grid">
+    <div class="conn-card">
+      <div class="conn-screen">🔐 Auth Module <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--green)"></span>auth-service (login, register, refresh)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">📅 Appointment Booking <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--blue)"></span>appointment-service (slots, create, cancel)</div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>doctor-service (search, availability)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">📋 Medical Records <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>medical-records-service (new)</div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>patient-service (demographics)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">💊 Pharmacy <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>pharmacy-service (new)</div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>patient-service (allergies check)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">🧪 Lab Results <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>lab-service (new)</div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>notification-service (WS events)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">💳 Billing <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>billing-service (new)</div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>medical-records-service (CPT codes)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">🔔 Notifications <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>notification-service WS (new)</div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--green)"></span>auth-service (preferences)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">📊 Analytics <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>reporting-service (new)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">👥 Patient Mgmt <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>patient-service (new — priority 1)</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-screen">👨‍⚕️ Doctor Mgmt <span class="conn-arrow">→</span></div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--blue)"></span>doctor-service (extended)</div>
+      <div class="conn-svc"><span class="conn-dot" style="background:var(--amber)"></span>reporting-service (performance)</div>
+    </div>
+  </div>
+
+  <!-- Order to build -->
+  <div style="margin-top:40px">
+    <div class="section-tag">Build order</div>
+    <h2>What to build in what order</h2>
+    <p class="section-desc">Based on dependencies and user impact. Each block depends on everything above it.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+      <div class="be-change" style="border-left:3px solid var(--red)">
+        <div class="be-change-title"><span style="background:var(--red);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">1</span> Unblock Everything</div>
+        <p>Build <strong>patient-service</strong>. The appointment-service Feign client is already pointing at it. Without this, appointment data is incomplete. Auth-service also needs the role in JWT response.</p>
+      </div>
+      <div class="be-change" style="border-left:3px solid var(--amber)">
+        <div class="be-change-title"><span style="background:var(--amber);color:#000;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">2</span> Role Dashboards</div>
+        <p>Build the <strong>3 role-based Angular modules</strong> with lazy loading. Wire each to its dashboard home screen. Implement the appointment booking redesign with doctor search + slot picker.</p>
+      </div>
+      <div class="be-change" style="border-left:3px solid var(--blue)">
+        <div class="be-change-title"><span style="background:var(--blue);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">3</span> Clinical Core</div>
+        <p>Build <strong>medical-records-service</strong>, <strong>pharmacy-service</strong>, and <strong>lab-service</strong>. Wire the EMR screen, prescription writer, and lab result viewer to Angular.</p>
+      </div>
+      <div class="be-change" style="border-left:3px solid var(--teal)">
+        <div class="be-change-title"><span style="background:var(--teal);color:#000;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">4</span> Revenue & Ops</div>
+        <p>Build <strong>billing-service</strong>, <strong>notification-service</strong>, and <strong>reporting-service</strong>. Wire the billing screen, notification bell with WebSocket, and admin analytics dashboard.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<footer>
+  HMS Roadmap · Generated from codebase analysis of health-care-mngt-sys · Angular 18 + Spring Boot Microservices<br>
+  <span style="margin-top:6px;display:block">Build order: patient-service → role dashboards → clinical services → billing + notifications</span>
+</footer>
+
+<script>
+function toggle(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+  const ch = header.querySelector('.chevron');
+  ch.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+// Nav active highlight on scroll
+const sections = document.querySelectorAll('[id]');
+const navLinks = document.querySelectorAll('.nav-links a');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const active = document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+sections.forEach(s => obs.observe(s));
+
+// Auto-open first screen in each section
+document.querySelectorAll('.screen').forEach((screen, i) => {
+  if (i % 5 === 0) {
+    const h = screen.querySelector('.screen-header');
+    if (h) toggle(h);
+  }
+});
+</script>
+</body>
+</html>

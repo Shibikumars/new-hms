@@ -13,6 +13,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.security.Key;
+import java.util.Locale;
 
 @Component
 public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
@@ -36,7 +37,12 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             String path = exchange.getRequest().getURI().getPath();
             HttpMethod method = exchange.getRequest().getMethod();
 
-            // ✅ Allow /auth endpoints (login/register) without token
+            // ✅ Allow CORS preflight requests through without auth
+            if (method == HttpMethod.OPTIONS) {
+                return chain.filter(exchange);
+            }
+
+            // ✅ Allow /auth endpoints (login/register/validate) without token
             if (path.startsWith("/auth/")) {
                 return chain.filter(exchange);
             }
@@ -67,20 +73,34 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
             String role = (String) claims.get("role");
             String username = claims.getSubject();
+            Object userIdClaim = claims.get("userId");
+
+            // Normalize role claim (handles legacy "USER" values)
+            String normalizedRole = normalizeRole(role);
 
             // ✅ Check role-based access for this path+method
-            if (!isAllowed(path, method, role)) {
-                return onError(exchange, HttpStatus.FORBIDDEN, "Access Denied for role: " + role);
+            if (!isAllowed(path, method, normalizedRole)) {
+                return onError(exchange, HttpStatus.FORBIDDEN, "Access Denied for role: " + normalizedRole);
             }
 
             // ✅ Forward role and username as headers to downstream services
+            String userIdHeader = userIdClaim != null ? String.valueOf(userIdClaim) : "";
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .header("X-User-Role", role != null ? role : "")
+                    .header("X-User-Role", normalizedRole != null ? normalizedRole : "")
                     .header("X-Username", username != null ? username : "")
+                    .header("X-User-Id", userIdHeader)
                     .build();
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         };
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) return null;
+        String r = role.trim().toUpperCase(Locale.ROOT);
+        // Backwards compatibility: some existing users might have been stored as USER
+        if ("USER".equals(r)) return "PATIENT";
+        return r;
     }
 
     /**
@@ -118,6 +138,12 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 if (path.startsWith("/slots/available/")) return true;
                 if (path.startsWith("/lab/orders/patient/")) return true;
                 if (path.startsWith("/lab/reports/patient/")) return true;
+                if (path.startsWith("/notifications/me") && method == HttpMethod.GET) return true;
+                if (path.startsWith("/notifications/preferences") && (method == HttpMethod.GET || method == HttpMethod.PUT)) return true;
+                if (path.startsWith("/notifications/") && path.endsWith("/read") && method == HttpMethod.PUT) return true;
+                if (path.startsWith("/invoices/patient/") && method == HttpMethod.GET) return true;
+                if (path.startsWith("/invoices/") && path.endsWith("/pay") && method == HttpMethod.POST) return true;
+                if (path.startsWith("/invoices/") && path.endsWith("/claim-status") && method == HttpMethod.GET) return true;
                 return false;
 
             default:

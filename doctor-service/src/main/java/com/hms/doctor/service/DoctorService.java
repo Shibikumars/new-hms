@@ -5,8 +5,10 @@ import com.hms.doctor.exception.ResourceNotFoundException;
 import com.hms.doctor.repository.DoctorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class DoctorService {
@@ -20,6 +22,41 @@ public class DoctorService {
 
     public List<Doctor> getAllDoctors() {
         return doctorRepository.findAll();
+    }
+
+    public List<Doctor> searchDoctors(String search, String specialty) {
+        String normalizedSearch = search == null ? "" : search.trim();
+        String normalizedSpecialty = specialty == null ? "" : specialty.trim();
+
+        if (!normalizedSearch.isBlank() && !normalizedSpecialty.isBlank()) {
+            return doctorRepository.findByFullNameContainingIgnoreCaseAndSpecializationContainingIgnoreCase(
+                normalizedSearch,
+                normalizedSpecialty
+            );
+        }
+
+        if (!normalizedSearch.isBlank()) {
+            return doctorRepository.findByFullNameContainingIgnoreCaseOrSpecializationContainingIgnoreCase(
+                normalizedSearch,
+                normalizedSearch
+            );
+        }
+
+        if (!normalizedSpecialty.isBlank()) {
+            return doctorRepository.findBySpecializationContainingIgnoreCase(normalizedSpecialty);
+        }
+
+        return doctorRepository.findAll();
+    }
+
+    public List<String> getSpecialties() {
+        return doctorRepository.findAll().stream()
+            .map(Doctor::getSpecialization)
+            .filter(value -> value != null && !value.isBlank())
+            .map(String::trim)
+            .distinct()
+            .sorted(String::compareToIgnoreCase)
+            .collect(Collectors.toList());
     }
 
     public Optional<Doctor> getDoctorById(Long id) {

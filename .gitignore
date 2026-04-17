@@ -1,0 +1,30 @@
+# IDE
+.vs/
+.idea/
+*.iml
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+**/node_modules/
+**/dist/
+**/.angular/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java
+**/target/
+
+# Env
+.env
+.env.*
+
+# Coverage
+**/coverage/

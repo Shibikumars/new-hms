@@ -8,4 +8,5 @@ public interface LabReportRepository extends JpaRepository<LabReport, Long> {
     List<LabReport> findByPatientId(Long patientId);
     // ✅ NEW
     List<LabReport> findByDoctorId(Long doctorId);
+    List<LabReport> findByPatientIdAndTestIdOrderByReportDateAsc(Long patientId, Long testId);
 }

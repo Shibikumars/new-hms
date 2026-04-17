@@ -1,62 +1,64 @@
 package com.hms.lab.controller;
 
-import com.hms.lab.entity.*;
+import com.hms.lab.dto.LabResultEntryRequest;
+import com.hms.lab.entity.LabOrder;
+import com.hms.lab.entity.LabReport;
+import com.hms.lab.entity.LabTest;
 import com.hms.lab.service.LabService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/lab")
 public class LabController {
 
-    @Autowired private LabService labService;
+    private final LabService labService;
 
-    // Admin: add test
-    @PostMapping("/tests")
-    public LabTest addTest(@RequestBody LabTest test) { return labService.addTest(test); }
-
-    // Admin/Doctor: view all tests
-    @GetMapping("/tests")
-    public List<LabTest> getAllTests() { return labService.getAllTests(); }
-
-    // Doctor: place order
-    @PostMapping("/orders")
-    public LabOrder placeOrder(@RequestBody LabOrder order) { return labService.placeOrder(order); }
-
-    // Admin: view all orders
-    @GetMapping("/orders")
-    public List<LabOrder> getAllOrders() { return labService.getAllOrders(); }
-
-    // Patient: view my orders
-    @GetMapping("/orders/patient/{patientId}")
-    public List<LabOrder> getOrdersByPatient(@PathVariable Long patientId) {
-        return labService.getOrdersByPatient(patientId);
+    public LabController(LabService labService) {
+        this.labService = labService;
     }
 
-    // ✅ NEW — Doctor: view orders they placed
-    @GetMapping("/orders/doctor/{doctorId}")
-    public List<LabOrder> getOrdersByDoctor(@PathVariable Long doctorId) {
-        return labService.getOrdersByDoctor(doctorId);
+    @GetMapping("/labs/tests-catalog")
+    public List<LabTest> getTestsCatalog() {
+        return labService.getTestsCatalog();
     }
 
-    // Doctor: generate report
-    @PostMapping("/reports")
-    public LabReport generateReport(@RequestBody LabReport report) { return labService.generateReport(report); }
-
-    // Admin: view all reports
-    @GetMapping("/reports")
-    public List<LabReport> getAllReports() { return labService.getAllReports(); }
-
-    // Patient: view my reports
-    @GetMapping("/reports/patient/{patientId}")
-    public List<LabReport> getReportsByPatient(@PathVariable Long patientId) {
-        return labService.getReportsByPatient(patientId);
+    @PostMapping("/labs/tests-catalog")
+    public LabTest addTest(@RequestBody LabTest test) {
+        return labService.addTest(test);
     }
 
-    // ✅ NEW — Doctor: view reports they generated
-    @GetMapping("/reports/doctor/{doctorId}")
-    public List<LabReport> getReportsByDoctor(@PathVariable Long doctorId) {
-        return labService.getReportsByDoctor(doctorId);
+    @PostMapping("/labs/orders")
+    public LabOrder placeOrder(@RequestBody LabOrder order) {
+        return labService.placeOrder(order);
+    }
+
+    @GetMapping("/labs/orders")
+    public List<LabOrder> getOrders() {
+        return labService.getAllOrders();
+    }
+
+    @PutMapping("/labs/orders/{id}/results")
+    public LabReport enterResults(@PathVariable("id") Long orderId, @RequestBody LabResultEntryRequest input) {
+        return labService.enterResults(orderId, input);
+    }
+
+    @GetMapping("/lab-results/patient/{patientId}")
+    public List<LabReport> getResultsByPatient(@PathVariable Long patientId) {
+        return labService.getLabResultsByPatient(patientId);
+    }
+
+    @GetMapping("/lab-results/{id}/pdf")
+    public Map<String, Object> getPdf(@PathVariable("id") Long reportId) {
+        return labService.getReportPdf(reportId);
+    }
+
+    @GetMapping("/lab-results/patient/{patientId}/trend")
+    public List<LabReport> getTrend(
+        @PathVariable Long patientId,
+        @RequestParam("test") String test
+    ) {
+        return labService.getTrend(patientId, test);
     }
 }

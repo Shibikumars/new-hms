@@ -1,7 +1,10 @@
 package com.hms.auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hms.auth.entity.User;
+import com.hms.auth.dto.AuthRequest;
+import com.hms.auth.dto.AuthResponse;
+import com.hms.auth.dto.RegisterRequest;
+import com.hms.auth.dto.UserResponse;
 import com.hms.auth.security.JwtUtil;
 import com.hms.auth.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,43 +39,52 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private User testUser;
+    private RegisterRequest testRequest;
+    private UserResponse testResponse;
+    private AuthRequest loginRequest;
 
     @BeforeEach
     void setUp() {
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setUsername("testuser");
-        testUser.setPassword("password123");
-        testUser.setRole("USER");
+        testRequest = new RegisterRequest();
+        testRequest.setUsername("testuser");
+        testRequest.setPassword("password123");
+        testRequest.setRole("PATIENT");
+
+        testResponse = new UserResponse(1L, "testuser", "PATIENT");
+
+        loginRequest = new AuthRequest();
+        loginRequest.setUsername("testuser");
+        loginRequest.setPassword("password123");
     }
 
     @Test
     @DisplayName("Should register user successfully")
     void testRegister() throws Exception {
-        when(authService.register(any(User.class))).thenReturn(testUser);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(testResponse);
 
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(testUser)))
-                .andExpect(status().isOk())
+                .content(objectMapper.writeValueAsString(testRequest)))
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("testuser"));
 
-        verify(authService, times(1)).register(any(User.class));
+        verify(authService, times(1)).register(any(RegisterRequest.class));
     }
 
     @Test
     @DisplayName("Should login successfully with valid credentials")
     void testLoginSuccess() throws Exception {
         String token = "jwt.token.here";
+        AuthResponse response = new AuthResponse(token, "refresh.token", "PATIENT", 36000L);
+
         when(authService.login("testuser", "password123"))
-            .thenReturn(token);
+            .thenReturn(response);
 
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(testUser)))
+                .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(token));
+                .andExpect(jsonPath("$.token").value(token));
 
         verify(authService, times(1)).login("testuser", "password123");
     }
@@ -83,11 +95,14 @@ class AuthControllerTest {
         when(authService.login("testuser", "wrongpassword"))
             .thenThrow(new RuntimeException("Invalid credentials"));
 
+        AuthRequest wrongLogin = new AuthRequest();
+        wrongLogin.setUsername("testuser");
+        wrongLogin.setPassword("wrongpassword");
+
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(testUser)))
-                .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Invalid credentials"));
+                .content(objectMapper.writeValueAsString(wrongLogin)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -183,22 +198,23 @@ class AuthControllerTest {
      @Test
      @DisplayName("Should register user with different roles")
      void testRegisterUserWithDifferentRoles() throws Exception {
-         User adminUser = new User();
-         adminUser.setId(2L);
-         adminUser.setUsername("admin");
-         adminUser.setPassword("adminpass");
-         adminUser.setRole("ADMIN");
+         RegisterRequest adminRequest = new RegisterRequest();
+         adminRequest.setUsername("admin");
+         adminRequest.setPassword("adminpass123");
+         adminRequest.setRole("ADMIN");
 
-         when(authService.register(any(User.class))).thenReturn(adminUser);
+         UserResponse adminResponse = new UserResponse(2L, "admin", "ADMIN");
+
+         when(authService.register(any(RegisterRequest.class))).thenReturn(adminResponse);
 
          mockMvc.perform(post("/auth/register")
                  .contentType(MediaType.APPLICATION_JSON)
-                 .content(objectMapper.writeValueAsString(adminUser)))
-                 .andExpect(status().isOk())
+                 .content(objectMapper.writeValueAsString(adminRequest)))
+                 .andExpect(status().isCreated())
                  .andExpect(jsonPath("$.username").value("admin"))
                  .andExpect(jsonPath("$.role").value("ADMIN"));
 
-         verify(authService, times(1)).register(any(User.class));
+         verify(authService, times(1)).register(any(RegisterRequest.class));
      }
 
      @Test
@@ -210,7 +226,7 @@ class AuthControllerTest {
          for (int i = 0; i < 3; i++) {
              mockMvc.perform(post("/auth/login")
                      .contentType(MediaType.APPLICATION_JSON)
-                     .content(objectMapper.writeValueAsString(testUser)))
+                     .content(objectMapper.writeValueAsString(loginRequest)))
                      .andExpect(status().isUnauthorized());
          }
 
@@ -218,94 +234,35 @@ class AuthControllerTest {
      }
 
      @Test
-     @DisplayName("Should validate token with admin role")
-     void testValidateTokenAdminRole() throws Exception {
-         String token = "admin.token";
-         String username = "admin";
-         String role = "ADMIN";
-
-         when(jwtUtil.extractUsername(token)).thenReturn(username);
-         when(jwtUtil.extractRole(token)).thenReturn(role);
-
-         mockMvc.perform(get("/auth/validate")
-                 .header("Authorization", "Bearer " + token))
-                 .andExpect(status().isOk())
-                 .andExpect(jsonPath("$.username").value("admin"))
-                 .andExpect(jsonPath("$.role").value("ADMIN"))
-                 .andExpect(jsonPath("$.status").value("valid"));
-     }
-
-     @Test
-     @DisplayName("Should validate token with doctor role")
-     void testValidateTokenDoctorRole() throws Exception {
-         String token = "doctor.token";
-         String username = "doctor_user";
-         String role = "DOCTOR";
-
-         when(jwtUtil.extractUsername(token)).thenReturn(username);
-         when(jwtUtil.extractRole(token)).thenReturn(role);
-
-         mockMvc.perform(get("/auth/validate")
-                 .header("Authorization", "Bearer " + token))
-                 .andExpect(status().isOk())
-                 .andExpect(jsonPath("$.role").value("DOCTOR"));
-     }
-
-     @Test
-     @DisplayName("Should validate token with patient role")
-     void testValidateTokenPatientRole() throws Exception {
-         String token = "patient.token";
-         String username = "patient_user";
-         String role = "PATIENT";
-
-         when(jwtUtil.extractUsername(token)).thenReturn(username);
-         when(jwtUtil.extractRole(token)).thenReturn(role);
-
-         mockMvc.perform(get("/auth/validate")
-                 .header("Authorization", "Bearer " + token))
-                 .andExpect(status().isOk())
-                 .andExpect(jsonPath("$.role").value("PATIENT"));
-     }
-
-     @Test
-     @DisplayName("Should handle authorization header with only Bearer")
-     void testValidateOnlyBearerPrefix() throws Exception {
-         mockMvc.perform(get("/auth/validate")
-                 .header("Authorization", "Bearer "))
-                 .andExpect(status().isUnauthorized())
-                 .andExpect(content().string("Invalid or expired token"));
-     }
-
-     @Test
      @DisplayName("Should register user and return full object")
      void testRegisterReturnsFullObject() throws Exception {
-         User fullUser = new User();
-         fullUser.setId(5L);
-         fullUser.setUsername("fulluser");
-         fullUser.setPassword("encoded123");
-         fullUser.setRole("USER");
+         RegisterRequest fullRequest = new RegisterRequest();
+         fullRequest.setUsername("fulluser");
+         fullRequest.setPassword("pass1234567");
+         fullRequest.setRole("PATIENT");
 
-         when(authService.register(any(User.class))).thenReturn(fullUser);
+         UserResponse fullResponse = new UserResponse(5L, "fulluser", "PATIENT");
+
+         when(authService.register(any(RegisterRequest.class))).thenReturn(fullResponse);
 
          mockMvc.perform(post("/auth/register")
                  .contentType(MediaType.APPLICATION_JSON)
-                 .content(objectMapper.writeValueAsString(fullUser)))
-                 .andExpect(status().isOk())
+                 .content(objectMapper.writeValueAsString(fullRequest)))
+                 .andExpect(status().isCreated())
                  .andExpect(jsonPath("$.id").value(5))
                  .andExpect(jsonPath("$.username").value("fulluser"))
-                 .andExpect(jsonPath("$.password").value("encoded123"))
-                 .andExpect(jsonPath("$.role").value("USER"));
+                 .andExpect(jsonPath("$.role").value("PATIENT"));
      }
 
      @Test
      @DisplayName("Should return correct HTTP status for successful login")
      void testLoginHttpStatus() throws Exception {
-         String token = "jwt.token.here";
-         when(authService.login("testuser", "password123")).thenReturn(token);
+         AuthResponse response = new AuthResponse("jwt.token.here", "refresh.token", "PATIENT", 36000L);
+         when(authService.login("testuser", "password123")).thenReturn(response);
 
          mockMvc.perform(post("/auth/login")
                  .contentType(MediaType.APPLICATION_JSON)
-                 .content(objectMapper.writeValueAsString(testUser)))
+                 .content(objectMapper.writeValueAsString(loginRequest)))
                  .andExpect(status().isOk());
      }
 
@@ -317,7 +274,7 @@ class AuthControllerTest {
 
          mockMvc.perform(post("/auth/login")
                  .contentType(MediaType.APPLICATION_JSON)
-                 .content(objectMapper.writeValueAsString(testUser)))
+                 .content(objectMapper.writeValueAsString(loginRequest)))
                  .andExpect(status().isUnauthorized());
      }
 

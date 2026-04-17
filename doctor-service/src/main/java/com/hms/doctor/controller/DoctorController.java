@@ -28,8 +28,16 @@ public class DoctorController {
     }
 
     @GetMapping
-    public List<Doctor> getAllDoctors() {
-        return doctorService.getAllDoctors();
+    public List<Doctor> getAllDoctors(
+        @RequestParam(value = "search", required = false) String search,
+        @RequestParam(value = "specialty", required = false) String specialty
+    ) {
+        return doctorService.searchDoctors(search, specialty);
+    }
+
+    @GetMapping("/specialties")
+    public List<String> getSpecialties() {
+        return doctorService.getSpecialties();
     }
 
     @GetMapping("/{id}")

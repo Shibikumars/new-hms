@@ -2,6 +2,7 @@ package com.hms.auth.controller;
 
 import com.hms.auth.dto.AuthRequest;
 import com.hms.auth.dto.AuthResponse;
+import com.hms.auth.dto.RefreshRequest;
 import com.hms.auth.dto.RegisterRequest;
 import com.hms.auth.dto.UserResponse;
 import com.hms.auth.security.JwtUtil;
@@ -34,15 +35,25 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         try {
-            String token = authService.login(request.getUsername(), request.getPassword());
-            return ResponseEntity.ok(new AuthResponse(token));
+            return ResponseEntity.ok(authService.login(request.getUsername(), request.getPassword()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        try {
+            return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 
     @GetMapping("/validate")
-    public ResponseEntity<?> validate(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> validate(
+            @RequestHeader(value = "Authorization", required = false) String authHeader
+    ) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseEntity.status(401).body("Missing or invalid Authorization header");
@@ -53,7 +64,9 @@ public class AuthController {
 
             Map<String, String> result = new HashMap<>();
             result.put("username", username);
-            result.put("role", role);
+            if (role != null) {
+                result.put("role", role);
+            }
             result.put("status", "valid");
             return ResponseEntity.ok(result);
         } catch (Exception e) {

@@ -16,13 +16,24 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
-    // ✅ NOW ACCEPTS ROLE — embeds it as a claim
+    // Backward-compatible overload
     public String generateToken(String username, String role) {
-        return Jwts.builder()
+        return generateToken(username, role, null);
+    }
+
+    // Accepts role and optional user id claims
+    public String generateToken(String username, String role, Long userId) {
+        JwtBuilder builder = Jwts.builder()
                 .setSubject(username)
-                .claim("role", role)               // ← role goes here
+                .claim("role", role)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10));
+
+        if (userId != null) {
+            builder.claim("userId", userId);
+        }
+
+        return builder
                 .signWith(getSigningKey())
                 .compact();
     }

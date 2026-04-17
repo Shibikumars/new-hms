@@ -1,40 +1,58 @@
 package com.hms.lab.service;
 
-import com.hms.lab.entity.*;
+import com.hms.lab.dto.LabResultEntryRequest;
+import com.hms.lab.entity.LabOrder;
+import com.hms.lab.entity.LabReport;
+import com.hms.lab.entity.LabTest;
 import com.hms.lab.exception.ResourceNotFoundException;
-import com.hms.lab.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hms.lab.feign.NotificationClient;
+import com.hms.lab.repository.LabOrderRepository;
+import com.hms.lab.repository.LabReportRepository;
+import com.hms.lab.repository.LabTestRepository;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class LabService {
 
-    @Autowired private LabTestRepository labTestRepository;
-    @Autowired private LabOrderRepository labOrderRepository;
-    @Autowired private LabReportRepository labReportRepository;
+    private final LabTestRepository labTestRepository;
+    private final LabOrderRepository labOrderRepository;
+    private final LabReportRepository labReportRepository;
+    private final NotificationClient notificationClient;
 
-    // Lab Tests
+    public LabService(
+        LabTestRepository labTestRepository,
+        LabOrderRepository labOrderRepository,
+        LabReportRepository labReportRepository,
+        NotificationClient notificationClient
+    ) {
+        this.labTestRepository = labTestRepository;
+        this.labOrderRepository = labOrderRepository;
+        this.labReportRepository = labReportRepository;
+        this.notificationClient = notificationClient;
+    }
+
+    // Labs catalog
     public LabTest addTest(LabTest test) {
         return labTestRepository.save(test);
     }
 
-    public List<LabTest> getAllTests() {
+    public List<LabTest> getTestsCatalog() {
         return labTestRepository.findAll();
     }
 
-    public LabTest getTestById(Long id) {
-        return labTestRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Lab test not found with id: " + id));
-    }
-
-    // Lab Orders
+    // Orders
     public LabOrder placeOrder(LabOrder order) {
         labTestRepository.findById(order.getTestId())
             .orElseThrow(() -> new ResourceNotFoundException("Lab test not found with id: " + order.getTestId()));
+
         order.setOrderDate(LocalDate.now());
-        order.setStatus("PENDING");
+        if (order.getStatus() == null || order.getStatus().isBlank()) {
+            order.setStatus("PENDING");
+        }
         return labOrderRepository.save(order);
     }
 
@@ -42,41 +60,61 @@ public class LabService {
         return labOrderRepository.findAll();
     }
 
-    public List<LabOrder> getOrdersByPatient(Long patientId) {
-        return labOrderRepository.findByPatientId(patientId);
-    }
+    // Results entry and reporting
+    public LabReport enterResults(Long orderId, LabResultEntryRequest input) {
+        LabOrder order = labOrderRepository.findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("Lab order not found with id: " + orderId));
 
-    // ✅ NEW
-    public List<LabOrder> getOrdersByDoctor(Long doctorId) {
-        return labOrderRepository.findByDoctorId(doctorId);
-    }
-
-    // Lab Reports
-    public LabReport generateReport(LabReport report) {
-        // Validate order exists
-        LabOrder order = labOrderRepository.findById(report.getLabOrderId())
-            .orElseThrow(() -> new ResourceNotFoundException("Lab order not found with id: " + report.getLabOrderId()));
-
+        LabReport report = new LabReport();
+        report.setLabOrderId(order.getId());
+        report.setTestId(order.getTestId());
+        report.setDoctorId(order.getDoctorId());
+        report.setPatientId(order.getPatientId());
+        report.setResult(input.getResult());
+        report.setStatus(input.getStatus() == null || input.getStatus().isBlank() ? "READY" : input.getStatus());
         report.setReportDate(LocalDate.now());
-        report.setStatus("COMPLETED");
 
-        // ✅ Auto-complete the corresponding lab order
         order.setStatus("COMPLETED");
         labOrderRepository.save(order);
 
-        return labReportRepository.save(report);
+        LabReport saved = labReportRepository.save(report);
+
+        try {
+            notificationClient.publish(Map.of(
+                "userId", saved.getPatientId(),
+                "title", "Lab result ready",
+                "message", "Lab report #" + saved.getId() + " is now available",
+                "type", "LAB_RESULT"
+            ));
+        } catch (Exception ignored) {
+            // Notification is best-effort; lab write should still succeed.
+        }
+
+        return saved;
     }
 
-    public List<LabReport> getAllReports() {
-        return labReportRepository.findAll();
-    }
-
-    public List<LabReport> getReportsByPatient(Long patientId) {
+    public List<LabReport> getLabResultsByPatient(Long patientId) {
         return labReportRepository.findByPatientId(patientId);
     }
 
-    // ✅ NEW
-    public List<LabReport> getReportsByDoctor(Long doctorId) {
-        return labReportRepository.findByDoctorId(doctorId);
+    public Map<String, Object> getReportPdf(Long reportId) {
+        LabReport report = labReportRepository.findById(reportId)
+            .orElseThrow(() -> new ResourceNotFoundException("Lab report not found with id: " + reportId));
+
+        return Map.of(
+            "reportId", report.getId(),
+            "status", report.getStatus(),
+            "pdf", "PDF generation placeholder"
+        );
+    }
+
+    public List<LabReport> getTrend(Long patientId, String testName) {
+        List<LabTest> tests = labTestRepository.findByTestNameContainingIgnoreCase(testName == null ? "" : testName);
+        if (tests.isEmpty()) {
+            return List.of();
+        }
+
+        Long testId = tests.get(0).getId();
+        return labReportRepository.findByPatientIdAndTestIdOrderByReportDateAsc(patientId, testId);
     }
 }

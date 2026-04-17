@@ -1,11 +1,11 @@
 server:
-  port: 8086
+  port: 8087
 
 spring:
   application:
     name: LAB-SERVICE
   datasource:
-    url: jdbc:mysql://localhost:3306/lab_db
+    url: jdbc:mysql://localhost:3306/lab_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: root
   jpa:

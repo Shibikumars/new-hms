@@ -1,5 +1,6 @@
 package com.hms.appointment.controller;
 
+import com.hms.appointment.dto.TimeSlotDTO;
 import com.hms.appointment.entity.Appointment;
 import com.hms.appointment.service.AppointmentService;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/appointments")
@@ -61,12 +63,26 @@ public class AppointmentController {
     }
 
     @GetMapping("/patient/{patientId}")
-    public List<Appointment> getAppointmentsByPatientId(@PathVariable Long patientId) {
+    public List<Appointment> getAppointmentsByPatientId(
+        @PathVariable Long patientId,
+        @RequestParam(value = "upcoming", required = false, defaultValue = "false") boolean upcoming
+    ) {
+        if (upcoming) {
+            return appointmentService.getUpcomingByPatientId(patientId);
+        }
         return appointmentService.getByPatientId(patientId);
     }
 
     @GetMapping("/doctor/{doctorId}")
     public List<Appointment> getAppointmentsByDoctorId(@PathVariable Long doctorId) {
         return appointmentService.getByDoctorId(doctorId);
+    }
+
+    @GetMapping("/timeslots")
+    public List<TimeSlotDTO> getTimeSlots(
+        @RequestParam("doctorId") Long doctorId,
+        @RequestParam("date") LocalDate date
+    ) {
+        return appointmentService.getTimeSlots(doctorId, date);
     }
 }

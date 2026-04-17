@@ -29,12 +29,17 @@ public class PatientService {
     public Patient updatePatient(Long id, Patient patientDetails) {
         Patient patient = patientRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));
-        patient.setFullName(patientDetails.getFullName());
-        patient.setAge(patientDetails.getAge());
+        patient.setFirstName(patientDetails.getFirstName());
+        patient.setLastName(patientDetails.getLastName());
+        patient.setDob(patientDetails.getDob());
         patient.setGender(patientDetails.getGender());
-        patient.setPhone(patientDetails.getPhone());
         patient.setBloodGroup(patientDetails.getBloodGroup());
+        patient.setPhone(patientDetails.getPhone());
+        patient.setEmail(patientDetails.getEmail());
         patient.setAddress(patientDetails.getAddress());
+        patient.setEmergencyContact(patientDetails.getEmergencyContact());
+        patient.setInsuranceProvider(patientDetails.getInsuranceProvider());
+        patient.setInsurancePolicyNumber(patientDetails.getInsurancePolicyNumber());
         return patientRepository.save(patient);
     }
 

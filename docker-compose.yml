@@ -1,0 +1,188 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: hms-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - hms-net
+
+  discovery-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/discovery-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8761:8761"
+    depends_on:
+      - mysql
+    networks:
+      - hms-net
+
+  api-gateway:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/api-gateway
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8080:8080"
+    depends_on:
+      - discovery-service
+    networks:
+      - hms-net
+
+  auth-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/auth-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8082:8082"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  patient-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/patient-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8081:8081"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  doctor-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/doctor-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8083:8083"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  appointment-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/appointment-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8084:8084"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  lab-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/lab-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8087:8087"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  medical-records-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/medical-records-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8085:8085"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  pharmacy-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/pharmacy-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8086:8086"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  billing-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/billing-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8088:8088"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  notification-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/notification-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8089:8089"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+  reporting-service:
+    image: maven:3.9-eclipse-temurin-17
+    working_dir: /workspace/reporting-service
+    volumes:
+      - ./:/workspace
+    command: mvn spring-boot:run
+    ports:
+      - "8090:8090"
+    depends_on:
+      - discovery-service
+      - mysql
+    networks:
+      - hms-net
+
+networks:
+  hms-net:
+    driver: bridge
+
+volumes:
+  mysql_data:

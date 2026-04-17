@@ -10,6 +10,21 @@ export interface Appointment {
   appointmentDate: string;
   appointmentTime: string;
   status?: string;
+  chiefComplaint?: string;
+}
+
+export interface DoctorOption {
+  id: number;
+  fullName: string;
+  specialization: string;
+  availability: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface TimeSlot {
+  time: string;
+  status: 'AVAILABLE' | 'BOOKED';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -18,6 +33,30 @@ export class AppointmentApiService {
 
   list(): Observable<Appointment[]> {
     return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments`);
+  }
+
+  listByPatientId(patientId: number): Observable<Appointment[]> {
+    return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments/patient/${patientId}`);
+  }
+
+  listUpcomingByPatientId(patientId: number): Observable<Appointment[]> {
+    return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments/patient/${patientId}?upcoming=true`);
+  }
+
+  searchDoctors(search = '', specialty = ''): Observable<DoctorOption[]> {
+    const query = new URLSearchParams();
+    if (search.trim()) query.set('search', search.trim());
+    if (specialty.trim()) query.set('specialty', specialty.trim());
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    return this.http.get<DoctorOption[]>(`${environment.apiBaseUrl}/doctors${suffix}`);
+  }
+
+  listSpecialties(): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiBaseUrl}/doctors/specialties`);
+  }
+
+  getTimeSlots(doctorId: number, date: string): Observable<TimeSlot[]> {
+    return this.http.get<TimeSlot[]>(`${environment.apiBaseUrl}/appointments/timeslots?doctorId=${doctorId}&date=${date}`);
   }
 
   create(payload: Appointment): Observable<Appointment> {
