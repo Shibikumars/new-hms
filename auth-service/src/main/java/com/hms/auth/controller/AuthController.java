@@ -33,20 +33,22 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest request) {
         try {
             return ResponseEntity.ok(authService.login(request.getUsername(), request.getPassword()));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Invalid username or password"));
         }
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+    public ResponseEntity<?> refresh(@Valid @RequestBody RefreshRequest request) {
         try {
             return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Session expired. Please sign in again."));
         }
     }
 
