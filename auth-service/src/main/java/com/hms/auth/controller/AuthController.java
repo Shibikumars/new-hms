@@ -34,20 +34,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
-        try {
-            return ResponseEntity.ok(authService.login(request.getUsername(), request.getPassword()));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        return ResponseEntity.ok(authService.login(request.getUsername(), request.getPassword()));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
-        try {
-            return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
     }
 
     @PostMapping("/logout")

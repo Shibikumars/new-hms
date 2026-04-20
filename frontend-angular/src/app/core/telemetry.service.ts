@@ -12,7 +12,11 @@ export type ApiErrorTelemetry = {
 @Injectable({ providedIn: 'root' })
 export class TelemetryService {
   trackApiError(event: ApiErrorTelemetry): void {
-    console.error('[HMS][API-ERROR]', event);
+    if (event.status >= 500) {
+      console.error('[HMS][API-ERROR]', event);
+    } else {
+      console.warn('[HMS][API-ERROR]', event);
+    }
     window.dispatchEvent(new CustomEvent<ApiErrorTelemetry>('hms-api-error', { detail: event }));
   }
 }
