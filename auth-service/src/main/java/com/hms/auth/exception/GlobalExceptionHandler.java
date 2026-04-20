@@ -17,10 +17,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicate(DataIntegrityViolationException ex) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("error", "Username already exists");
-        map.put("status", 409);
-        return new ResponseEntity<>(map, HttpStatus.CONFLICT);
+        return buildErrorResponse(HttpStatus.CONFLICT, "Username already exists");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -31,39 +28,49 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> map = new HashMap<>();
         map.put("error", errors);
+        map.put("message", errors);
         map.put("status", 400);
         return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCredentials(InvalidCredentialsException ex) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("error", ex.getMessage());
-        map.put("status", 400);
-        return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
+        HttpStatus status = ex.getMessage() != null && ex.getMessage().toLowerCase().contains("already exists")
+                ? HttpStatus.CONFLICT
+                : HttpStatus.BAD_REQUEST;
+        return buildErrorResponse(status, ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("error", ex.getMessage());
-        map.put("status", 400);
-        return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error. Please try again.");
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("error", "Resource not found");
-        map.put("status", 404);
-        return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "Resource not found");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error. Please try again.");
+    }
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(HttpStatus status, String message) {
         Map<String, Object> map = new HashMap<>();
-        map.put("error", ex.getMessage());
-        map.put("status", 500);
-        return new ResponseEntity<>(map, HttpStatus.INTERNAL_SERVER_ERROR);
+        map.put("error", message);
+        map.put("message", message);
+        map.put("status", status.value());
+        return new ResponseEntity<>(map, status);
     }
 }

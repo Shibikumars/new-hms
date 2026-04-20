@@ -36,8 +36,17 @@ class GlobalExceptionHandlerTest {
      @DisplayName("Should handle RuntimeException")
      void testHandleRuntimeException() throws Exception {
          mockMvc.perform(get("/test/runtime-error"))
-                 .andExpect(status().isBadRequest())
-                 .andExpect(jsonPath("$.status").value(400));
+                 .andExpect(status().isInternalServerError())
+                 .andExpect(jsonPath("$.status").value(500));
+     }
+
+     @Test
+     @DisplayName("Should map InvalidCredentialsException to 401")
+     void testInvalidCredentialsException() throws Exception {
+         mockMvc.perform(get("/test/invalid-credentials"))
+                 .andExpect(status().isUnauthorized())
+                 .andExpect(jsonPath("$.message").value("Invalid username or password"))
+                 .andExpect(jsonPath("$.status").value(401));
      }
 
      @Test
@@ -61,8 +70,9 @@ class GlobalExceptionHandlerTest {
      @DisplayName("Should return error in response body for RuntimeException")
      void testRuntimeExceptionResponseFormat() throws Exception {
          mockMvc.perform(get("/test/runtime-error"))
-                 .andExpect(status().isBadRequest())
+                 .andExpect(status().isInternalServerError())
                  .andExpect(jsonPath("$.error").exists())
+                 .andExpect(jsonPath("$.message").exists())
                  .andExpect(jsonPath("$.status").exists());
      }
 
@@ -83,10 +93,10 @@ class GlobalExceptionHandlerTest {
      }
 
      @Test
-     @DisplayName("Should return 400 bad request status code")
+     @DisplayName("Should return 500 for runtime failures")
      void testBadRequestStatusCode() throws Exception {
          mockMvc.perform(get("/test/runtime-error"))
-                 .andExpect(status().isBadRequest());
+                 .andExpect(status().isInternalServerError());
      }
 
      @Test
@@ -111,6 +121,11 @@ class GlobalExceptionHandlerTest {
          @GetMapping("/test/general-error")
          public void throwGeneralError() throws Exception {
              throw new Exception("General error occurred");
+         }
+
+         @GetMapping("/test/invalid-credentials")
+         public void throwInvalidCredentials() {
+             throw new InvalidCredentialsException();
          }
      }
 }

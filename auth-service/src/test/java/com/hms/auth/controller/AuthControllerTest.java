@@ -5,6 +5,7 @@ import com.hms.auth.dto.AuthRequest;
 import com.hms.auth.dto.AuthResponse;
 import com.hms.auth.dto.RegisterRequest;
 import com.hms.auth.dto.UserResponse;
+import com.hms.auth.exception.InvalidCredentialsException;
 import com.hms.auth.security.JwtUtil;
 import com.hms.auth.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,7 +94,7 @@ class AuthControllerTest {
     @DisplayName("Should return 401 when login fails")
     void testLoginFailure() throws Exception {
         when(authService.login("testuser", "wrongpassword"))
-            .thenThrow(new RuntimeException("Invalid credentials"));
+            .thenThrow(new InvalidCredentialsException());
 
         AuthRequest wrongLogin = new AuthRequest();
         wrongLogin.setUsername("testuser");
@@ -221,8 +222,8 @@ class AuthControllerTest {
      @Test
      @DisplayName("Should handle login with multiple failed attempts")
      void testLoginMultipleFailures() throws Exception {
-         when(authService.login(anyString(), anyString()))
-             .thenThrow(new RuntimeException("Invalid credentials"));
+        when(authService.login(anyString(), anyString()))
+             .thenThrow(new InvalidCredentialsException());
 
          for (int i = 0; i < 3; i++) {
              mockMvc.perform(post("/auth/login")
@@ -271,7 +272,7 @@ class AuthControllerTest {
      @DisplayName("Should return correct HTTP status for failed login")
      void testLoginHttpStatusUnauthorized() throws Exception {
          when(authService.login(anyString(), anyString()))
-             .thenThrow(new RuntimeException("Invalid credentials"));
+             .thenThrow(new InvalidCredentialsException());
 
          mockMvc.perform(post("/auth/login")
                  .contentType(MediaType.APPLICATION_JSON)

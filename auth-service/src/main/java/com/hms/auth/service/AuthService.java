@@ -5,6 +5,8 @@ import com.hms.auth.dto.AuthResponse;
 import com.hms.auth.dto.UserResponse;
 import com.hms.auth.entity.RefreshTokenSession;
 import com.hms.auth.entity.User;
+import com.hms.auth.exception.InvalidCredentialsException;
+import com.hms.auth.exception.InvalidRefreshTokenException;
 import com.hms.auth.repository.RefreshTokenSessionRepository;
 import com.hms.auth.repository.UserRepository;
 import com.hms.auth.security.JwtUtil;
@@ -71,13 +73,13 @@ public class AuthService {
             return new AuthResponse(token, refreshToken, authenticatedUser.getRole(), ACCESS_TOKEN_EXPIRY_SECONDS);
         }
 
-        throw new RuntimeException("Invalid credentials");
+        throw new InvalidCredentialsException();
     }
 
     public AuthResponse refresh(String refreshToken) {
         RefreshSession session = getActiveRefreshSession(refreshToken);
         if (session == null) {
-            throw new RuntimeException("Invalid refresh token");
+            throw new InvalidRefreshTokenException();
         }
 
         revokeRefreshToken(refreshToken);
