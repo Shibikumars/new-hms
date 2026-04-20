@@ -65,6 +65,17 @@ public class Patient {
         this.insurancePolicyNumber = insurancePolicyNumber;
     }
 
+    // Backward-compatible constructor used by legacy tests
+    public Patient(Long id, String fullName, Integer age, String gender, String phone, String bloodGroup, String address) {
+        this.id = id;
+        this.setFullName(fullName);
+        this.setAge(age);
+        this.gender = gender;
+        this.phone = phone;
+        this.bloodGroup = bloodGroup;
+        this.address = address;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getFirstName() { return firstName; }

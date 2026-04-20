@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RecordsApiService, VisitNote } from './records-api.service';
+import { AllergyRecord, ProblemRecord, RecordsApiService, VisitNote } from './records-api.service';
 
 @Component({
   selector: 'app-medical-records',
@@ -23,6 +23,22 @@ import { RecordsApiService, VisitNote } from './records-api.service';
         <label for="patientId">Patient ID</label>
         <input id="patientId" type="number" formControlName="patientId" />
         <button type="submit" [disabled]="lookupForm.invalid || loadingRecords">{{ loadingRecords ? 'Loading…' : 'Load' }}</button>
+      </form>
+
+      <form [formGroup]="allergyForm" (ngSubmit)="addAllergy()" class="visit-form card" aria-labelledby="allergy-heading">
+        <h3 id="allergy-heading">Allergy Record</h3>
+        <input type="text" formControlName="allergen" placeholder="Allergen" />
+        <input type="text" formControlName="reaction" placeholder="Reaction" />
+        <input type="text" formControlName="severity" placeholder="Severity (MILD/MODERATE/SEVERE)" />
+        <button type="submit" [disabled]="allergyForm.invalid || lookupForm.invalid">Add Allergy</button>
+      </form>
+
+      <form [formGroup]="problemForm" (ngSubmit)="addProblem()" class="visit-form card" aria-labelledby="problem-heading">
+        <h3 id="problem-heading">Problem List Entry</h3>
+        <input type="text" formControlName="diagnosisCode" placeholder="Diagnosis code" />
+        <input type="text" formControlName="title" placeholder="Problem title" />
+        <input type="text" formControlName="clinicalStatus" placeholder="Clinical status" />
+        <button type="submit" [disabled]="problemForm.invalid || lookupForm.invalid">Add Problem</button>
       </form>
 
       <form [formGroup]="visitForm" (ngSubmit)="createVisit()" class="visit-form card" aria-labelledby="new-visit-heading">
@@ -55,6 +71,30 @@ import { RecordsApiService, VisitNote } from './records-api.service';
           </li>
         </ul>
       </section>
+
+      <section class="section card" aria-labelledby="allergy-list-heading">
+        <h3 id="allergy-list-heading">Allergy List</h3>
+        <div class="muted" *ngIf="allergies.length === 0">No allergy records loaded.</div>
+        <ul class="list" *ngIf="allergies.length > 0">
+          <li *ngFor="let allergy of allergies">
+            <strong>{{ allergy.allergen }}</strong>
+            <span>{{ allergy.severity || 'UNSPECIFIED' }} · {{ allergy.status || 'ACTIVE' }}</span>
+            <p>{{ allergy.reaction || 'No reaction details recorded.' }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section card" aria-labelledby="problem-list-heading">
+        <h3 id="problem-list-heading">Problem List</h3>
+        <div class="muted" *ngIf="problems.length === 0">No problem-list records loaded.</div>
+        <ul class="list" *ngIf="problems.length > 0">
+          <li *ngFor="let problem of problems">
+            <strong>{{ problem.title }}</strong>
+            <span>{{ problem.diagnosisCode }} · {{ problem.clinicalStatus || 'ACTIVE' }}</span>
+            <p>Onset: {{ problem.onsetDate || 'N/A' }}</p>
+          </li>
+        </ul>
+      </section>
     </div>
   `,
   styles: [`
@@ -77,6 +117,8 @@ import { RecordsApiService, VisitNote } from './records-api.service';
 })
 export class MedicalRecordsComponent {
   visits: VisitNote[] = [];
+  allergies: AllergyRecord[] = [];
+  problems: ProblemRecord[] = [];
   icdResults: string[] = [];
   icdSearch = '';
   successMessage = '';
@@ -93,6 +135,18 @@ export class MedicalRecordsComponent {
     visitDate: ['', Validators.required],
     diagnosisCode: [''],
     notes: ['', Validators.required]
+  });
+
+  readonly allergyForm = this.fb.nonNullable.group({
+    allergen: ['', Validators.required],
+    reaction: [''],
+    severity: ['']
+  });
+
+  readonly problemForm = this.fb.nonNullable.group({
+    diagnosisCode: ['', Validators.required],
+    title: ['', Validators.required],
+    clinicalStatus: ['']
   });
 
   constructor(
@@ -113,6 +167,24 @@ export class MedicalRecordsComponent {
       error: () => {
         this.visits = [];
         this.loadingRecords = false;
+      }
+    });
+
+    this.recordsApi.getAllergies(patientId).subscribe({
+      next: items => {
+        this.allergies = items;
+      },
+      error: () => {
+        this.allergies = [];
+      }
+    });
+
+    this.recordsApi.getProblems(patientId).subscribe({
+      next: items => {
+        this.problems = items;
+      },
+      error: () => {
+        this.problems = [];
       }
     });
   }
@@ -140,6 +212,44 @@ export class MedicalRecordsComponent {
       },
       error: () => {
         this.savingVisit = false;
+      }
+    });
+  }
+
+  addAllergy(): void {
+    if (this.lookupForm.invalid || this.allergyForm.invalid) return;
+    const patientId = this.lookupForm.controls.patientId.value;
+    const payload: AllergyRecord = {
+      patientId,
+      allergen: this.allergyForm.controls.allergen.value,
+      reaction: this.allergyForm.controls.reaction.value,
+      severity: this.allergyForm.controls.severity.value
+    };
+
+    this.recordsApi.addAllergy(patientId, payload).subscribe({
+      next: () => {
+        this.allergyForm.reset({ allergen: '', reaction: '', severity: '' });
+        this.successMessage = 'Allergy record added successfully.';
+        this.loadRecords();
+      }
+    });
+  }
+
+  addProblem(): void {
+    if (this.lookupForm.invalid || this.problemForm.invalid) return;
+    const patientId = this.lookupForm.controls.patientId.value;
+    const payload: ProblemRecord = {
+      patientId,
+      diagnosisCode: this.problemForm.controls.diagnosisCode.value,
+      title: this.problemForm.controls.title.value,
+      clinicalStatus: this.problemForm.controls.clinicalStatus.value
+    };
+
+    this.recordsApi.addProblem(patientId, payload).subscribe({
+      next: () => {
+        this.problemForm.reset({ diagnosisCode: '', title: '', clinicalStatus: '' });
+        this.successMessage = 'Problem list entry added successfully.';
+        this.loadRecords();
       }
     });
   }

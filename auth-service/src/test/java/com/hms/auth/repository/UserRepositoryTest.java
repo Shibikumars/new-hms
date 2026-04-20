@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.Optional;
@@ -228,8 +229,7 @@ class UserRepositoryTest {
          user2.setPassword("pass2");
          user2.setRole("DOCTOR");
 
-         // Note: DataIntegrityViolationException would be thrown at commit
-         assertDoesNotThrow(() -> userRepository.save(user2));
+         assertThrows(DataIntegrityViolationException.class, () -> userRepository.saveAndFlush(user2));
      }
 
      @Test

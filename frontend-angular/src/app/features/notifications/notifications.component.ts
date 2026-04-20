@@ -33,6 +33,9 @@ type EscalationEntry = {
   title: string;
   target: 'ADMIN' | 'CARE';
   owner: string;
+  status: 'ACTIVE' | 'RESOLVED' | 'NONE';
+  resolvedBy?: string;
+  resolvedNote?: string;
   escalatedAt: string;
 };
 
@@ -112,7 +115,7 @@ type EscalationEntry = {
                 {{ getSlaLabel(alert.createdAt) }}
               </span>
             </div>
-              <div class="actions-row" *ngIf="getSlaState(alert.createdAt) === 'BREACH' && alert.id && !isEscalated(alert.id)">
+              <div class="actions-row" *ngIf="canManageEscalations && getSlaState(alert.createdAt) === 'BREACH' && alert.id && !isEscalated(alert.id)">
                 <button type="button" (click)="escalateAlert(alert, 'ADMIN')">Escalate to Admin</button>
                 <button type="button" (click)="escalateAlert(alert, 'CARE')">Escalate to Care Team</button>
               </div>
@@ -132,6 +135,8 @@ type EscalationEntry = {
         <button type="button" class="chip" [class.active]="priorityFilter === 'CRITICAL'" (click)="setPriority('CRITICAL')">Critical</button>
         <button type="button" class="chip" [class.active]="priorityFilter === 'BILLING'" (click)="setPriority('BILLING')">Billing</button>
         <button type="button" class="chip" [class.active]="priorityFilter === 'APPOINTMENT'" (click)="setPriority('APPOINTMENT')">Appointment</button>
+        <button type="button" class="chip" [class.active]="onlyEscalated" (click)="toggleEscalatedOnly()">Escalated Only</button>
+        <button type="button" class="chip" [class.active]="onlyResolved" (click)="toggleResolvedOnly()">Resolved Only</button>
       </div>
 
       <div class="section" *ngIf="items.length > 0">
@@ -190,14 +195,17 @@ type EscalationEntry = {
             <li *ngFor="let item of group.items" [class.read]="item.read" [class.alert]="isAlert(item)" [class.warn]="isWarning(item)" [class.sla-warn]="isSlaWarn(item)" [class.sla-breach]="isSlaBreach(item)">
               <div class="row-head">
                 <strong>{{ item.title }}</strong>
-                <span class="type">{{ (item.type || 'INFO').toUpperCase() }}</span>
+                <div class="row-tags">
+                  <span class="type">{{ (item.type || 'INFO').toUpperCase() }}</span>
+                  <span class="status-chip" [class.active]="getEscalationStatus(item) === 'ACTIVE'" [class.resolved]="getEscalationStatus(item) === 'RESOLVED'">{{ getEscalationStatus(item) }}</span>
+                </div>
               </div>
               <span>{{ item.message }}</span>
               <small class="meta">{{ formatCreatedAt(item.createdAt) }}</small>
               <div class="actions-row">
                 <button type="button" *ngIf="item.id && !item.read" (click)="markRead(item.id)" [attr.aria-label]="'Mark notification ' + item.title + ' as read'">Mark Read</button>
                 <button type="button" *ngIf="getActionLabel(item)" (click)="goToAction(item)" [attr.aria-label]="(getActionLabel(item) || 'Open') + ' for notification ' + item.title">{{ getActionLabel(item) }}</button>
-                <button type="button" *ngIf="item.id && isSlaBreach(item) && !isEscalated(item.id)" (click)="escalateAlert(item, 'ADMIN')">Escalate</button>
+                <button type="button" *ngIf="canManageEscalations && item.id && isSlaBreach(item) && !isEscalated(item.id)" (click)="escalateAlert(item, 'ADMIN')">Escalate</button>
                 <span class="owner-tag" *ngIf="item.id && isEscalated(item.id)">Owned by {{ getEscalationOwner(item.id) }}</span>
               </div>
             </li>
@@ -214,9 +222,12 @@ type EscalationEntry = {
               <span class="type">{{ entry.target }}</span>
             </div>
             <span>Owner: {{ entry.owner }}</span>
-            <small class="meta">Escalated at {{ formatCreatedAt(entry.escalatedAt) }}</small>
+            <small class="meta">Escalated at {{ formatCreatedAt(entry.escalatedAt) }} · {{ entry.status }}<span *ngIf="entry.owner === 'SLA-BOT'"> · Auto-SLA</span><span *ngIf="entry.resolvedBy"> · Resolved by {{ entry.resolvedBy }}</span><span *ngIf="entry.resolvedNote"> · Note: {{ entry.resolvedNote }}</span></small>
             <div class="actions-row">
-              <button type="button" (click)="undoEscalation(entry.id)">Undo Escalation</button>
+              <input *ngIf="canManageEscalations && entry.status !== 'RESOLVED'" type="text" [value]="resolverNotesById[entry.id] || ''" (input)="setResolverNote(entry.id, $event)" placeholder="Resolve note" />
+              <button type="button" *ngIf="canManageEscalations && entry.status !== 'RESOLVED'" (click)="reassignEscalation(entry.id, 'ADMIN')">Reassign Admin</button>
+              <button type="button" *ngIf="canManageEscalations && entry.status !== 'RESOLVED'" (click)="reassignEscalation(entry.id, 'CARE')">Reassign Care</button>
+              <button type="button" *ngIf="canManageEscalations && entry.status !== 'RESOLVED'" (click)="undoEscalation(entry.id)">Resolve Escalation</button>
             </div>
           </li>
         </ul>
@@ -300,7 +311,11 @@ type EscalationEntry = {
     .list span { color: var(--text-light); }
     .meta { color: var(--text-muted); font-size: 0.78rem; }
     .row-head { display: flex; justify-content: space-between; gap: 0.6rem; align-items: center; }
+    .row-tags { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
     .type { border: 1px solid rgba(0,212,170,0.45); background: rgba(0,212,170,0.12); color: var(--primary); border-radius: 999px; padding: 0.18rem 0.5rem; font-size: 0.68rem; letter-spacing: 0.04em; font-weight: 700; }
+    .status-chip { border: 1px solid var(--border); border-radius: 999px; padding: 0.18rem 0.5rem; font-size: 0.64rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+    .status-chip.active { border-color: rgba(109,124,255,0.5); color: #c4ceff; background: rgba(109,124,255,0.14); }
+    .status-chip.resolved { border-color: rgba(34,197,94,0.45); color: #80e8a6; background: rgba(34,197,94,0.12); }
     .actions-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .owner-tag { border: 1px solid rgba(109,124,255,0.45); background: rgba(109,124,255,0.14); color: #c4ceff; border-radius: 999px; padding: 0.16rem 0.48rem; font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; }
     .history { margin-top: 1rem; }
@@ -323,18 +338,22 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   socketConnected = false;
   loadingNotifications = false;
   bulkUpdating = false;
+  userRole = '';
+  canManageEscalations = false;
   activeFilter: NotificationFilter = 'ALL';
   priorityFilter: PriorityFilter = 'ALL';
+  onlyEscalated = false;
+  onlyResolved = false;
   historyOpen = false;
   searchTerm = '';
   presets: FilterPreset[] = [];
   escalationMessage = '';
+  resolverNotesById: Record<number, string> = {};
   private escalationSet = new Set<number>();
   escalationAudit: EscalationEntry[] = [];
 
   private pollHandle: number | null = null;
   private readonly keyHandler = (event: KeyboardEvent) => this.onKeydown(event);
-  private activeNotificationUserId: number | null = null;
 
   readonly userForm = this.fb.nonNullable.group({
     userId: [0, [Validators.required, Validators.min(1)]]
@@ -362,6 +381,9 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadPresets();
     window.addEventListener('keydown', this.keyHandler);
+
+    this.userRole = (this.authService.getRole() ?? '').toUpperCase();
+    this.canManageEscalations = this.userRole === 'ADMIN' || this.userRole === 'DOCTOR';
 
     const fromToken = this.authService.getUserId();
     const remembered = Number(localStorage.getItem('hms_notifications_user_id') ?? '0');
@@ -485,6 +507,18 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     this.priorityFilter = priority;
   }
 
+  toggleEscalatedOnly(): void {
+    this.onlyEscalated = !this.onlyEscalated;
+    if (this.onlyEscalated) this.onlyResolved = false;
+    this.loadSilent();
+  }
+
+  toggleResolvedOnly(): void {
+    this.onlyResolved = !this.onlyResolved;
+    if (this.onlyResolved) this.onlyEscalated = false;
+    this.loadSilent();
+  }
+
   onSearch(event: Event): void {
     const target = event.target as HTMLInputElement;
     this.searchTerm = target.value;
@@ -548,35 +582,32 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     const id = item.id;
     if (!id || this.userForm.invalid || this.escalationSet.has(id)) return;
 
-    const payload: NotificationItem = {
-      userId: this.userForm.controls.userId.value,
-      title: `Escalation · ${target}`,
-      message: `Escalated alert from "${item.title}" for ${target} review. Original: ${item.message}`,
-      type: 'CRITICAL'
-    };
+    const owner = target === 'ADMIN' ? 'Admin Desk' : 'Care Team';
 
-    this.notificationsApi.publish(payload).subscribe({
-      next: () => {
-        this.escalationSet.add(id);
-        this.escalationAudit = [
-          {
-            id,
-            title: item.title,
-            target,
-            owner: target === 'ADMIN' ? 'Admin Desk' : 'Care Team',
-            escalatedAt: new Date().toISOString()
-          },
-          ...this.escalationAudit.filter(entry => entry.id !== id)
-        ];
+    this.notificationsApi.escalate(id, target, owner).subscribe({
+      next: updated => {
+        this.upsertById(updated);
+        this.syncEscalationFromItems();
         this.escalationMessage = `Alert #${id} escalated to ${target}.`;
       }
     });
   }
 
   undoEscalation(id: number): void {
-    this.escalationSet.delete(id);
-    this.escalationAudit = this.escalationAudit.filter(entry => entry.id !== id);
-    this.escalationMessage = `Escalation removed for alert #${id}.`;
+    const note = this.resolverNotesById[id] || '';
+    this.notificationsApi.resolveEscalation(id, note).subscribe({
+      next: updated => {
+        this.upsertById(updated);
+        this.syncEscalationFromItems();
+        delete this.resolverNotesById[id];
+        this.escalationMessage = `Escalation removed for alert #${id}.`;
+      }
+    });
+  }
+
+  setResolverNote(id: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.resolverNotesById[id] = input.value;
   }
 
   getAgeLabel(value?: string): string {
@@ -618,12 +649,10 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     if (this.userForm.invalid) return;
 
     const userId = this.userForm.controls.userId.value;
-    this.activeNotificationUserId = userId;
-    this.loadEscalationState(userId);
     localStorage.setItem('hms_notifications_user_id', String(userId));
     this.loadingNotifications = true;
 
-    this.notificationsApi.getMyNotifications(userId).subscribe({
+    this.notificationsApi.getMyNotifications(userId, this.getBackendFilters()).subscribe({
       next: items => {
         this.setItems(items);
         this.loadingNotifications = false;
@@ -656,6 +685,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
 
   private setItems(items: NotificationItem[]): void {
     this.items = items;
+    this.syncEscalationFromItems();
     this.unreadCount = items.filter(item => !item.read).length;
     window.dispatchEvent(new CustomEvent<number>('hms-unread-count', { detail: this.unreadCount }));
   }
@@ -667,13 +697,14 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     } else {
       this.items = [incoming, ...this.items];
     }
+    this.syncEscalationFromItems();
     this.unreadCount = this.items.filter(item => !item.read).length;
     window.dispatchEvent(new CustomEvent<number>('hms-unread-count', { detail: this.unreadCount }));
   }
 
   private loadSilent(): void {
     if (this.userForm.invalid) return;
-    this.notificationsApi.getMyNotifications(this.userForm.controls.userId.value).subscribe({
+    this.notificationsApi.getMyNotifications(this.userForm.controls.userId.value, this.getBackendFilters()).subscribe({
       next: items => this.setItems(items)
     });
   }
@@ -867,37 +898,45 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     localStorage.setItem('hms_notification_presets', JSON.stringify(this.presets));
   }
 
-  private loadEscalationState(userId: number): void {
-    const raw = localStorage.getItem(this.getEscalationStorageKey(userId));
-    if (!raw) {
-      this.escalationSet = new Set<number>();
-      this.escalationAudit = [];
+  private upsertById(updated: NotificationItem): void {
+    if (!updated.id) return;
+    const index = this.items.findIndex(item => item.id === updated.id);
+    if (index >= 0) {
+      this.items[index] = { ...this.items[index], ...updated };
       return;
     }
-
-    try {
-      const parsed = JSON.parse(raw) as { ids?: number[]; audit?: EscalationEntry[] };
-      const ids = Array.isArray(parsed.ids) ? parsed.ids.filter(id => Number.isInteger(id)) : [];
-      const audit = Array.isArray(parsed.audit) ? parsed.audit : [];
-      this.escalationSet = new Set<number>(ids);
-      this.escalationAudit = audit.filter(entry => Number.isInteger(entry.id));
-    } catch {
-      this.escalationSet = new Set<number>();
-      this.escalationAudit = [];
-    }
+    this.items = [updated, ...this.items];
   }
 
-  private persistEscalationState(): void {
-    if (!this.activeNotificationUserId || this.activeNotificationUserId < 1) return;
-    const payload = {
-      ids: Array.from(this.escalationSet.values()),
-      audit: this.escalationAudit
+  private syncEscalationFromItems(): void {
+    const escalated = this.items.filter(item => item.id && item.escalated);
+    this.escalationSet = new Set<number>(escalated.map(item => item.id as number));
+
+    const auditRows = this.items.filter(item => item.id && (item.escalated || item.escalationStatus === 'RESOLVED'));
+    this.escalationAudit = auditRows.map(item => ({
+      id: item.id as number,
+      title: item.title,
+      target: item.escalationTarget === 'CARE' ? 'CARE' : 'ADMIN',
+      owner: item.escalationOwner || 'SYSTEM',
+      status: this.getEscalationStatus(item),
+      resolvedBy: item.resolvedBy,
+      resolvedNote: item.resolvedNote,
+      escalatedAt: item.escalatedAt || item.createdAt || new Date().toISOString()
+    }));
+  }
+
+  getEscalationStatus(item: NotificationItem): 'ACTIVE' | 'RESOLVED' | 'NONE' {
+    const status = (item.escalationStatus || '').toUpperCase();
+    if (status === 'RESOLVED') return 'RESOLVED';
+    if (status === 'ACTIVE' || item.escalated) return 'ACTIVE';
+    return 'NONE';
+  }
+
+  private getBackendFilters(): { escalatedOnly?: boolean; resolvedOnly?: boolean } {
+    return {
+      escalatedOnly: this.onlyEscalated || undefined,
+      resolvedOnly: this.onlyResolved || undefined
     };
-    localStorage.setItem(this.getEscalationStorageKey(this.activeNotificationUserId), JSON.stringify(payload));
-  }
-
-  private getEscalationStorageKey(userId: number): string {
-    return `hms_notification_escalations_${userId}`;
   }
 
   private resolveActionRoute(item: NotificationItem): string | null {

@@ -1,5 +1,7 @@
 package com.hms.records.controller;
 
+import com.hms.records.entity.AllergyRecord;
+import com.hms.records.entity.ProblemRecord;
 import com.hms.records.entity.VitalRecord;
 import com.hms.records.entity.VisitNote;
 import com.hms.records.service.MedicalRecordsService;
@@ -41,5 +43,25 @@ public class MedicalRecordsController {
     @GetMapping("/icd10")
     public List<String> searchIcd(@RequestParam(value = "search", required = false) String search) {
         return medicalRecordsService.searchIcdCodes(search);
+    }
+
+    @GetMapping("/patient/{patientId}/allergies")
+    public List<AllergyRecord> getAllergiesByPatient(@PathVariable Long patientId) {
+        return medicalRecordsService.getAllergiesByPatient(patientId);
+    }
+
+    @PostMapping("/patient/{patientId}/allergies")
+    public AllergyRecord addAllergy(@PathVariable Long patientId, @Valid @RequestBody AllergyRecord allergyRecord) {
+        return medicalRecordsService.addAllergy(patientId, allergyRecord);
+    }
+
+    @GetMapping("/patient/{patientId}/problems")
+    public List<ProblemRecord> getProblemsByPatient(@PathVariable Long patientId) {
+        return medicalRecordsService.getProblemsByPatient(patientId);
+    }
+
+    @PostMapping("/patient/{patientId}/problems")
+    public ProblemRecord addProblem(@PathVariable Long patientId, @Valid @RequestBody ProblemRecord problemRecord) {
+        return medicalRecordsService.addProblem(patientId, problemRecord);
     }
 }

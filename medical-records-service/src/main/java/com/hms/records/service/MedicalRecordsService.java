@@ -1,11 +1,16 @@
 package com.hms.records.service;
 
+import com.hms.records.entity.AllergyRecord;
+import com.hms.records.entity.ProblemRecord;
 import com.hms.records.entity.VitalRecord;
 import com.hms.records.entity.VisitNote;
+import com.hms.records.repository.AllergyRecordRepository;
+import com.hms.records.repository.ProblemRecordRepository;
 import com.hms.records.repository.VitalRecordRepository;
 import com.hms.records.repository.VisitNoteRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 
@@ -22,10 +27,19 @@ public class MedicalRecordsService {
 
     private final VisitNoteRepository visitNoteRepository;
     private final VitalRecordRepository vitalRecordRepository;
+    private final AllergyRecordRepository allergyRecordRepository;
+    private final ProblemRecordRepository problemRecordRepository;
 
-    public MedicalRecordsService(VisitNoteRepository visitNoteRepository, VitalRecordRepository vitalRecordRepository) {
+    public MedicalRecordsService(
+        VisitNoteRepository visitNoteRepository,
+        VitalRecordRepository vitalRecordRepository,
+        AllergyRecordRepository allergyRecordRepository,
+        ProblemRecordRepository problemRecordRepository
+    ) {
         this.visitNoteRepository = visitNoteRepository;
         this.vitalRecordRepository = vitalRecordRepository;
+        this.allergyRecordRepository = allergyRecordRepository;
+        this.problemRecordRepository = problemRecordRepository;
     }
 
     public VisitNote createVisit(VisitNote visitNote) {
@@ -54,5 +68,35 @@ public class MedicalRecordsService {
         return ICD_CODES.stream()
             .filter(code -> code.toLowerCase(Locale.ROOT).contains(term))
             .toList();
+    }
+
+    public AllergyRecord addAllergy(Long patientId, AllergyRecord allergyRecord) {
+        allergyRecord.setPatientId(patientId);
+        if (allergyRecord.getNotedDate() == null) {
+            allergyRecord.setNotedDate(LocalDate.now());
+        }
+        if (allergyRecord.getStatus() == null || allergyRecord.getStatus().isBlank()) {
+            allergyRecord.setStatus("ACTIVE");
+        }
+        return allergyRecordRepository.save(allergyRecord);
+    }
+
+    public List<AllergyRecord> getAllergiesByPatient(Long patientId) {
+        return allergyRecordRepository.findByPatientIdOrderByNotedDateDesc(patientId);
+    }
+
+    public ProblemRecord addProblem(Long patientId, ProblemRecord problemRecord) {
+        problemRecord.setPatientId(patientId);
+        if (problemRecord.getOnsetDate() == null) {
+            problemRecord.setOnsetDate(LocalDate.now());
+        }
+        if (problemRecord.getClinicalStatus() == null || problemRecord.getClinicalStatus().isBlank()) {
+            problemRecord.setClinicalStatus("ACTIVE");
+        }
+        return problemRecordRepository.save(problemRecord);
+    }
+
+    public List<ProblemRecord> getProblemsByPatient(Long patientId) {
+        return problemRecordRepository.findByPatientIdOrderByOnsetDateDesc(patientId);
     }
 }

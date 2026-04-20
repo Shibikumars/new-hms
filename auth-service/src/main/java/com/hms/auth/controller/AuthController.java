@@ -50,6 +50,12 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/validate")
     public ResponseEntity<?> validate(
             @RequestHeader(value = "Authorization", required = false) String authHeader

@@ -34,6 +34,8 @@ class JwtFilterTest {
     private static final String VALID_TOKEN_ADMIN = generateToken("admin", "ADMIN");
     private static final String VALID_TOKEN_DOCTOR = generateToken("doctor", "DOCTOR");
     private static final String VALID_TOKEN_PATIENT = generateToken("patient", "PATIENT");
+    private static final String VALID_TOKEN_PATIENT_UID_123 = generateToken("patient123", "PATIENT", 123L);
+    private static final String VALID_TOKEN_PATIENT_UID_999 = generateToken("patient999", "PATIENT", 999L);
     private static final String EXPIRED_TOKEN = generateExpiredToken("user", "PATIENT");
     private static final String INVALID_TOKEN = "invalid.token.here";
 
@@ -55,9 +57,16 @@ class JwtFilterTest {
     // ==================== Token Generation Helper Methods ====================
 
     private static String generateToken(String username, String role) {
+        return generateToken(username, role, null);
+    }
+
+    private static String generateToken(String username, String role, Long userId) {
         Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
+        if (userId != null) {
+            claims.put("userId", userId);
+        }
         
         return Jwts.builder()
                 .setClaims(claims)
@@ -66,6 +75,67 @@ class JwtFilterTest {
                 .setExpiration(new Date(System.currentTimeMillis() + 3600000))
                 .signWith(key)
                 .compact();
+    }
+
+    @Test
+    @DisplayName("PATIENT should access own patient-scoped route when userId matches")
+    void testPatientOwnershipAllowWhenIdsMatch() {
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.set("Authorization", "Bearer " + VALID_TOKEN_PATIENT_UID_123);
+
+        when(exchange.getRequest()).thenReturn(request);
+        when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080/appointments/patient/123"));
+        when(request.getMethod()).thenReturn(HttpMethod.GET);
+        when(request.getHeaders()).thenReturn(headers);
+        when(chain.filter(any())).thenReturn(Mono.empty());
+
+        GatewayFilter filter = jwtFilter.apply(new JwtFilter.Config());
+        Mono<Void> result = filter.filter(exchange, chain);
+
+        StepVerifier.create(result).verifyComplete();
+        verify(chain).filter(any());
+    }
+
+    @Test
+    @DisplayName("PATIENT should be denied patient-scoped route when userId mismatches")
+    void testPatientOwnershipDenyWhenIdsMismatch() {
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.set("Authorization", "Bearer " + VALID_TOKEN_PATIENT_UID_999);
+
+        when(exchange.getRequest()).thenReturn(request);
+        when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080/appointments/patient/123"));
+        when(request.getMethod()).thenReturn(HttpMethod.GET);
+        when(request.getHeaders()).thenReturn(headers);
+        when(exchange.getResponse()).thenReturn(response);
+        when(response.setStatusCode(HttpStatus.FORBIDDEN)).thenReturn(true);
+        when(response.setComplete()).thenReturn(Mono.empty());
+
+        GatewayFilter filter = jwtFilter.apply(new JwtFilter.Config());
+        Mono<Void> result = filter.filter(exchange, chain);
+
+        StepVerifier.create(result).verifyComplete();
+        verify(response).setStatusCode(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("PATIENT should be denied notifications query when userId mismatches claim")
+    void testPatientOwnershipDenyForNotificationQueryMismatch() {
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.set("Authorization", "Bearer " + VALID_TOKEN_PATIENT_UID_999);
+
+        when(exchange.getRequest()).thenReturn(request);
+        when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080/notifications/me?userId=123"));
+        when(request.getMethod()).thenReturn(HttpMethod.GET);
+        when(request.getHeaders()).thenReturn(headers);
+        when(exchange.getResponse()).thenReturn(response);
+        when(response.setStatusCode(HttpStatus.FORBIDDEN)).thenReturn(true);
+        when(response.setComplete()).thenReturn(Mono.empty());
+
+        GatewayFilter filter = jwtFilter.apply(new JwtFilter.Config());
+        Mono<Void> result = filter.filter(exchange, chain);
+
+        StepVerifier.create(result).verifyComplete();
+        verify(response).setStatusCode(HttpStatus.FORBIDDEN);
     }
 
     private static String generateExpiredToken(String username, String role) {
@@ -494,6 +564,64 @@ class JwtFilterTest {
 
         StepVerifier.create(result).verifyComplete();
         verify(response).setStatusCode(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("DOCTOR should access notification escalation endpoints")
+    void testDoctorNotificationEscalationEndpointsAccess() {
+        String[] allowedPaths = {
+                "/notifications/1/escalate",
+                "/notifications/1/reassign",
+                "/notifications/1/resolve"
+        };
+
+        for (String path : allowedPaths) {
+            reset(exchange, request, chain);
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("Authorization", "Bearer " + VALID_TOKEN_DOCTOR);
+
+            when(exchange.getRequest()).thenReturn(request);
+            when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080" + path));
+            when(request.getMethod()).thenReturn(HttpMethod.POST);
+            when(request.getHeaders()).thenReturn(headers);
+            when(chain.filter(any())).thenReturn(Mono.empty());
+
+            GatewayFilter filter = jwtFilter.apply(new JwtFilter.Config());
+            Mono<Void> result = filter.filter(exchange, chain);
+
+            StepVerifier.create(result).verifyComplete();
+            verify(chain).filter(any());
+        }
+    }
+
+    @Test
+    @DisplayName("PATIENT should be denied escalation action endpoints")
+    void testPatientDenyEscalationActionEndpoints() {
+        String[] deniedPaths = {
+                "/notifications/1/escalate",
+                "/notifications/1/reassign",
+                "/notifications/1/resolve"
+        };
+
+        for (String path : deniedPaths) {
+            reset(exchange, request, response);
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("Authorization", "Bearer " + VALID_TOKEN_PATIENT);
+
+            when(exchange.getRequest()).thenReturn(request);
+            when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080" + path));
+            when(request.getMethod()).thenReturn(HttpMethod.POST);
+            when(request.getHeaders()).thenReturn(headers);
+            when(exchange.getResponse()).thenReturn(response);
+            when(response.setStatusCode(HttpStatus.FORBIDDEN)).thenReturn(true);
+            when(response.setComplete()).thenReturn(Mono.empty());
+
+            GatewayFilter filter = jwtFilter.apply(new JwtFilter.Config());
+            Mono<Void> result = filter.filter(exchange, chain);
+
+            StepVerifier.create(result).verifyComplete();
+            verify(response).setStatusCode(HttpStatus.FORBIDDEN);
+        }
     }
 
     // ==================== Test: PATIENT Role Access ====================

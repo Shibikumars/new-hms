@@ -10,6 +10,7 @@ import com.hms.appointment.exception.SlotAlreadyBookedException;
 import com.hms.appointment.feign.DoctorClient;
 import com.hms.appointment.feign.PatientClient;
 import com.hms.appointment.repository.AppointmentRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -97,7 +98,13 @@ public class AppointmentService {
         }
 
         appointment.setStatus("BOOKED");
-        return appointmentRepository.save(appointment);
+        try {
+            return appointmentRepository.save(appointment);
+        } catch (DataIntegrityViolationException ex) {
+            throw new SlotAlreadyBookedException(
+                "This slot is already booked for doctor id: " + appointment.getDoctorId()
+            );
+        }
     }
 
     public Appointment updateAppointmentStatus(Long id, String status) {

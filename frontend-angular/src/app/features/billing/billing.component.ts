@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { BillingApiService, Invoice } from './billing-api.service';
+import { BillingApiService, ClaimTransitionRequest, Invoice } from './billing-api.service';
 import { AuthService } from '../../core/auth.service';
 
 @Component({
@@ -46,9 +46,26 @@ import { AuthService } from '../../core/auth.service';
             </div>
             <span>{{ inv.claimStatus }} · {{ inv.sourceSummary || 'Generated from billing flow' }}</span>
             <span class="sub" *ngIf="inv.invoiceDate">Issued on {{ inv.invoiceDate }}</span>
+            <span class="sub" *ngIf="inv.claimRejectionCode">Rejection: {{ inv.claimRejectionCode }} <span *ngIf="inv.claimRejectionCategory">· {{ inv.claimRejectionCategory }}</span></span>
+            <span class="sub" *ngIf="(inv.claimResubmissionCount || 0) > 0">Resubmissions: {{ inv.claimResubmissionCount }}</span>
+            <span class="sub" *ngIf="inv.claimDecisionReason">Claim Note: {{ inv.claimDecisionReason }}</span>
+            <span class="sub" *ngIf="inv.claimDecidedBy">Claim Decision By: {{ inv.claimDecidedBy }} <span *ngIf="inv.claimDecidedAt">({{ inv.claimDecidedAt }})</span></span>
             <button type="button" *ngIf="inv.id && inv.status !== 'PAID'" (click)="pay(inv.id)" [disabled]="payingInvoiceId === inv.id" [attr.aria-label]="'Mark invoice ' + inv.invoiceNumber + ' as paid'">
               {{ payingInvoiceId === inv.id ? 'Updating…' : 'Mark Paid' }}
             </button>
+
+            <div class="claim-actions" *ngIf="!isPatientRole && inv.id && inv.claimStatus !== 'SETTLED'">
+              <input type="text" [value]="claimReasonById[inv.id] || ''" (input)="setClaimReason(inv.id, $event)" placeholder="Claim decision reason" />
+              <select [value]="claimRejectionCodeById[inv.id] || ''" (change)="setClaimRejectionCode(inv.id, $event)">
+                <option value="">Rejection code (optional)</option>
+                <option *ngFor="let code of rejectionCodes" [value]="code">{{ code }} · {{ claimRejectionTaxonomy[code] }}</option>
+              </select>
+              <button type="button" (click)="transitionClaim(inv.id, 'SUBMIT')" [disabled]="claimUpdatingId === inv.id">Submit</button>
+              <button type="button" (click)="transitionClaim(inv.id, 'APPROVE')" [disabled]="claimUpdatingId === inv.id">Approve</button>
+              <button type="button" (click)="transitionClaim(inv.id, 'REJECT')" [disabled]="claimUpdatingId === inv.id">Reject</button>
+              <button type="button" (click)="transitionClaim(inv.id, 'RESUBMIT')" [disabled]="claimUpdatingId === inv.id">Resubmit</button>
+              <button type="button" (click)="transitionClaim(inv.id, 'SETTLE')" [disabled]="claimUpdatingId === inv.id">Settle</button>
+            </div>
           </li>
         </ul>
 
@@ -68,6 +85,7 @@ import { AuthService } from '../../core/auth.service';
     .list span { color: var(--text-soft); }
     .sub { font-size: 0.8rem; color: var(--text-muted); }
     .row-head { display: flex; justify-content: space-between; gap: 0.8rem; align-items: center; }
+    .claim-actions { display: grid; gap: 0.35rem; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
     .status { border: 1px solid rgba(246,178,63,0.5); color: #ffd58d; background: rgba(246,178,63,0.12); border-radius: 999px; padding: 0.2rem 0.56rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
     .status.paid { border-color: rgba(34,197,94,0.45); color: #80e8a6; background: rgba(34,197,94,0.12); }
     .empty { color: var(--text-muted); font-size: 0.88rem; }
@@ -84,8 +102,12 @@ export class BillingComponent implements OnInit {
   loadingInvoices = false;
   creatingInvoice = false;
   payingInvoiceId: number | null = null;
+  claimUpdatingId: number | null = null;
   successMessage = '';
   isPatientRole = false;
+  claimReasonById: Record<number, string> = {};
+  claimRejectionCodeById: Record<number, string> = {};
+  claimRejectionTaxonomy: Record<string, string> = {};
 
   readonly form = this.fb.nonNullable.group({
     patientId: [0, [Validators.required, Validators.min(1)]],
@@ -103,7 +125,21 @@ export class BillingComponent implements OnInit {
     if (this.isPatientRole) {
       const userId = this.authService.getUserId() ?? 0;
       this.form.controls.patientId.setValue(userId > 0 ? userId : 0);
+      return;
     }
+
+    this.billingApi.getClaimRejectionTaxonomy().subscribe({
+      next: data => {
+        this.claimRejectionTaxonomy = data;
+      },
+      error: () => {
+        this.claimRejectionTaxonomy = {};
+      }
+    });
+  }
+
+  get rejectionCodes(): string[] {
+    return Object.keys(this.claimRejectionTaxonomy);
   }
 
   createInvoice(): void {
@@ -161,6 +197,38 @@ export class BillingComponent implements OnInit {
       },
       error: () => {
         this.payingInvoiceId = null;
+      }
+    });
+  }
+
+  setClaimReason(invoiceId: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.claimReasonById[invoiceId] = input.value;
+  }
+
+  setClaimRejectionCode(invoiceId: number, event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.claimRejectionCodeById[invoiceId] = select.value;
+  }
+
+  transitionClaim(invoiceId: number, action: ClaimTransitionRequest['action']): void {
+    this.claimUpdatingId = invoiceId;
+    this.successMessage = '';
+
+    const payload: ClaimTransitionRequest = {
+      action,
+      reason: this.claimReasonById[invoiceId],
+      rejectionCode: this.claimRejectionCodeById[invoiceId]
+    };
+
+    this.billingApi.transitionClaim(invoiceId, payload).subscribe({
+      next: () => {
+        this.claimUpdatingId = null;
+        this.successMessage = `Claim ${action.toLowerCase()} applied for invoice #${invoiceId}.`;
+        this.loadInvoices();
+      },
+      error: () => {
+        this.claimUpdatingId = null;
       }
     });
   }

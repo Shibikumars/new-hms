@@ -65,7 +65,7 @@ class DoctorControllerTest {
 
     @Test
     void getAllDoctors_shouldReturn200() throws Exception {
-        when(doctorService.getAllDoctors()).thenReturn(List.of(doctor));
+        when(doctorService.searchDoctors(null, null)).thenReturn(List.of(doctor));
         mockMvc.perform(get("/doctors"))
                 .andExpect(status().isOk());
     }

@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter, Subscription } from 'rxjs';
 import { AuthService } from './core/auth.service';
 import { NotificationsBadgeSocketService } from './core/notifications-badge-socket.service';
+import { UiFeedbackService, UiToastKind } from './core/ui-feedback.service';
 import { NotificationItem, NotificationsApiService } from './features/notifications/notifications-api.service';
 import { PatientProfileService } from './features/patient/patient-profile.service';
 
@@ -113,7 +114,7 @@ type QuickAction = { label: string; path: string; icon: string };
             </div>
           </header>
 
-          <div class="notify-toast" *ngIf="notificationToast" role="status" aria-live="polite">
+          <div class="notify-toast" [class.error]="toastKind === 'error'" [class.warn]="toastKind === 'warn'" *ngIf="notificationToast" role="status" aria-live="polite">
             {{ notificationToast }}
           </div>
 
@@ -433,6 +434,18 @@ type QuickAction = { label: string; path: string; icon: string };
       font-size: 0.84rem;
     }
 
+    .notify-toast.warn {
+      border-color: rgba(246,178,63,0.55);
+      color: #ffe0a8;
+      background: rgba(40, 27, 12, 0.95);
+    }
+
+    .notify-toast.error {
+      border-color: rgba(255,90,114,0.55);
+      color: #ffc4cf;
+      background: rgba(38, 14, 20, 0.95);
+    }
+
     main { min-width: 0; }
 
     .sidebar-collapsed {
@@ -537,6 +550,7 @@ export class AppComponent implements OnInit, OnDestroy {
   quickActions: QuickAction[] = [];
   favoriteItems: NavItem[] = [];
   notificationToast = '';
+  toastKind: UiToastKind = 'info';
   private toastHandle: number | null = null;
 
   private groupCollapseState: Record<string, boolean> = {};
@@ -559,6 +573,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private badgeSocket: NotificationsBadgeSocketService,
+    private uiFeedback: UiFeedbackService,
     private patientProfileService: PatientProfileService,
     private notificationsApi: NotificationsApiService
   ) {}
@@ -569,6 +584,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.sub.add(
       this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(() => {
         this.refreshShellState();
+      })
+    );
+
+    this.sub.add(
+      this.uiFeedback.messages$.subscribe(({ message, kind }) => {
+        this.showNotificationToast(message, kind);
       })
     );
 
@@ -854,13 +875,15 @@ export class AppComponent implements OnInit, OnDestroy {
     this.showNotificationToast(incoming.title || 'New notification received');
   }
 
-  private showNotificationToast(message: string): void {
+  private showNotificationToast(message: string, kind: UiToastKind = 'info'): void {
     this.notificationToast = message;
+    this.toastKind = kind;
     if (this.toastHandle !== null) {
       window.clearTimeout(this.toastHandle);
     }
     this.toastHandle = window.setTimeout(() => {
       this.notificationToast = '';
+      this.toastKind = 'info';
       this.toastHandle = null;
     }, 2600);
   }

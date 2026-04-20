@@ -119,6 +119,15 @@ spring:
             - Path=/ws/**
 
 eureka:
+  instance:
+    prefer-ip-address: true
+    ip-address: 127.0.0.1
+    hostname: localhost
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+hms:
+  security:
+    jwt:
+      secret: ${HMS_JWT_SECRET:mysecretkey12345678901234567890AB}

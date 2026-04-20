@@ -29,6 +29,21 @@ export interface LabReport {
   result: string;
   status?: string;
   reportDate?: string;
+  verificationStatus?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  artifactUrl?: string;
+  artifactChecksum?: string;
+  artifactGeneratedAt?: string;
+}
+
+export interface LabReportArtifact {
+  reportId: number;
+  status: string;
+  verificationStatus: string;
+  artifactUrl: string;
+  artifactChecksum: string;
+  artifactGeneratedAt: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -53,5 +68,13 @@ export class LabApiService {
 
   getTrend(patientId: number, test: string): Observable<LabReport[]> {
     return this.http.get<LabReport[]>(`${environment.apiBaseUrl}/lab-results/patient/${patientId}/trend?test=${encodeURIComponent(test)}`);
+  }
+
+  verifyReport(reportId: number, verifiedBy?: string): Observable<LabReport> {
+    return this.http.put<LabReport>(`${environment.apiBaseUrl}/lab-results/${reportId}/verify`, { verifiedBy });
+  }
+
+  getReportArtifact(reportId: number): Observable<LabReportArtifact> {
+    return this.http.get<LabReportArtifact>(`${environment.apiBaseUrl}/lab-results/${reportId}/pdf`);
   }
 }

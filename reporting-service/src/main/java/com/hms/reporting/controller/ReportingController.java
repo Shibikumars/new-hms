@@ -23,7 +23,7 @@ public class ReportingController {
 
     @GetMapping("/appointments/volume")
     public Map<String, Object> appointmentsVolume(@RequestParam(value = "range", defaultValue = "30d") String range) {
-        return reportingService.appointmentVolume();
+        return reportingService.appointmentVolume(range);
     }
 
     @GetMapping("/departments/load")

@@ -12,6 +12,27 @@ export interface Invoice {
   status?: string;
   claimStatus?: string;
   sourceSummary?: string;
+  paymentMethod?: string;
+  paymentReference?: string;
+  paidAt?: string;
+  claimDecisionReason?: string;
+  claimDecidedBy?: string;
+  claimDecidedAt?: string;
+  claimRejectionCode?: string;
+  claimRejectionCategory?: string;
+  claimResubmissionCount?: number;
+}
+
+export interface PayInvoiceRequest {
+  paymentMethod?: string;
+  paymentReference?: string;
+}
+
+export interface ClaimTransitionRequest {
+  action: 'SUBMIT' | 'APPROVE' | 'REJECT' | 'RESUBMIT' | 'SETTLE';
+  reason?: string;
+  decidedBy?: string;
+  rejectionCode?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -26,7 +47,15 @@ export class BillingApiService {
     return this.http.post<Invoice>(`${environment.apiBaseUrl}/invoices`, payload);
   }
 
-  payInvoice(invoiceId: number): Observable<Invoice> {
-    return this.http.post<Invoice>(`${environment.apiBaseUrl}/invoices/${invoiceId}/pay`, {});
+  payInvoice(invoiceId: number, payload?: PayInvoiceRequest): Observable<Invoice> {
+    return this.http.post<Invoice>(`${environment.apiBaseUrl}/invoices/${invoiceId}/pay`, payload ?? {});
+  }
+
+  transitionClaim(invoiceId: number, payload: ClaimTransitionRequest): Observable<Invoice> {
+    return this.http.post<Invoice>(`${environment.apiBaseUrl}/invoices/${invoiceId}/claims/transition`, payload);
+  }
+
+  getClaimRejectionTaxonomy(): Observable<Record<string, string>> {
+    return this.http.get<Record<string, string>>(`${environment.apiBaseUrl}/invoices/claims/rejection-taxonomy`);
   }
 }

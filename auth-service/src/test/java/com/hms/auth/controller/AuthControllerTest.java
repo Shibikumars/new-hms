@@ -191,7 +191,7 @@ class AuthControllerTest {
      @DisplayName("Should handle null authorization header")
      void testValidateNullAuthHeader() throws Exception {
          mockMvc.perform(get("/auth/validate")
-                 .header("Authorization", (String) null))
+                 .header("X-Test", "1"))
                  .andExpect(status().isUnauthorized());
      }
 

@@ -1,5 +1,7 @@
 package com.hms.billing.controller;
 
+import com.hms.billing.dto.ClaimTransitionRequest;
+import com.hms.billing.dto.PayInvoiceRequest;
 import com.hms.billing.entity.Invoice;
 import com.hms.billing.service.BillingService;
 import jakarta.validation.Valid;
@@ -34,12 +36,34 @@ public class BillingController {
     }
 
     @PostMapping("/{invoiceId}/pay")
-    public Invoice payInvoice(@PathVariable Long invoiceId) {
-        return billingService.markPaid(invoiceId);
+    public Invoice payInvoice(
+        @PathVariable Long invoiceId,
+        @RequestBody(required = false) PayInvoiceRequest request
+    ) {
+        String paymentMethod = request != null ? request.getPaymentMethod() : null;
+        String paymentReference = request != null ? request.getPaymentReference() : null;
+        return billingService.markPaid(invoiceId, paymentMethod, paymentReference);
     }
 
     @GetMapping("/{invoiceId}/claim-status")
     public Map<String, String> getClaimStatus(@PathVariable Long invoiceId) {
         return billingService.getClaimStatus(invoiceId);
+    }
+
+    @GetMapping("/claims/rejection-taxonomy")
+    public Map<String, String> getRejectionTaxonomy() {
+        return billingService.getRejectionTaxonomy();
+    }
+
+    @PostMapping("/{invoiceId}/claims/transition")
+    public Invoice transitionClaim(
+        @PathVariable Long invoiceId,
+        @RequestBody ClaimTransitionRequest request,
+        @RequestHeader(value = "X-Username", required = false) String username
+    ) {
+        if (request.getDecidedBy() == null || request.getDecidedBy().isBlank()) {
+            request.setDecidedBy(username != null && !username.isBlank() ? username : "SYSTEM");
+        }
+        return billingService.transitionClaim(invoiceId, request);
     }
 }

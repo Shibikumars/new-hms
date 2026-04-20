@@ -1,6 +1,7 @@
 package com.hms.lab.service;
 
 import com.hms.lab.dto.LabResultEntryRequest;
+import com.hms.lab.dto.LabReportVerificationRequest;
 import com.hms.lab.entity.LabOrder;
 import com.hms.lab.entity.LabReport;
 import com.hms.lab.entity.LabTest;
@@ -12,6 +13,7 @@ import com.hms.lab.repository.LabTestRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +42,17 @@ public class LabService {
         return labTestRepository.save(test);
     }
 
+    // Backward-compatible alias
+    public List<LabTest> getAllTests() {
+        return getTestsCatalog();
+    }
+
+    // Backward-compatible lookup
+    public LabTest getTestById(Long testId) {
+        return labTestRepository.findById(testId)
+            .orElseThrow(() -> new ResourceNotFoundException("Lab test not found with id: " + testId));
+    }
+
     public List<LabTest> getTestsCatalog() {
         return labTestRepository.findAll();
     }
@@ -60,6 +73,15 @@ public class LabService {
         return labOrderRepository.findAll();
     }
 
+    // Backward-compatible aliases
+    public List<LabOrder> getOrdersByPatient(Long patientId) {
+        return labOrderRepository.findByPatientId(patientId);
+    }
+
+    public List<LabOrder> getOrdersByDoctor(Long doctorId) {
+        return labOrderRepository.findByDoctorId(doctorId);
+    }
+
     // Results entry and reporting
     public LabReport enterResults(Long orderId, LabResultEntryRequest input) {
         LabOrder order = labOrderRepository.findById(orderId)
@@ -73,6 +95,7 @@ public class LabService {
         report.setResult(input.getResult());
         report.setStatus(input.getStatus() == null || input.getStatus().isBlank() ? "READY" : input.getStatus());
         report.setReportDate(LocalDate.now());
+        report.setVerificationStatus("PENDING");
 
         order.setStatus("COMPLETED");
         labOrderRepository.save(order);
@@ -93,18 +116,87 @@ public class LabService {
         return saved;
     }
 
+    public LabReport verifyReport(Long reportId, LabReportVerificationRequest request) {
+        LabReport report = labReportRepository.findById(reportId)
+            .orElseThrow(() -> new ResourceNotFoundException("Lab report not found with id: " + reportId));
+
+        String verifier = (request != null && request.getVerifiedBy() != null && !request.getVerifiedBy().isBlank())
+            ? request.getVerifiedBy().trim()
+            : "LAB-REVIEWER";
+
+        report.setVerificationStatus("VERIFIED");
+        report.setStatus("VERIFIED");
+        report.setVerifiedBy(verifier);
+        report.setVerifiedAt(LocalDateTime.now());
+
+        if (report.getArtifactUrl() == null || report.getArtifactUrl().isBlank()) {
+            report.setArtifactUrl("/lab-results/" + report.getId() + "/pdf");
+            report.setArtifactChecksum(generateArtifactChecksum(report));
+            report.setArtifactGeneratedAt(LocalDateTime.now());
+        }
+
+        return labReportRepository.save(report);
+    }
+
+    // Backward-compatible report generation path used by existing tests
+    public LabReport generateReport(LabReport report) {
+        if (report == null || report.getLabOrderId() == null) {
+            throw new ResourceNotFoundException("Lab order not found with id: null");
+        }
+
+        LabOrder order = labOrderRepository.findById(report.getLabOrderId())
+            .orElseThrow(() -> new ResourceNotFoundException("Lab order not found with id: " + report.getLabOrderId()));
+
+        if (report.getStatus() == null || report.getStatus().isBlank()) {
+            report.setStatus("COMPLETED");
+        }
+        if (report.getReportDate() == null) {
+            report.setReportDate(LocalDate.now());
+        }
+        if (report.getVerificationStatus() == null || report.getVerificationStatus().isBlank()) {
+            report.setVerificationStatus("PENDING");
+        }
+
+        order.setStatus("COMPLETED");
+        labOrderRepository.save(order);
+        return labReportRepository.save(report);
+    }
+
     public List<LabReport> getLabResultsByPatient(Long patientId) {
         return labReportRepository.findByPatientId(patientId);
+    }
+
+    // Backward-compatible aliases
+    public List<LabReport> getAllReports() {
+        return labReportRepository.findAll();
+    }
+
+    public List<LabReport> getReportsByPatient(Long patientId) {
+        return labReportRepository.findByPatientId(patientId);
+    }
+
+    public List<LabReport> getReportsByDoctor(Long doctorId) {
+        return labReportRepository.findByDoctorId(doctorId);
     }
 
     public Map<String, Object> getReportPdf(Long reportId) {
         LabReport report = labReportRepository.findById(reportId)
             .orElseThrow(() -> new ResourceNotFoundException("Lab report not found with id: " + reportId));
 
+        if (report.getArtifactUrl() == null || report.getArtifactUrl().isBlank()) {
+            report.setArtifactUrl("/lab-results/" + report.getId() + "/pdf");
+            report.setArtifactChecksum(generateArtifactChecksum(report));
+            report.setArtifactGeneratedAt(LocalDateTime.now());
+            labReportRepository.save(report);
+        }
+
         return Map.of(
             "reportId", report.getId(),
             "status", report.getStatus(),
-            "pdf", "PDF generation placeholder"
+            "verificationStatus", report.getVerificationStatus() == null ? "PENDING" : report.getVerificationStatus(),
+            "artifactUrl", report.getArtifactUrl(),
+            "artifactChecksum", report.getArtifactChecksum() == null ? "" : report.getArtifactChecksum(),
+            "artifactGeneratedAt", report.getArtifactGeneratedAt() == null ? "" : report.getArtifactGeneratedAt().toString()
         );
     }
 
@@ -116,5 +208,10 @@ public class LabService {
 
         Long testId = tests.get(0).getId();
         return labReportRepository.findByPatientIdAndTestIdOrderByReportDateAsc(patientId, testId);
+    }
+
+    private String generateArtifactChecksum(LabReport report) {
+        String raw = String.valueOf(report.getId()) + "|" + String.valueOf(report.getPatientId()) + "|" + String.valueOf(report.getResult());
+        return Integer.toHexString(raw.hashCode()).toUpperCase();
     }
 }

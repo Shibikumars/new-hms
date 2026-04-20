@@ -22,6 +22,26 @@ export interface VitalRecord {
   weight?: number;
 }
 
+export interface AllergyRecord {
+  id?: number;
+  patientId: number;
+  allergen: string;
+  reaction?: string;
+  severity?: string;
+  status?: string;
+  notedDate?: string;
+}
+
+export interface ProblemRecord {
+  id?: number;
+  patientId: number;
+  diagnosisCode: string;
+  title: string;
+  clinicalStatus?: string;
+  onsetDate?: string;
+  resolvedDate?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RecordsApiService {
   constructor(private http: HttpClient) {}
@@ -40,5 +60,21 @@ export class RecordsApiService {
 
   searchIcd(term: string): Observable<string[]> {
     return this.http.get<string[]>(`${environment.apiBaseUrl}/records/icd10?search=${encodeURIComponent(term)}`);
+  }
+
+  getAllergies(patientId: number): Observable<AllergyRecord[]> {
+    return this.http.get<AllergyRecord[]>(`${environment.apiBaseUrl}/records/patient/${patientId}/allergies`);
+  }
+
+  addAllergy(patientId: number, payload: AllergyRecord): Observable<AllergyRecord> {
+    return this.http.post<AllergyRecord>(`${environment.apiBaseUrl}/records/patient/${patientId}/allergies`, payload);
+  }
+
+  getProblems(patientId: number): Observable<ProblemRecord[]> {
+    return this.http.get<ProblemRecord[]>(`${environment.apiBaseUrl}/records/patient/${patientId}/problems`);
+  }
+
+  addProblem(patientId: number, payload: ProblemRecord): Observable<ProblemRecord> {
+    return this.http.post<ProblemRecord>(`${environment.apiBaseUrl}/records/patient/${patientId}/problems`, payload);
   }
 }

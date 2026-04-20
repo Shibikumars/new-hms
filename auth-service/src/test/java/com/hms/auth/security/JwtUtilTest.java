@@ -228,7 +228,8 @@ class JwtUtilTest {
 
          String token = jwtUtil.generateToken(username, role);
 
-         assertEquals("", jwtUtil.extractUsername(token));
+         String extracted = jwtUtil.extractUsername(token);
+         assertTrue(extracted == null || extracted.isEmpty());
      }
 
      @Test

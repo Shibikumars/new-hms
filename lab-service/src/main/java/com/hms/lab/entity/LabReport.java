@@ -2,6 +2,7 @@ package com.hms.lab.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "lab_reports")
@@ -16,6 +17,12 @@ public class LabReport {
     private String result;
     private String status;
     private LocalDate reportDate;
+    private String verificationStatus;
+    private String verifiedBy;
+    private LocalDateTime verifiedAt;
+    private String artifactUrl;
+    private String artifactChecksum;
+    private LocalDateTime artifactGeneratedAt;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -33,4 +40,22 @@ public class LabReport {
     public void setStatus(String status) { this.status = status; }
     public LocalDate getReportDate() { return reportDate; }
     public void setReportDate(LocalDate reportDate) { this.reportDate = reportDate; }
+
+    public String getVerificationStatus() { return verificationStatus; }
+    public void setVerificationStatus(String verificationStatus) { this.verificationStatus = verificationStatus; }
+
+    public String getVerifiedBy() { return verifiedBy; }
+    public void setVerifiedBy(String verifiedBy) { this.verifiedBy = verifiedBy; }
+
+    public LocalDateTime getVerifiedAt() { return verifiedAt; }
+    public void setVerifiedAt(LocalDateTime verifiedAt) { this.verifiedAt = verifiedAt; }
+
+    public String getArtifactUrl() { return artifactUrl; }
+    public void setArtifactUrl(String artifactUrl) { this.artifactUrl = artifactUrl; }
+
+    public String getArtifactChecksum() { return artifactChecksum; }
+    public void setArtifactChecksum(String artifactChecksum) { this.artifactChecksum = artifactChecksum; }
+
+    public LocalDateTime getArtifactGeneratedAt() { return artifactGeneratedAt; }
+    public void setArtifactGeneratedAt(LocalDateTime artifactGeneratedAt) { this.artifactGeneratedAt = artifactGeneratedAt; }
 }

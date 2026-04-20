@@ -4,10 +4,11 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { authInterceptor } from './app/core/auth.interceptor';
+import { apiErrorInterceptor } from './app/core/api-error.interceptor';
 
 bootstrapApplication(AppComponent, {
   providers: [
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor]))
+    provideHttpClient(withInterceptors([authInterceptor, apiErrorInterceptor]))
   ]
 }).catch(err => console.error('Angular bootstrap error:', err));

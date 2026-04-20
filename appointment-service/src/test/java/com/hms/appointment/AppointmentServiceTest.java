@@ -107,9 +107,6 @@ class AppointmentServiceTest {
 
         when(patientClient.getPatientById(1L)).thenReturn(patientDTO);
         when(doctorClient.getDoctorById(1L)).thenReturn(doctorDTO);
-        when(appointmentRepository
-                .existsByDoctorIdAndAppointmentDateAndAppointmentTime(any(), any(), any()))
-                .thenReturn(false);
 
         assertThrows(DoctorUnavailableException.class,
                 () -> appointmentService.saveAppointment(earlyAppt));

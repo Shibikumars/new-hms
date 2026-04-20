@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { LabApiService, LabOrder, LabReport, LabTest } from './lab-api.service';
+import { LabApiService, LabOrder, LabReport, LabReportArtifact, LabTest } from './lab-api.service';
 
 @Component({
   selector: 'app-lab',
@@ -57,6 +57,13 @@ import { LabApiService, LabOrder, LabReport, LabTest } from './lab-api.service';
         <li *ngFor="let report of reports">
           <strong>Report #{{ report.id }} · {{ report.reportDate }}</strong>
           <span>{{ report.result }} ({{ report.status }})</span>
+            <span class="sub" *ngIf="report.verificationStatus">Verification: {{ report.verificationStatus }}</span>
+            <span class="sub" *ngIf="report.verifiedBy">Verified by {{ report.verifiedBy }} <span *ngIf="report.verifiedAt">({{ report.verifiedAt }})</span></span>
+            <div class="actions-row">
+              <button type="button" *ngIf="report.id && report.verificationStatus !== 'VERIFIED'" (click)="verify(report.id)">Verify Report</button>
+              <button type="button" *ngIf="report.id" (click)="loadArtifact(report.id)">View Artifact</button>
+            </div>
+            <span class="sub" *ngIf="activeArtifact?.reportId === report.id">Artifact: {{ activeArtifact?.artifactUrl }} · {{ activeArtifact?.artifactChecksum }}</span>
         </li>
       </ul>
       <div class="loading-text" *ngIf="!loadingReports && reports.length === 0">No reports loaded yet.</div>
@@ -72,6 +79,8 @@ import { LabApiService, LabOrder, LabReport, LabTest } from './lab-api.service';
     .list { list-style: none; padding: 0; margin: 0.75rem 0 0; }
     .list li { border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem; margin-bottom: 0.5rem; background: rgba(11,18,32,0.55); }
     .list span { display: block; margin-top: 0.2rem; color: var(--text-soft); }
+    .sub { font-size: 0.8rem; color: var(--text-muted); }
+    .actions-row { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.3rem; }
 
     @media (max-width: 760px) {
       .hero { flex-direction: column; }
@@ -86,6 +95,7 @@ export class LabComponent {
   submittingResult = false;
   loadingReports = false;
   successMessage = '';
+  activeArtifact: LabReportArtifact | null = null;
 
   readonly orderForm = this.fb.nonNullable.group({
     patientId: [0, [Validators.required, Validators.min(1)]],
@@ -172,6 +182,7 @@ export class LabComponent {
       this.labApi.getTrend(patientId, testName).subscribe({
         next: items => {
           this.reports = items;
+          this.activeArtifact = null;
           this.loadingReports = false;
         },
         error: () => {
@@ -185,11 +196,29 @@ export class LabComponent {
     this.labApi.getPatientResults(patientId).subscribe({
       next: items => {
         this.reports = items;
+        this.activeArtifact = null;
         this.loadingReports = false;
       },
       error: () => {
         this.reports = [];
         this.loadingReports = false;
+      }
+    });
+  }
+
+  verify(reportId: number): void {
+    this.labApi.verifyReport(reportId).subscribe({
+      next: () => {
+        this.successMessage = `Report #${reportId} verified.`;
+        this.loadReports();
+      }
+    });
+  }
+
+  loadArtifact(reportId: number): void {
+    this.labApi.getReportArtifact(reportId).subscribe({
+      next: artifact => {
+        this.activeArtifact = artifact;
       }
     });
   }

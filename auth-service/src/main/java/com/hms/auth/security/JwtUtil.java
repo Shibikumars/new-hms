@@ -2,18 +2,21 @@ package com.hms.auth.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
 
-    private final String SECRET = "mysecretkey12345678901234567890AB";
+    @Value("${hms.security.jwt.secret:mysecretkey12345678901234567890AB}")
+    private String jwtSecret = "mysecretkey12345678901234567890AB";
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
     // Backward-compatible overload
@@ -23,8 +26,10 @@ public class JwtUtil {
 
     // Accepts role and optional user id claims
     public String generateToken(String username, String role, Long userId) {
+        String subject = username != null ? username : "";
         JwtBuilder builder = Jwts.builder()
-                .setSubject(username)
+                .setSubject(subject)
+                .setId(UUID.randomUUID().toString())
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10));

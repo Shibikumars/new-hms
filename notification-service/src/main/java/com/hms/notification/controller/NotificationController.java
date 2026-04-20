@@ -22,11 +22,13 @@ public class NotificationController {
     @GetMapping("/me")
     public List<NotificationItem> getMe(
         @RequestParam("userId") Long userId,
+        @RequestParam(value = "escalatedOnly", defaultValue = "false") boolean escalatedOnly,
+        @RequestParam(value = "resolvedOnly", defaultValue = "false") boolean resolvedOnly,
         @RequestHeader(value = "X-User-Role", required = false) String role,
         @RequestHeader(value = "X-User-Id", required = false) String authUserId
     ) {
         enforcePatientOwnership(userId, role, authUserId);
-        return notificationService.getUserNotifications(userId);
+        return notificationService.getUserNotifications(userId, escalatedOnly, resolvedOnly);
     }
 
     @PutMapping("/{id}/read")
@@ -62,8 +64,67 @@ public class NotificationController {
     }
 
     @PostMapping("/publish")
-    public NotificationItem publish(@RequestBody NotificationItem notificationItem) {
-        return notificationService.publish(notificationItem);
+    public NotificationItem publish(
+        @RequestBody NotificationItem notificationItem,
+        @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey
+    ) {
+        return notificationService.publish(notificationItem, idempotencyKey);
+    }
+
+    @PostMapping("/{id}/escalate")
+    public NotificationItem escalate(
+        @PathVariable("id") Long id,
+        @RequestParam("target") String target,
+        @RequestParam(value = "owner", required = false) String owner,
+        @RequestHeader(value = "X-Username", required = false) String username,
+        @RequestHeader(value = "X-User-Role", required = false) String role,
+        @RequestHeader(value = "X-User-Id", required = false) String authUserId
+    ) {
+        enforceEscalationActionRole(role);
+        NotificationItem existing = notificationService.getById(id);
+        enforcePatientOwnership(existing.getUserId(), role, authUserId);
+        String resolvedOwner = (owner != null && !owner.isBlank()) ? owner : (username != null ? username : "SYSTEM");
+        return notificationService.escalate(id, target, resolvedOwner);
+    }
+
+    @PostMapping("/{id}/resolve")
+    public NotificationItem resolveEscalation(
+        @PathVariable("id") Long id,
+        @RequestParam(value = "note", required = false) String note,
+        @RequestHeader(value = "X-Username", required = false) String username,
+        @RequestHeader(value = "X-User-Role", required = false) String role,
+        @RequestHeader(value = "X-User-Id", required = false) String authUserId
+    ) {
+        enforceEscalationActionRole(role);
+        NotificationItem existing = notificationService.getById(id);
+        enforcePatientOwnership(existing.getUserId(), role, authUserId);
+        return notificationService.resolveEscalation(id, username != null ? username : "SYSTEM", note);
+    }
+
+    @PostMapping("/{id}/reassign")
+    public NotificationItem reassignEscalation(
+        @PathVariable("id") Long id,
+        @RequestParam("target") String target,
+        @RequestParam(value = "owner", required = false) String owner,
+        @RequestHeader(value = "X-Username", required = false) String username,
+        @RequestHeader(value = "X-User-Role", required = false) String role,
+        @RequestHeader(value = "X-User-Id", required = false) String authUserId
+    ) {
+        enforceEscalationActionRole(role);
+        NotificationItem existing = notificationService.getById(id);
+        enforcePatientOwnership(existing.getUserId(), role, authUserId);
+        String resolvedOwner = (owner != null && !owner.isBlank()) ? owner : (username != null ? username : "SYSTEM");
+        return notificationService.reassignEscalation(id, target, resolvedOwner);
+    }
+
+    private void enforceEscalationActionRole(String role) {
+        if (role == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Escalation action denied");
+        }
+
+        if (!"ADMIN".equalsIgnoreCase(role) && !"DOCTOR".equalsIgnoreCase(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Escalation actions require ADMIN or DOCTOR role");
+        }
     }
 
     private void enforcePatientOwnership(Long requestedUserId, String role, String authUserId) {
