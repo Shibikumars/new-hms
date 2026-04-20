@@ -102,7 +102,8 @@ class AuthControllerTest {
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(wrongLogin)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid username or password"));
     }
 
     @Test
@@ -275,7 +276,8 @@ class AuthControllerTest {
          mockMvc.perform(post("/auth/login")
                  .contentType(MediaType.APPLICATION_JSON)
                  .content(objectMapper.writeValueAsString(loginRequest)))
-                 .andExpect(status().isUnauthorized());
+                 .andExpect(status().isUnauthorized())
+                 .andExpect(jsonPath("$.message").value("Invalid username or password"));
      }
 
      @Test
