@@ -1,0 +1,12 @@
+package com.hms.patient.feign;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import java.util.List;
+
+@FeignClient(name = "lab-service")
+public interface LabClient {
+    @GetMapping("/lab/orders/patient/{patientId}")
+    List<Object> getLabOrders(@PathVariable("patientId") Long patientId);
+}

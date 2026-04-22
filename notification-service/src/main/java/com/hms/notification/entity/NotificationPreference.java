@@ -29,4 +29,16 @@ public class NotificationPreference {
 
     public boolean isPushLabResults() { return pushLabResults; }
     public void setPushLabResults(boolean pushLabResults) { this.pushLabResults = pushLabResults; }
+
+    private boolean emailLabResults = true;
+    public boolean isEmailLabResults() { return emailLabResults; }
+    public void setEmailLabResults(boolean val) { this.emailLabResults = val; }
+
+    private boolean emailInvoices = true;
+    public boolean isEmailInvoices() { return emailInvoices; }
+    public void setEmailInvoices(boolean val) { this.emailInvoices = val; }
+
+    private boolean smsReminder1h = true;
+    public boolean isSmsReminder1h() { return smsReminder1h; }
+    public void setSmsReminder1h(boolean val) { this.smsReminder1h = val; }
 }

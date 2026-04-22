@@ -1,111 +1,254 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { BaseChartDirective } from 'ng2-charts';
+import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
 import { DashboardSummary, ReportingApiService } from '../analytics/reporting-api.service';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, BaseChartDirective],
   template: `
-    <div class="container">
-      <div class="hero">
-        <div>
-          <h2>Admin Command Center</h2>
-          <p class="subtitle">Real-time operational intelligence across patients, doctors, appointments and revenue.</p>
+    <div class="container clinical-bg">
+      <header class="dashboard-header">
+        <div class="header-left">
+          <h1 class="page-title">Executive Overview</h1>
+          <p class="page-subtitle">Real-time operational metrics and health system status</p>
         </div>
-        <div class="hero-badge">Live · Reporting Connected</div>
+        <div class="header-right">
+          <div class="live-status">
+            <span class="status-dot pulse"></span>
+            Operational Systems Live
+          </div>
+        </div>
+      </header>
+
+      <div class="stat-grid" *ngIf="summary">
+        <div class="stat-card">
+          <div class="stat-icon patient-icon"><i class="ph ph-users"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Total Patients</span>
+            <div class="stat-value">{{ summary.totalPatients }}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon doctor-icon"><i class="ph ph-stethoscope"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Active Doctors</span>
+            <div class="stat-value">{{ summary.activeDoctors }}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon appt-icon"><i class="ph ph-calendar-check"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">Today's Visits</span>
+            <div class="stat-value">{{ summary.todayAppointments }}</div>
+          </div>
+        </div>
+        <div class="stat-card revenue">
+          <div class="stat-icon rev-icon"><i class="ph ph-currency-circle-dollar"></i></div>
+          <div class="stat-content">
+            <span class="stat-label">System Revenue</span>
+            <div class="stat-value">₹{{ summary.todayRevenue }}</div>
+          </div>
+        </div>
       </div>
 
-      <div class="cards" *ngIf="summary">
-        <div class="card">
-          <span class="card-label">Total Patients</span>
-          <strong>{{ summary.totalPatients }}</strong>
+      <div class="visual-grid">
+        <div class="chart-card large">
+          <div class="card-header">
+            <h3>Appointment Volume (30 Days)</h3>
+            <span class="trend up"><i class="ph ph-trend-up"></i> +12%</span>
+          </div>
+          <div class="chart-body">
+            <canvas baseChart
+              [data]="lineChartData"
+              [options]="lineChartOptions"
+              [type]="'line'">
+            </canvas>
+          </div>
         </div>
-        <div class="card">
-          <span class="card-label">Active Doctors</span>
-          <strong>{{ summary.activeDoctors }}</strong>
+
+        <div class="chart-card">
+          <div class="card-header">
+            <h3>Revenue by Dept</h3>
+          </div>
+          <div class="chart-body">
+            <canvas baseChart
+              [data]="barChartData"
+              [options]="barChartOptions"
+              [type]="'bar'">
+            </canvas>
+          </div>
         </div>
-        <div class="card">
-          <span class="card-label">Today Appointments</span>
-          <strong>{{ summary.todayAppointments }}</strong>
+
+        <div class="chart-card">
+          <div class="card-header">
+            <h3>Appt Distribution</h3>
+          </div>
+          <div class="chart-body donut">
+            <canvas baseChart
+              [data]="donutChartData"
+              [options]="donutChartOptions"
+              [type]="'doughnut'">
+            </canvas>
+          </div>
         </div>
-        <div class="card revenue">
-          <span class="card-label">Today Revenue</span>
-          <strong>₹{{ summary.todayRevenue }}</strong>
+
+        <div class="chart-card map-card large">
+          <div class="card-header">
+            <h3>Real-time Bed Occupancy</h3>
+            <div class="map-legend">
+              <span class="legend-item"><span class="dot available"></span> Available</span>
+              <span class="legend-item"><span class="dot occupied"></span> Occupied</span>
+            </div>
+          </div>
+          <div class="map-body">
+            <div class="ward-grid">
+              <div class="ward" *ngFor="let ward of wards">
+                <div class="ward-title">{{ ward.name }}</div>
+                <div class="bed-grid">
+                  <div class="bed" 
+                       *ngFor="let bed of ward.beds" 
+                       [class.occupied]="bed.occupied"
+                       [title]="'Bed ' + bed.id">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="section">
-        <h3>Department Load</h3>
-        <ul class="list" *ngIf="departmentLoad.length > 0">
-          <li *ngFor="let item of departmentLoad">
-            <strong>{{ item[0] }}</strong>
-            <span>{{ item[1] }}% capacity</span>
-          </li>
-        </ul>
-      </div>
-
-      <nav class="actions toolbar-scroll" aria-label="Admin quick actions">
-        <a class="link" routerLink="/appointments">Appointments</a>
-        <a class="link" routerLink="/admin/billing">Billing</a>
-        <a class="link" routerLink="/admin/notifications">Notifications</a>
-        <a class="link" routerLink="/admin/analytics">Analytics</a>
+      <nav class="quick-nav">
+        <a class="nav-btn" routerLink="/appointments"><i class="ph ph-calendar"></i> Appointments</a>
+        <a class="nav-btn" routerLink="/admin/billing"><i class="ph ph-wallet"></i> Billing</a>
+        <a class="nav-btn" routerLink="/admin/analytics"><i class="ph ph-graph"></i> Analytics</a>
+        <a class="nav-btn" routerLink="/admin/notifications"><i class="ph ph-bell"></i> Alerts</a>
       </nav>
     </div>
   `,
   styles: [`
-    .hero { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
-    .subtitle { margin-top: 0.45rem; color: var(--text-soft); max-width: 56ch; }
-    .hero-badge {
-      border: 1px solid rgba(0, 212, 170, 0.45);
-      background: rgba(0, 212, 170, 0.12);
-      color: var(--primary);
-      border-radius: 999px;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-top: 1rem; }
-    .card {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 0.85rem;
-      background: linear-gradient(180deg, rgba(26,39,64,0.65), rgba(15,23,38,0.95));
-      display: grid;
-      gap: 0.3rem;
-    }
-    .card-label { color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .card strong { font-family: 'Syne', sans-serif; color: var(--text); font-size: 1.15rem; }
-    .card.revenue strong { color: var(--primary); }
-    .section { margin-top: 1.4rem; }
-    .list li span { display: block; margin-top: 0.25rem; color: var(--text-soft); }
-    .actions { margin-top: 1.2rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .link {
-      border: 1px solid var(--border);
-      background: rgba(11, 18, 32, 0.58);
-      border-radius: 999px;
-      padding: 0.36rem 0.72rem;
-      color: var(--text-soft);
-      font-weight: 600;
-      font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .link:hover { color: var(--primary); border-color: rgba(0, 212, 170, 0.55); }
+    .clinical-bg { padding: 2rem; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+    .page-title { font-size: 1.75rem; color: var(--primary); font-weight: 800; }
+    .page-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
+    
+    .live-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: 700; color: var(--accent); background: rgba(13, 126, 106, 0.05); padding: 0.5rem 1rem; border-radius: 999px; border: 1px solid rgba(13, 126, 106, 0.1); }
+    .status-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
+    .pulse { animation: pulse-anim 2s infinite; }
 
-    @media (max-width: 780px) {
-      .hero { flex-direction: column; }
-      .actions { flex-wrap: nowrap; }
-    }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; display: flex; align-items: center; gap: 1.25rem; box-shadow: var(--shadow-soft); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .patient-icon { background: rgba(26, 60, 110, 0.08); color: var(--primary); }
+    .doctor-icon { background: rgba(13, 126, 106, 0.08); color: var(--accent); }
+    .appt-icon { background: rgba(217, 119, 6, 0.08); color: var(--warning); }
+    .rev-icon { background: rgba(26, 60, 110, 0.1); color: var(--primary); }
+    .stat-label { color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--text); font-family: 'Syne', sans-serif; }
+
+    .visual-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; }
+    .large { grid-column: span 2; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .card-header h3 { font-size: 1rem; color: var(--text); font-weight: 700; }
+    
+    .chart-body { flex: 1; height: 300px; display: flex; align-items: center; }
+    .donut { height: 250px; }
+
+    .ward-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .ward { background: var(--surface-soft); padding: 1rem; border-radius: 8px; }
+    .ward-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; }
+    .bed-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+    .bed { width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--border); background: #E2E8F0; }
+    .bed.occupied { background: var(--primary); border-color: var(--primary); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .available { background: #E2E8F0; }
+    .occupied { background: var(--primary); }
+    .map-legend { font-size: 0.7rem; color: var(--text-muted); display: flex; gap: 1rem; }
+
+    .quick-nav { grid-column: span 3; display: flex; gap: 0.75rem; margin-top: 2rem; }
+    .nav-btn { background: var(--surface); border: 1px solid var(--border); padding: 0.75rem 1.25rem; border-radius: 999px; text-decoration: none; color: var(--text-soft); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+    .nav-btn:hover { border-color: var(--primary); color: var(--primary); box-shadow: var(--shadow-soft); }
+
+    @keyframes pulse-anim { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+    @media (max-width: 1024px) { .large { grid-column: span 3; } .visual-grid { grid-template-columns: 1fr; } }
   `]
 })
 export class AdminDashboardComponent implements OnInit {
   summary: DashboardSummary | null = null;
-  departmentLoad: Array<[string, number]> = [];
+  
+  // Real-time Bed Mock
+  wards = [
+    { name: 'ICU-A', beds: Array(16).fill(0).map((_, i) => ({ id: i, occupied: Math.random() > 0.4 })) },
+    { name: 'General Ward-1', beds: Array(24).fill(0).map((_, i) => ({ id: i, occupied: Math.random() > 0.7 })) },
+    { name: 'Pediatrics', beds: Array(16).fill(0).map((_, i) => ({ id: i, occupied: Math.random() > 0.3 })) },
+    { name: 'Cardiology', beds: Array(16).fill(0).map((_, i) => ({ id: i, occupied: Math.random() > 0.5 })) }
+  ];
+
+  // Charts Config
+  public lineChartData: ChartConfiguration['data'] = {
+    datasets: [{
+      data: [65, 59, 80, 81, 56, 55, 40, 70, 75, 85, 90, 82, 70, 75, 80, 85, 95, 100, 110, 105, 100, 110, 115, 120, 125, 130, 120, 115, 110, 105],
+      label: 'Visits',
+      backgroundColor: 'rgba(26, 60, 110, 0.1)',
+      borderColor: '#1A3C6E',
+      pointBackgroundColor: '#1A3C6E',
+      pointBorderColor: '#fff',
+      fill: 'origin',
+      tension: 0.4
+    }],
+    labels: Array(30).fill(0).map((_, i) => `Day ${i + 1}`)
+  };
+
+  public lineChartOptions: ChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { grid: { color: '#F1F5F9' }, ticks: { font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { display: false } }
+    }
+  };
+
+  public barChartData: ChartConfiguration['data'] = {
+    datasets: [{
+      data: [12000, 19000, 3000, 5000, 2000, 3000],
+      label: 'Revenue',
+      backgroundColor: ['#1A3C6E', '#0D7E6A', '#D97706', '#DC2626', '#FFB0C1', '#F1F5F9'],
+      borderRadius: 4
+    }],
+    labels: ['Cardio', 'ENT', 'Pedia', 'ICU', 'General', 'Dental']
+  };
+
+  public barChartOptions: ChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#F1F5F9' } },
+      x: { grid: { display: false } }
+    }
+  };
+
+  public donutChartData: ChartConfiguration['data'] = {
+    labels: ['Completed', 'Pending', 'Cancelled'],
+    datasets: [{
+      data: [350, 450, 100],
+      backgroundColor: ['#0D7E6A', '#D97706', '#DC2626'],
+      hoverOffset: 4
+    }]
+  };
+
+  public donutChartOptions: ChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+    }
+  };
 
   constructor(private reportingApi: ReportingApiService) {}
 
@@ -114,10 +257,6 @@ export class AdminDashboardComponent implements OnInit {
       next: data => (this.summary = data),
       error: () => (this.summary = null)
     });
-
-    this.reportingApi.getDepartmentLoad().subscribe({
-      next: data => (this.departmentLoad = Object.entries(data) as Array<[string, number]>),
-      error: () => (this.departmentLoad = [])
-    });
   }
 }
+

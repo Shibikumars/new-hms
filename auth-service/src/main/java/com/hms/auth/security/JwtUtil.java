@@ -12,8 +12,8 @@ import java.util.UUID;
 @Component
 public class JwtUtil {
 
-    @Value("${hms.security.jwt.secret:mysecretkey12345678901234567890AB}")
-    private String jwtSecret = "mysecretkey12345678901234567890AB";
+    @Value("${hms.security.jwt.secret}")
+    private String jwtSecret;
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
@@ -32,7 +32,7 @@ public class JwtUtil {
                 .setId(UUID.randomUUID().toString())
                 .claim("role", role)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10));
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15));
 
         if (userId != null) {
             builder.claim("userId", userId);

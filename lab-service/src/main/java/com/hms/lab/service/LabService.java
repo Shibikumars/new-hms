@@ -2,20 +2,16 @@ package com.hms.lab.service;
 
 import com.hms.lab.dto.LabResultEntryRequest;
 import com.hms.lab.dto.LabReportVerificationRequest;
-import com.hms.lab.entity.LabOrder;
-import com.hms.lab.entity.LabReport;
-import com.hms.lab.entity.LabTest;
+import com.hms.lab.entity.*;
 import com.hms.lab.exception.ResourceNotFoundException;
 import com.hms.lab.feign.NotificationClient;
-import com.hms.lab.repository.LabOrderRepository;
-import com.hms.lab.repository.LabReportRepository;
-import com.hms.lab.repository.LabTestRepository;
+import com.hms.lab.repository.*;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class LabService {
@@ -37,35 +33,30 @@ public class LabService {
         this.notificationClient = notificationClient;
     }
 
-    // Labs catalog
     public LabTest addTest(LabTest test) {
         return labTestRepository.save(test);
-    }
-
-    // Backward-compatible alias
-    public List<LabTest> getAllTests() {
-        return getTestsCatalog();
-    }
-
-    // Backward-compatible lookup
-    public LabTest getTestById(Long testId) {
-        return labTestRepository.findById(testId)
-            .orElseThrow(() -> new ResourceNotFoundException("Lab test not found with id: " + testId));
     }
 
     public List<LabTest> getTestsCatalog() {
         return labTestRepository.findAll();
     }
 
-    // Orders
+    public List<LabTest> getAllTests() { return getTestsCatalog(); }
+
+    public LabTest getTestById(Long id) {
+        return labTestRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Lab test not found with id: " + id));
+    }
+
+    public LabReport generateReport(LabReport report) {
+        return labReportRepository.save(report);
+    }
+
     public LabOrder placeOrder(LabOrder order) {
         labTestRepository.findById(order.getTestId())
             .orElseThrow(() -> new ResourceNotFoundException("Lab test not found with id: " + order.getTestId()));
-
         order.setOrderDate(LocalDate.now());
-        if (order.getStatus() == null || order.getStatus().isBlank()) {
-            order.setStatus("PENDING");
-        }
+        order.setStatus("PENDING");
         return labOrderRepository.save(order);
     }
 
@@ -73,19 +64,11 @@ public class LabService {
         return labOrderRepository.findAll();
     }
 
-    // Backward-compatible aliases
-    public List<LabOrder> getOrdersByPatient(Long patientId) {
-        return labOrderRepository.findByPatientId(patientId);
-    }
-
-    public List<LabOrder> getOrdersByDoctor(Long doctorId) {
-        return labOrderRepository.findByDoctorId(doctorId);
-    }
-
-    // Results entry and reporting
     public LabReport enterResults(Long orderId, LabResultEntryRequest input) {
         LabOrder order = labOrderRepository.findById(orderId)
             .orElseThrow(() -> new ResourceNotFoundException("Lab order not found with id: " + orderId));
+        LabTest test = labTestRepository.findById(order.getTestId())
+            .orElseThrow(() -> new ResourceNotFoundException("Test definition not found"));
 
         LabReport report = new LabReport();
         report.setLabOrderId(order.getId());
@@ -93,125 +76,102 @@ public class LabService {
         report.setDoctorId(order.getDoctorId());
         report.setPatientId(order.getPatientId());
         report.setResult(input.getResult());
-        report.setStatus(input.getStatus() == null || input.getStatus().isBlank() ? "READY" : input.getStatus());
         report.setReportDate(LocalDate.now());
         report.setVerificationStatus("PENDING");
 
-        order.setStatus("COMPLETED");
-        labOrderRepository.save(order);
-
-        LabReport saved = labReportRepository.save(report);
-
-        try {
-            notificationClient.publish(Map.of(
-                "userId", saved.getPatientId(),
-                "title", "Lab result ready",
-                "message", "Lab report #" + saved.getId() + " is now available",
-                "type", "LAB_RESULT"
-            ));
-        } catch (Exception ignored) {
-            // Notification is best-effort; lab write should still succeed.
+        // Logic: Check for critical results (minimal setup)
+        if (isCritical(input.getResult(), test)) {
+            report.setStatus("CRITICAL");
+            publishCriticalEvent(report, test);
+        } else {
+            report.setStatus("READY");
         }
 
+        order.setStatus("COMPLETED");
+        labOrderRepository.save(order);
+        LabReport saved = labReportRepository.save(report);
+
+        // Notify patient
+        notifyPatient(saved);
+
         return saved;
+    }
+
+    private boolean isCritical(String result, LabTest test) {
+        try {
+            double val = Double.parseDouble(result);
+            // Minimal critical check logic for demo
+            if (test.getLoincCode().equals("2823-3")) { // Potassium
+                return val > 6.0 || val < 3.0;
+            }
+            if (test.getLoincCode().equals("2951-2")) { // Sodium
+                return val > 155 || val < 125;
+            }
+        } catch (Exception e) {}
+        return false;
+    }
+
+    private void publishCriticalEvent(LabReport report, LabTest test) {
+        // Minimal setup for Kafka - Logging and stubbing the producer
+        System.out.println("KAFKA_PRODUCER [Topic: LAB_RESULT_CRITICAL]: Critical result for Patient ID " 
+            + report.getPatientId() + ". Test: " + test.getTestName() + ", Value: " + report.getResult());
+    }
+
+    private void notifyPatient(LabReport report) {
+        try {
+            notificationClient.publish(Map.of(
+                "userId", report.getPatientId(),
+                "title", "Lab Result " + (report.getStatus().equals("CRITICAL") ? "CRITICAL ALERT" : "Ready"),
+                "message", "Your report for test ID " + report.getTestId() + " is available.",
+                "type", "LAB_RESULT"
+            ));
+        } catch (Exception ignored) {}
     }
 
     public LabReport verifyReport(Long reportId, LabReportVerificationRequest request) {
         LabReport report = labReportRepository.findById(reportId)
             .orElseThrow(() -> new ResourceNotFoundException("Lab report not found with id: " + reportId));
-
-        String verifier = (request != null && request.getVerifiedBy() != null && !request.getVerifiedBy().isBlank())
-            ? request.getVerifiedBy().trim()
-            : "LAB-REVIEWER";
-
+        
         report.setVerificationStatus("VERIFIED");
-        report.setStatus("VERIFIED");
-        report.setVerifiedBy(verifier);
+        report.setVerifiedBy(request != null ? request.getVerifiedBy() : "MD-VERIFIER");
         report.setVerifiedAt(LocalDateTime.now());
-
-        if (report.getArtifactUrl() == null || report.getArtifactUrl().isBlank()) {
-            report.setArtifactUrl("/lab-results/" + report.getId() + "/pdf");
-            report.setArtifactChecksum(generateArtifactChecksum(report));
-            report.setArtifactGeneratedAt(LocalDateTime.now());
-        }
-
+        
+        // Simulating JasperReports PDF Generation
+        generatePdfSnapshot(report);
+        
         return labReportRepository.save(report);
     }
 
-    // Backward-compatible report generation path used by existing tests
-    public LabReport generateReport(LabReport report) {
-        if (report == null || report.getLabOrderId() == null) {
-            throw new ResourceNotFoundException("Lab order not found with id: null");
-        }
-
-        LabOrder order = labOrderRepository.findById(report.getLabOrderId())
-            .orElseThrow(() -> new ResourceNotFoundException("Lab order not found with id: " + report.getLabOrderId()));
-
-        if (report.getStatus() == null || report.getStatus().isBlank()) {
-            report.setStatus("COMPLETED");
-        }
-        if (report.getReportDate() == null) {
-            report.setReportDate(LocalDate.now());
-        }
-        if (report.getVerificationStatus() == null || report.getVerificationStatus().isBlank()) {
-            report.setVerificationStatus("PENDING");
-        }
-
-        order.setStatus("COMPLETED");
-        labOrderRepository.save(order);
-        return labReportRepository.save(report);
-    }
-
-    public List<LabReport> getLabResultsByPatient(Long patientId) {
-        return labReportRepository.findByPatientId(patientId);
-    }
-
-    // Backward-compatible aliases
-    public List<LabReport> getAllReports() {
-        return labReportRepository.findAll();
-    }
-
-    public List<LabReport> getReportsByPatient(Long patientId) {
-        return labReportRepository.findByPatientId(patientId);
-    }
-
-    public List<LabReport> getReportsByDoctor(Long doctorId) {
-        return labReportRepository.findByDoctorId(doctorId);
+    private void generatePdfSnapshot(LabReport report) {
+        // Minimal setup for JasperReports - stubbing the generation
+        String mockUrl = "https://hms-storage.local/reports/LAB-" + report.getId() + ".pdf";
+        report.setArtifactUrl(mockUrl);
+        report.setArtifactChecksum(Integer.toHexString(mockUrl.hashCode()).toUpperCase());
+        report.setArtifactGeneratedAt(LocalDateTime.now());
+        System.out.println("JASPER_REPORTS [Engine]: PDF generated for Report " + report.getId());
     }
 
     public Map<String, Object> getReportPdf(Long reportId) {
         LabReport report = labReportRepository.findById(reportId)
-            .orElseThrow(() -> new ResourceNotFoundException("Lab report not found with id: " + reportId));
-
-        if (report.getArtifactUrl() == null || report.getArtifactUrl().isBlank()) {
-            report.setArtifactUrl("/lab-results/" + report.getId() + "/pdf");
-            report.setArtifactChecksum(generateArtifactChecksum(report));
-            report.setArtifactGeneratedAt(LocalDateTime.now());
-            labReportRepository.save(report);
-        }
-
-        return Map.of(
-            "reportId", report.getId(),
-            "status", report.getStatus(),
-            "verificationStatus", report.getVerificationStatus() == null ? "PENDING" : report.getVerificationStatus(),
-            "artifactUrl", report.getArtifactUrl(),
-            "artifactChecksum", report.getArtifactChecksum() == null ? "" : report.getArtifactChecksum(),
-            "artifactGeneratedAt", report.getArtifactGeneratedAt() == null ? "" : report.getArtifactGeneratedAt().toString()
-        );
+            .orElseThrow(() -> new ResourceNotFoundException("Lab report not found"));
+        
+        Map<String, Object> res = new HashMap<>();
+        res.put("reportId", report.getId());
+        res.put("pdfUrl", report.getArtifactUrl());
+        res.put("checksum", report.getArtifactChecksum());
+        return res;
     }
 
-    public List<LabReport> getTrend(Long patientId, String testName) {
-        List<LabTest> tests = labTestRepository.findByTestNameContainingIgnoreCase(testName == null ? "" : testName);
-        if (tests.isEmpty()) {
-            return List.of();
-        }
-
-        Long testId = tests.get(0).getId();
-        return labReportRepository.findByPatientIdAndTestIdOrderByReportDateAsc(patientId, testId);
-    }
-
-    private String generateArtifactChecksum(LabReport report) {
-        String raw = String.valueOf(report.getId()) + "|" + String.valueOf(report.getPatientId()) + "|" + String.valueOf(report.getResult());
-        return Integer.toHexString(raw.hashCode()).toUpperCase();
+    // Remaining methods...
+    public List<LabOrder> getOrdersByPatient(Long patientId) { return labOrderRepository.findByPatientId(patientId); }
+    public List<LabOrder> getOrdersByDoctor(Long doctorId) { return labOrderRepository.findByDoctorId(doctorId); }
+    public List<LabReport> getLabResultsByPatient(Long patientId) { return labReportRepository.findByPatientId(patientId); }
+    public List<LabReport> getAllReports() { return labReportRepository.findAll(); }
+    public List<LabReport> getReportsByPatient(Long patientId) { return labReportRepository.findByPatientId(patientId); }
+    public List<LabReport> getReportsByDoctor(Long doctorId) { return labReportRepository.findByDoctorId(doctorId); }
+    public List<LabReport> getTrend(Long patientId, String testName) { 
+        List<LabTest> tests = labTestRepository.findByTestNameContainingIgnoreCase(testName);
+        if (tests.isEmpty()) return List.of();
+        return labReportRepository.findByPatientIdAndTestIdOrderByReportDateAsc(patientId, tests.get(0).getId());
     }
 }

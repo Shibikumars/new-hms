@@ -7,15 +7,17 @@ spring:
 
   datasource:
     url: jdbc:mysql://${HMS_DB_HOST:127.0.0.1}:${HMS_DB_PORT:3306}/doctor_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: ${HMS_DB_USER:root}
-    password: ${HMS_DB_PASSWORD:root}
+    username: ${HMS_DB_USER:doctor_user}
+    password: ${HMS_DB_PASSWORD:doctor_pass}
+  flyway:
+    baseline-on-migrate: true
     hikari:
       initializationFailTimeout: -1
       connectionTimeout: 20000
 
   jpa:
     hibernate:
-      ddl-auto: ${HMS_JPA_DDL_AUTO:none}
+      ddl-auto: validate # Use validate when Flyway is active
     show-sql: true
     properties:
       hibernate:

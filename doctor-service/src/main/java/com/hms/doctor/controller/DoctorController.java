@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ public class DoctorController {
     public String test() { return "Doctor Service Working"; }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Doctor createDoctor(@Valid @RequestBody Doctor doctor) {
         return doctorService.saveDoctor(doctor);
     }
@@ -53,11 +55,13 @@ public class DoctorController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     public Doctor updateDoctor(@PathVariable Long id, @Valid @RequestBody Doctor doctor) {
         return doctorService.updateDoctor(id, doctor);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public String deleteDoctor(@PathVariable Long id) {
         doctorService.deleteDoctor(id);
         return "Doctor deleted successfully";

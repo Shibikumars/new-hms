@@ -48,7 +48,7 @@ class AppointmentControllerTest {
                 .build();
 
         appointment = new Appointment(1L, 1L, 1L,
-                LocalDate.of(2026, 5, 10), LocalTime.of(11, 0), "BOOKED");
+                LocalDate.of(2026, 5, 10), LocalTime.of(11, 0), "BOOKED", "Routine Follow-up");
     }
 
     @Test

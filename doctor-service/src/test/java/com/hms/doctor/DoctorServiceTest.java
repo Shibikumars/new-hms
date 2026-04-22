@@ -30,7 +30,7 @@ class DoctorServiceTest {
 
     @BeforeEach
     void setUp() {
-        doctor = new Doctor(1L, "Dr. Smith", "Cardiology", "9999999999", "smith@hms.com", "10AM-4PM");
+        doctor = new Doctor(1L, "Dr. Smith", "Cardiology", "9999999999", "smith@hms.com");
     }
 
     @Test
@@ -60,7 +60,7 @@ class DoctorServiceTest {
 
     @Test
     void updateDoctor_found_shouldUpdate() {
-        Doctor updated = new Doctor(1L, "Dr. Jones", "Neurology", "8888888888", "jones@hms.com", "9AM-3PM");
+        Doctor updated = new Doctor(1L, "Dr. Jones", "Neurology", "8888888888", "jones@hms.com");
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
         when(doctorRepository.save(any())).thenReturn(updated);
 

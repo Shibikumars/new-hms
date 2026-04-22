@@ -61,7 +61,7 @@ class AuthServiceTest {
             return u;
         });
 
-        UserResponse result = authService.register(request);
+        UserResponse result = authService.register(request, null);
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
@@ -88,7 +88,7 @@ class AuthServiceTest {
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
 
-        UserResponse result = authService.register(request);
+        UserResponse result = authService.register(request, null);
 
         assertNotNull(result);
         assertEquals(2L, result.getId());
@@ -238,7 +238,7 @@ class AuthServiceTest {
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
 
-        UserResponse result = authService.register(request);
+        UserResponse result = authService.register(request, null);
 
         assertNotNull(result);
         assertEquals("encodetest", result.getUsername());
@@ -316,7 +316,7 @@ class AuthServiceTest {
             return u;
         });
 
-        UserResponse result = authService.register(request);
+        UserResponse result = authService.register(request, null);
 
         assertEquals("DOCTOR", result.getRole());
         assertEquals("preservetest", result.getUsername());
@@ -338,7 +338,7 @@ class AuthServiceTest {
             return u;
         });
 
-        UserResponse result = authService.register(request);
+        UserResponse result = authService.register(request, null);
 
         assertEquals("ADMIN", result.getRole());
         verify(userRepository, times(1)).save(any(User.class));
@@ -359,7 +359,7 @@ class AuthServiceTest {
             return u;
         });
 
-        authService.register(request);
+        authService.register(request, null);
 
         verify(userRepository, times(1)).save(any(User.class));
     }

@@ -65,6 +65,6 @@ public class ReportingController {
         @RequestParam("type") String type,
         @RequestParam(value = "format", defaultValue = "xlsx") String format
     ) {
-        return reportingService.export(type, format);
+        return reportingService.exportReport(type, format);
     }
 }

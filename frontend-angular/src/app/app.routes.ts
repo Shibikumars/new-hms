@@ -31,5 +31,9 @@ export const routes: Routes = [
     loadComponent: () => import('./features/appointments/appointment-dashboard.component').then(m => m.AppointmentDashboardComponent),
     canActivate: [authGuard]
   },
-  { path: '**', redirectTo: 'auth/login' }
+  { 
+    path: 'not-found', 
+    loadComponent: () => import('./shared/components/not-found/not-found.component').then(m => m.NotFoundComponent) 
+  },
+  { path: '**', redirectTo: 'not-found' }
 ];

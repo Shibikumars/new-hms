@@ -6,6 +6,7 @@ import com.hms.billing.entity.Invoice;
 import com.hms.billing.service.BillingService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.Map;
@@ -21,21 +22,25 @@ public class BillingController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Invoice createInvoice(@Valid @RequestBody Invoice invoice) {
         return billingService.createInvoice(invoice);
     }
 
     @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PATIENT')")
     public List<Invoice> getInvoicesByPatient(@PathVariable Long patientId) {
         return billingService.getByPatientId(patientId);
     }
 
     @GetMapping("/{invoiceId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PATIENT')")
     public Invoice getInvoice(@PathVariable Long invoiceId) {
         return billingService.getById(invoiceId);
     }
 
     @PostMapping("/{invoiceId}/pay")
+    @PreAuthorize("hasRole('PATIENT')")
     public Invoice payInvoice(
         @PathVariable Long invoiceId,
         @RequestBody(required = false) PayInvoiceRequest request
@@ -56,6 +61,7 @@ public class BillingController {
     }
 
     @PostMapping("/{invoiceId}/claims/transition")
+    @PreAuthorize("hasRole('ADMIN')")
     public Invoice transitionClaim(
         @PathVariable Long invoiceId,
         @RequestBody ClaimTransitionRequest request,

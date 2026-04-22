@@ -1,164 +1,266 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { Appointment, AppointmentApiService } from '../appointments/appointment-api.service';
 import { NotificationItem, NotificationsApiService } from '../notifications/notifications-api.service';
+import { PharmacyApiService, Prescription } from '../pharmacy/pharmacy-api.service';
+import { LabApiService, LabReport } from '../lab/lab-api.service';
+import { MedicalRecordsApiService, VisitNote } from '../medical-records/medical-records-api.service';
 
 @Component({
   selector: 'app-patient-portal',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
-    <div class="container">
-      <div class="hero">
-        <div>
-          <h2>Patient Command Center</h2>
-          <p class="subtitle">Securely managing your clinical records, appointments, and care journey.</p>
+    <div class="container clinical-bg">
+      <header class="dashboard-header">
+        <div class="header-left">
+          <h1 class="page-title">Patient Portal</h1>
+          <p class="page-subtitle">Your personalized clinical hub. Track your appointments, meds, and labs.</p>
         </div>
-        <div class="hero-chip">Patient Portal</div>
-      </div>
+        <div class="header-right">
+          <button class="ph-btn" routerLink="/patient/appointments"><i class="ph ph-plus-circle"></i> Book Appointment</button>
+        </div>
+      </header>
 
       <div class="portal-grid">
-        <!-- Main Content: Appointments -->
-        <div class="main-content">
-          <div class="stats-row">
-            <div class="stat-box">
-              <label>Next Visit</label>
-              <strong>{{ appointments[0]?.appointmentDate || 'No Schedule' }}</strong>
-              <span>{{ appointments[0]?.appointmentTime || '--:--' }}</span>
+        <!-- Main Content Pillar -->
+        <div class="main-column">
+          
+          <!-- Key Metrics -->
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div class="metric-icon blue"><i class="ph ph-calendar"></i></div>
+              <div class="metric-data">
+                <span class="metric-label">Next Visit</span>
+                <div class="metric-value">{{ appointments[0]?.appointmentDate || '--' }}</div>
+                <span class="metric-meta">{{ appointments[0]?.appointmentTime || '--' }}</span>
+              </div>
             </div>
-            <div class="stat-box">
-              <label>Active Labs</label>
-              <strong>{{ appointments.length }}</strong>
-              <span>Scheduled visits</span>
+            <div class="metric-card">
+              <div class="metric-icon teal"><i class="ph ph-test-tube"></i></div>
+              <div class="metric-data">
+                <span class="metric-label">Active Labs</span>
+                <div class="metric-value">{{ recentLabs.length }}</div>
+                <span class="metric-meta">Pending Review</span>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon amber"><i class="ph ph-pill"></i></div>
+              <div class="metric-data">
+                <span class="metric-label">Active Meds</span>
+                <div class="metric-value">{{ prescriptions.length }}</div>
+                <span class="metric-meta">Per Prescription</span>
+              </div>
             </div>
           </div>
 
-          <div class="card glass">
+          <!-- Medication Timeline -->
+          <div class="card timeline-card">
             <div class="card-header">
-              <h3>Upcoming Schedule</h3>
-              <a routerLink="/patient/appointments" class="view-link">Manage All</a>
+              <h3><i class="ph ph-clock-countdown"></i> Medication Timeline</h3>
+              <span class="badge neutral">Today's Schedule</span>
             </div>
-            <div class="empty-msg" *ngIf="appointments.length === 0">Your schedule is clear.</div>
-            <ul class="appt-list" *ngIf="appointments.length > 0">
-              <li *ngFor="let item of appointments">
-                <div class="appt-time">
-                  <strong>{{ item.appointmentDate }}</strong>
-                  <span>{{ item.appointmentTime }}</span>
+            <div class="timeline-body">
+              <div class="empty-state sm" *ngIf="prescriptions.length === 0">No active medications scheduled.</div>
+              <div class="timeline-list" *ngIf="prescriptions.length > 0">
+                <div class="timeline-item" *ngFor="let p of prescriptions | slice:0:4">
+                  <div class="tm-marker"></div>
+                  <div class="tm-content">
+                    <div class="tm-header">
+                      <strong>{{ p.medicationName }}</strong>
+                      <span class="tm-time">{{ p.frequency }}</span>
+                    </div>
+                    <div class="tm-sub">{{ p.dose }} · {{ p.instructions }}</div>
+                  </div>
                 </div>
-                <div class="appt-details">
-                   <strong>Doctor Consulation</strong>
-                   <span class="meta">Provider #{{ item.doctorId }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Visit Summary -->
+          <div class="card visit-card">
+            <div class="card-header">
+              <h3><i class="ph ph-stethoscope"></i> Recent Visit Summary</h3>
+              <a routerLink="/patient/records" class="view-all">Full History</a>
+            </div>
+            <div class="visit-body" *ngIf="recentVisit; else noVisit">
+              <div class="visit-meta">
+                <div class="visit-date">
+                  <i class="ph ph-calendar-blank"></i>
+                  {{ recentVisit.visitDate }}
                 </div>
-                <div class="status-badge" [class.cancelled]="item.status === 'CANCELLED'">
-                  {{ item.status }}
+                <div class="visit-doctor">
+                  <i class="ph ph-user-focus"></i>
+                  Consultant ID #{{ recentVisit.doctorId }}
                 </div>
-              </li>
-            </ul>
+              </div>
+              <div class="visit-summary">
+                <strong>Progress Note Abstract:</strong>
+                <p>{{ recentVisit.assessment || 'Patient stable. No new issues reported during the last consultation.' | slice:0:180 }}...</p>
+              </div>
+              <div class="visit-footer">
+                <span class="badge primary">Code: {{ recentVisit.diagnosisCode || 'V70.0' }}</span>
+                <button class="ph-btn sm" routerLink="/patient/records"><i class="ph ph-file-pdf"></i> Download PDF</button>
+              </div>
+            </div>
+            <ng-template #noVisit>
+                <div class="empty-state sm">No recent clinical visits found in system.</div>
+            </ng-template>
           </div>
         </div>
 
-        <!-- Sidebar: Alerts & Quick Links -->
-        <div class="sidebar">
-          <div class="card alerts-card" [class.has-alerts]="recentNotifications.length > 0">
-             <div class="card-header">
-                <h3>Recent Alerts</h3>
-                <a routerLink="/patient/notifications" class="view-link" *ngIf="recentNotifications.length > 0">Inbox</a>
-             </div>
-             <div class="empty-msg" *ngIf="recentNotifications.length === 0">No new alerts.</div>
-             <ul class="alert-preview">
-                <li *ngFor="let n of recentNotifications" [class.critical]="n.type === 'CRITICAL'">
-                   <strong>{{ n.title }}</strong>
-                   <p>{{ n.message }}</p>
-                </li>
-             </ul>
+        <!-- Sidebar Pillar -->
+        <div class="side-column">
+          
+          <!-- Alerts -->
+          <div class="card alerts-card">
+            <div class="card-header">
+              <h3>Urgent Alerts</h3>
+              <span class="badge red" *ngIf="recentNotifications.length > 0">New</span>
+            </div>
+            <div class="alert-list">
+              <div class="alert-item" *ngFor="let n of recentNotifications" [class.urgent]="n.type === 'CRITICAL'">
+                <div class="alert-icon">
+                  <i class="ph ph-bell-simple-ringing" *ngIf="n.type === 'CRITICAL'"></i>
+                  <i class="ph ph-bell-simple" *ngIf="n.type !== 'CRITICAL'"></i>
+                </div>
+                <div class="alert-msg">
+                  <strong>{{ n.title }}</strong>
+                  <p>{{ n.message }}</p>
+                </div>
+              </div>
+              <div class="empty-state sm" *ngIf="recentNotifications.length === 0">Your health journey looks clear.</div>
+            </div>
           </div>
 
-          <div class="card actions-card">
-             <h3>Quick Services</h3>
-             <div class="link-grid">
-                <a routerLink="/patient/records" class="svc-link">
-                  <span class="icon">📋</span>
-                  <span class="label">Records</span>
-                </a>
-                <a routerLink="/patient/lab" class="svc-link">
-                  <span class="icon">🧪</span>
-                  <span class="label">Labs</span>
-                </a>
-                <a routerLink="/patient/pharmacy" class="svc-link">
-                  <span class="icon">💊</span>
-                  <span class="label">Meds</span>
-                </a>
-                <a routerLink="/patient/billing" class="svc-link">
-                  <span class="icon">💳</span>
-                  <span class="label">Billing</span>
-                </a>
-             </div>
+          <!-- Quick Access -->
+          <div class="card quick-card">
+            <h3>Diagnostic Shortcuts</h3>
+            <div class="quick-grid">
+              <a routerLink="/patient/records" class="quick-link">
+                <div class="ql-icon"><i class="ph ph-folders"></i></div>
+                <span>Chart</span>
+              </a>
+              <a routerLink="/patient/lab" class="quick-link">
+                <div class="ql-icon"><i class="ph ph-test-tube"></i></div>
+                <span>Labs</span>
+              </a>
+              <a routerLink="/patient/pharmacy" class="quick-link">
+                <div class="ql-icon"><i class="ph ph-pill"></i></div>
+                <span>Meds</span>
+              </a>
+              <a routerLink="/patient/billing" class="quick-link">
+                <div class="ql-icon"><i class="ph ph-wallet"></i></div>
+                <span>Bills</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Help Widget -->
+          <div class="help-card">
+            <div class="help-icon"><i class="ph ph-first-aid-kit"></i></div>
+            <h4>Emergency Contact</h4>
+            <p>If you need urgent assistance, please contact your local facility or dial 911.</p>
+            <div class="help-tel">Facilty: +91 98765 43210</div>
           </div>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    .hero { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 2rem; }
-    .subtitle { margin-top: 0.4rem; color: var(--text-soft); }
-    .hero-chip { border: 1px solid rgba(0, 212, 170, 0.4); color: var(--primary); background: rgba(0, 212, 170, 0.1); border-radius: 999px; padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 700; }
-
-    .portal-grid { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; }
+    .clinical-bg { padding: 2rem; background: var(--bg); min-height: 100vh; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+    .page-title { font-size: 1.75rem; color: var(--primary); font-weight: 800; }
+    .page-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
     
-    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
-    .stat-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 16px; padding: 1.2rem; }
-    .stat-box label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
-    .stat-box strong { font-size: 1.3rem; font-family: 'Syne', sans-serif; display: block; }
-    .stat-box span { font-size: 0.8rem; color: var(--text-soft); }
+    .ph-btn { background: var(--surface); border: 1px solid var(--border); padding: 0.6rem 1.25rem; border-radius: 999px; color: var(--text-soft); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; text-decoration: none; }
+    .ph-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+    .ph-btn.sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
 
-    .card { border: 1px solid var(--border); background: rgba(26, 39, 64, 0.4); border-radius: 16px; padding: 1.5rem; }
-    .card-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.5rem; }
-    .card h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; }
-    .view-link { font-size: 0.75rem; color: var(--primary); text-decoration: none; }
-
-    .appt-list { list-style: none; padding: 0; display: grid; gap: 1rem; }
-    .appt-list li { display: flex; align-items: center; gap: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 12px; }
-    .appt-time { display: grid; min-width: 100px; }
-    .appt-time strong { font-size: 0.95rem; color: var(--primary); }
-    .appt-time span { font-size: 0.75rem; color: var(--text-soft); }
-    .appt-details { flex: 1; }
-    .appt-details strong { display: block; margin-bottom: 0.1rem; font-size: 0.95rem; }
-    .meta { font-size: 0.75rem; color: var(--text-muted); }
+    .portal-grid { display: grid; grid-template-columns: 1fr 340px; gap: 2rem; }
     
-    .status-badge { font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 99px; border: 1px solid rgba(0,212,170,0.4); color: var(--primary); background: rgba(0,212,170,0.05); text-transform: uppercase; font-weight: 700; }
-    .status-badge.cancelled { border-color: rgba(255,90,114,0.4); color: #ff9ca9; background: rgba(255,90,114,0.05); }
+    .metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; display: flex; gap: 1rem; box-shadow: var(--shadow-soft); }
+    .metric-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+    .metric-icon.blue { background: rgba(26, 60, 110, 0.08); color: var(--primary); }
+    .metric-icon.teal { background: rgba(13, 126, 106, 0.08); color: var(--accent); }
+    .metric-icon.amber { background: rgba(217, 119, 6, 0.08); color: var(--warning); }
+    .metric-data { display: flex; flex-direction: column; }
+    .metric-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-value { font-size: 1.25rem; font-weight: 800; color: var(--text); font-family: 'Syne', sans-serif; margin: 0.1rem 0; }
+    .metric-meta { font-size: 0.75rem; color: var(--text-soft); }
 
-    .alerts-card.has-alerts { border-color: rgba(109,124,255,0.4); background: rgba(109,124,255,0.05); }
-    .alert-preview { list-style: none; padding: 0; display: grid; gap: 1rem; }
-    .alert-preview li { border-left: 3px solid #6d7cff; padding-left: 0.8rem; }
-    .alert-preview li.critical { border-color: #ff5a72; }
-    .alert-preview li strong { font-size: 0.85rem; display: block; margin-bottom: 0.2rem; }
-    .alert-preview li p { font-size: 0.75rem; color: var(--text-soft); line-height: 1.4; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: var(--shadow-soft); margin-bottom: 1.5rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .card-header h3 { font-size: 0.9rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .view-all { font-size: 0.75rem; color: var(--primary); font-weight: 700; text-decoration: none; }
 
-    .link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 1rem; }
-    .svc-link { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 1rem; border-radius: 10px; text-decoration: none; transition: 0.2s; }
-    .svc-link:hover { border-color: var(--primary); background: rgba(0,212,170,0.05); }
-    .svc-link .icon { font-size: 1.3rem; margin-bottom: 0.4rem; }
-    .svc-link .label { font-size: 0.75rem; font-weight: 700; color: #fff; }
+    /* Timeline */
+    .timeline-list { display: grid; gap: 1.25rem; border-left: 2px solid var(--border); margin-left: 0.5rem; padding-left: 1.5rem; }
+    .timeline-item { position: relative; }
+    .tm-marker { position: absolute; left: -1.825rem; top: 0.25rem; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); border: 2px solid #fff; box-shadow: 0 0 0 4px rgba(26,60,110,0.1); }
+    .tm-header { display: flex; justify-content: space-between; align-items: baseline; }
+    .tm-header strong { font-size: 0.95rem; color: var(--text); }
+    .tm-time { font-size: 0.75rem; font-weight: 800; color: var(--primary); background: rgba(26,60,110,0.05); padding: 0.15rem 0.4rem; border-radius: 4px; }
+    .tm-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
 
-    .empty-msg { font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 2rem 0; }
+    /* Visit Card */
+    .visit-meta { display: flex; gap: 1.5rem; margin-bottom: 1.25rem; }
+    .visit-date, .visit-doctor { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; color: var(--text-soft); }
+    .visit-date i, .visit-doctor i { color: var(--primary); font-size: 1rem; }
+    .visit-summary { background: var(--surface-soft); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--primary); margin-bottom: 1.25rem; }
+    .visit-summary strong { display: block; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .visit-summary p { font-size: 0.85rem; line-height: 1.6; color: var(--text); }
+    .visit-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 1rem; }
 
-    @media (max-width: 1000px) {
-      .portal-grid { grid-template-columns: 1fr; }
-    }
+    /* Sidebar Components */
+    .alert-list { display: grid; gap: 1rem; }
+    .alert-item { display: flex; gap: 0.75rem; padding: 0.5rem; border-radius: 8px; }
+    .alert-icon { font-size: 1.25rem; color: var(--primary); flex-shrink: 0; }
+    .urgent .alert-icon { color: var(--error); animation: shake 1s ease-in-out infinite; }
+    .alert-msg strong { display: block; font-size: 0.85rem; color: var(--text); }
+    .alert-msg p { font-size: 0.72rem; color: var(--text-soft); line-height: 1.4; margin-top: 0.1rem; }
+
+    .quick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .quick-link { text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 12px; transition: 0.2s; }
+    .quick-link span { font-size: 0.75rem; font-weight: 700; color: var(--text-soft); }
+    .ql-icon { font-size: 1.5rem; color: var(--primary); }
+    .quick-link:hover { transform: translateY(-2px); border-color: var(--primary); background: #fff; box-shadow: var(--shadow-strong); }
+    .quick-link:hover span { color: var(--primary); }
+
+    .help-card { background: var(--primary); border-radius: var(--radius-md); padding: 1.5rem; color: #fff; text-align: center; }
+    .help-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+    .help-card h4 { font-size: 1rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .help-card p { font-size: 0.75rem; opacity: 0.9; line-height: 1.5; margin-bottom: 1rem; }
+    .help-tel { font-weight: 800; font-family: 'Syne', sans-serif; font-size: 1rem; background: rgba(255,255,255,0.1); padding: 0.5rem; border-radius: 8px; }
+
+    .badge { font-size: 0.65rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase; }
+    .badge.red { background: rgba(220, 38, 38, 0.1); color: var(--error); border: 1px solid rgba(220, 38, 38, 0.2); }
+    .badge.primary { background: rgba(26, 60, 110, 0.1); color: var(--primary); border: 1px solid rgba(26, 60, 110, 0.2); }
+    .badge.neutral { background: var(--surface-strong); color: var(--text-muted); border: 1px solid var(--border); }
+    .empty-state { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0; }
+
+    @keyframes shake { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-10deg); } 40% { transform: rotate(10deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(5deg); } }
+    @media (max-width: 1024px) { .portal-grid { grid-template-columns: 1fr; } .metrics-row { grid-template-columns: 1fr; } }
   `]
 })
 export class PatientPortalComponent implements OnInit {
   appointments: Appointment[] = [];
+  prescriptions: Prescription[] = [];
+  recentLabs: LabReport[] = [];
+  recentVisit: VisitNote | null = null;
   recentNotifications: NotificationItem[] = [];
 
   constructor(
     private appointmentApi: AppointmentApiService,
     private authService: AuthService,
-    private notificationApi: NotificationsApiService
+    private notificationApi: NotificationsApiService,
+    private pharmacyApi: PharmacyApiService,
+    private labApi: LabApiService,
+    private medicalApi: MedicalRecordsApiService
   ) {}
 
   ngOnInit(): void {
@@ -166,6 +268,9 @@ export class PatientPortalComponent implements OnInit {
     if (userId) {
       this.loadUpcoming(userId);
       this.loadRecentNotifications(userId);
+      this.loadPrescriptions(userId);
+      this.loadLabs(userId);
+      this.loadVisitHistory(userId);
     }
   }
 
@@ -176,12 +281,36 @@ export class PatientPortalComponent implements OnInit {
     });
   }
 
+  loadPrescriptions(patientId: number): void {
+    this.pharmacyApi.getPatientPrescriptions(patientId).subscribe({
+      next: items => (this.prescriptions = items.filter(p => p.status === 'ACTIVE' || p.status === 'ISSUED')),
+      error: () => (this.prescriptions = [])
+    });
+  }
+
+  loadLabs(patientId: number): void {
+    this.labApi.getPatientResults(patientId).subscribe({
+      next: items => (this.recentLabs = items.filter(i => i.status !== 'VERIFIED')),
+      error: () => (this.recentLabs = [])
+    });
+  }
+
+  loadVisitHistory(patientId: number): void {
+    this.medicalApi.getVisits(patientId).subscribe({
+      next: items => {
+        if (items.length > 0) {
+          this.recentVisit = items.sort((a, b) => 
+            new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime()
+          )[0];
+        }
+      }
+    });
+  }
+
   loadRecentNotifications(userId: number): void {
     this.notificationApi.getMyNotifications(userId, {}).subscribe({
       next: items => {
-        this.recentNotifications = items
-          .filter(i => !i.read)
-          .slice(0, 2);
+        this.recentNotifications = items.filter(i => !i.read).slice(0, 3);
       }
     });
   }

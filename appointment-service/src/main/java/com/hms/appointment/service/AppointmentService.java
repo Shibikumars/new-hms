@@ -51,36 +51,25 @@ public class AppointmentService {
             throw new ResourceNotFoundException("Doctor not found with id: " + appointment.getDoctorId());
         }
 
-        // 3. Check doctor availability window
-        // ✅ FIX: wrapped in try-catch — if format is "Mon-Fri 10AM-4PM" or any
-        // non-standard string, we skip the check instead of crashing with 500
-        String availability = doctor.getAvailability();
-        if (availability != null && availability.contains("-")) {
-            try {
-                String cleaned = availability.toUpperCase().replace(" ", "");
-                String[] parts = cleaned.split("-");
-                // Only process if last two parts look like time (end with AM or PM)
-                String startPart = parts[parts.length - 2];
-                String endPart   = parts[parts.length - 1];
-                if ((startPart.endsWith("AM") || startPart.endsWith("PM")) &&
-                    (endPart.endsWith("AM")   || endPart.endsWith("PM"))) {
+        // 3. Check doctor availability window against structured schedules
+        if (doctor.getSchedules() != null && !doctor.getSchedules().isEmpty()) {
+            boolean available = false;
+            String dayOfWeek = appointment.getAppointmentDate().getDayOfWeek().name();
+            LocalTime time = appointment.getAppointmentTime();
 
-                    int startHour = convertTo24Hour(startPart);
-                    int endHour   = convertTo24Hour(endPart);
-                    LocalTime startTime = LocalTime.of(startHour, 0);
-                    LocalTime endTime   = LocalTime.of(endHour, 0);
-                    LocalTime appointmentTime = appointment.getAppointmentTime();
-
-                    if (appointmentTime.isBefore(startTime) || appointmentTime.isAfter(endTime)) {
-                        throw new DoctorUnavailableException(
-                            "Doctor not available at " + appointmentTime + ". Available: " + availability
-                        );
+            for (com.hms.appointment.dto.DoctorScheduleDTO schedule : doctor.getSchedules()) {
+                if (schedule.getDayOfWeek().equalsIgnoreCase(dayOfWeek)) {
+                    if (!time.isBefore(schedule.getStartTime()) && !time.isAfter(schedule.getEndTime())) {
+                        available = true;
+                        break;
                     }
                 }
-            } catch (DoctorUnavailableException e) {
-                throw e; // rethrow actual business exception
-            } catch (Exception e) {
-                // Format unrecognised — skip availability check, don't crash
+            }
+
+            if (!available) {
+                throw new DoctorUnavailableException(
+                    "Doctor not available at " + time + " on " + dayOfWeek
+                );
             }
         }
 

@@ -6,13 +6,21 @@ import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { Appointment, AppointmentApiService, DoctorOption, TimeSlot } from './appointment-api.service';
 import { AuthService } from '../../core/auth.service';
 import { PatientContextService } from '../../core/patient-context.service';
+import { PaymentModalComponent, PaymentResult } from '../../shared/components/payment-modal/payment-modal.component';
 
 @Component({
   selector: 'app-appointment-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PaymentModalComponent],
   template: `
     <div class="container clinical-container">
+      <app-payment-modal 
+        *ngIf="showPaymentModal"
+        [amount]="paymentAmount"
+        [title]="paymentTitle"
+        (confirmed)="handlePaymentConfirmed($event)"
+        (cancelled)="handlePaymentCancelled()">
+      </app-payment-modal>
       <div class="header-band glass">
         <div class="title-group">
           <h2>{{ role === 'PATIENT' ? 'Patient Access Center' : 'Clinical Appointment Workspace' }}</h2>
@@ -179,7 +187,7 @@ import { PatientContextService } from '../../core/patient-context.service';
             <h3>My Health Schedule</h3>
             <div class="pt-apt-grid">
                <div class="apt-tile" *ngFor="let apt of appointments" [class.confirmed]="apt.status === 'SCHEDULED'">
-                  <div class="tile-date">{{ apt.appointmentDate }} @ {{ apt.appointmentTime }}</div>
+                  <div class="tile-date">{{ apt.appointmentDate }} &#64; {{ apt.appointmentTime }}</div>
                   <div class="tile-meta">Doctor Reference #{{ apt.doctorId }}</div>
                   <div class="tile-status">{{ apt.status }}</div>
                </div>
@@ -301,6 +309,10 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
   activeAppointmentId: number | null = null;
   private sub = new Subscription();
   private searchTimer: any | null = null;
+  
+  showPaymentModal = false;
+  paymentAmount = 500;
+  paymentTitle = 'Clinical Consultation Fee';
 
   get selectedForAction(): Appointment | undefined {
     return this.appointments.find(a => a.id === this.activeAppointmentId);
@@ -428,7 +440,30 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
 
   bookWithSelectedSlot(): void {
     if (!this.canBookWithSlot()) return;
+    
+    const doctor = this.doctors.find(d => d.id === this.selectedDoctor?.id);
+    this.paymentTitle = `Consultation with ${doctor?.fullName || 'Specialist'}`;
+    this.showPaymentModal = true;
+  }
+
+  handlePaymentConfirmed(result: PaymentResult): void {
+    this.showPaymentModal = false;
+    // Normal booking flow
     this.book();
+    
+    if (result.method === 'RUPAY') {
+       setTimeout(() => {
+         this.successMessage(`Payment Verified (UPI: ${result.upiId}). Receipt generated.`);
+       }, 500);
+    } else {
+       setTimeout(() => {
+         this.successMessage('Booking complete. Please settle dues at the clinical counter.');
+       }, 500);
+    }
+  }
+
+  handlePaymentCancelled(): void {
+    this.showPaymentModal = false;
   }
 
   book(): void {

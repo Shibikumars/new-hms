@@ -32,17 +32,20 @@ public class Appointment {
 
     private String status;
 
+    private String chiefComplaint;
+
     public Appointment() {}
 
     public Appointment(Long id, Long patientId, Long doctorId,
                        LocalDate appointmentDate, LocalTime appointmentTime,
-                       String status) {
+                       String status, String chiefComplaint) {
         this.id = id;
         this.patientId = patientId;
         this.doctorId = doctorId;
         this.appointmentDate = appointmentDate;
         this.appointmentTime = appointmentTime;
         this.status = status;
+        this.chiefComplaint = chiefComplaint;
     }
 
     public Long getId() { return id; }
@@ -57,4 +60,6 @@ public class Appointment {
     public void setAppointmentTime(LocalTime appointmentTime) { this.appointmentTime = appointmentTime; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getChiefComplaint() { return chiefComplaint; }
+    public void setChiefComplaint(String chiefComplaint) { this.chiefComplaint = chiefComplaint; }
 }

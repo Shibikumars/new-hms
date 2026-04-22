@@ -1,45 +1,35 @@
 package com.hms.records.service;
 
-import com.hms.records.entity.AllergyRecord;
-import com.hms.records.entity.ProblemRecord;
-import com.hms.records.entity.VitalRecord;
-import com.hms.records.entity.VisitNote;
-import com.hms.records.repository.AllergyRecordRepository;
-import com.hms.records.repository.ProblemRecordRepository;
-import com.hms.records.repository.VitalRecordRepository;
-import com.hms.records.repository.VisitNoteRepository;
+import com.hms.records.entity.*;
+import com.hms.records.repository.*;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 @Service
 public class MedicalRecordsService {
-
-    private static final List<String> ICD_CODES = List.of(
-        "I10 - Essential (primary) hypertension",
-        "E11 - Type 2 diabetes mellitus",
-        "J45 - Asthma",
-        "M54.5 - Low back pain",
-        "E78.5 - Hyperlipidemia"
-    );
 
     private final VisitNoteRepository visitNoteRepository;
     private final VitalRecordRepository vitalRecordRepository;
     private final AllergyRecordRepository allergyRecordRepository;
     private final ProblemRecordRepository problemRecordRepository;
+    private final IcdCodeRepository icdCodeRepository;
 
     public MedicalRecordsService(
         VisitNoteRepository visitNoteRepository,
         VitalRecordRepository vitalRecordRepository,
         AllergyRecordRepository allergyRecordRepository,
-        ProblemRecordRepository problemRecordRepository
+        ProblemRecordRepository problemRecordRepository,
+        IcdCodeRepository icdCodeRepository
     ) {
         this.visitNoteRepository = visitNoteRepository;
         this.vitalRecordRepository = vitalRecordRepository;
         this.allergyRecordRepository = allergyRecordRepository;
         this.problemRecordRepository = problemRecordRepository;
+        this.icdCodeRepository = icdCodeRepository;
     }
 
     public VisitNote createVisit(VisitNote visitNote) {
@@ -59,25 +49,15 @@ public class MedicalRecordsService {
         return vitalRecordRepository.findByPatientIdOrderByReadingDateDesc(patientId);
     }
 
-    public List<String> searchIcdCodes(String search) {
-        String term = search == null ? "" : search.toLowerCase(Locale.ROOT).trim();
-        if (term.isBlank()) {
-            return ICD_CODES;
+    public List<IcdCode> searchIcdCodes(String q) {
+        if (q == null || q.isBlank()) {
+            return icdCodeRepository.findAll();
         }
-
-        return ICD_CODES.stream()
-            .filter(code -> code.toLowerCase(Locale.ROOT).contains(term))
-            .toList();
+        return icdCodeRepository.searchCodes(q);
     }
 
     public AllergyRecord addAllergy(Long patientId, AllergyRecord allergyRecord) {
         allergyRecord.setPatientId(patientId);
-        if (allergyRecord.getNotedDate() == null) {
-            allergyRecord.setNotedDate(LocalDate.now());
-        }
-        if (allergyRecord.getStatus() == null || allergyRecord.getStatus().isBlank()) {
-            allergyRecord.setStatus("ACTIVE");
-        }
         return allergyRecordRepository.save(allergyRecord);
     }
 
@@ -87,16 +67,40 @@ public class MedicalRecordsService {
 
     public ProblemRecord addProblem(Long patientId, ProblemRecord problemRecord) {
         problemRecord.setPatientId(patientId);
-        if (problemRecord.getOnsetDate() == null) {
-            problemRecord.setOnsetDate(LocalDate.now());
-        }
-        if (problemRecord.getClinicalStatus() == null || problemRecord.getClinicalStatus().isBlank()) {
-            problemRecord.setClinicalStatus("ACTIVE");
-        }
         return problemRecordRepository.save(problemRecord);
     }
 
     public List<ProblemRecord> getProblemsByPatient(Long patientId) {
         return problemRecordRepository.findByPatientIdOrderByOnsetDateDesc(patientId);
+    }
+
+    public Map<String, Object> exportToFHIR(Long patientId) {
+        Map<String, Object> bundle = new HashMap<>();
+        bundle.put("resourceType", "Bundle");
+        bundle.put("type", "collection");
+        
+        List<Map<String, Object>> entries = new ArrayList<>();
+        
+        // Add Patient records to FHIR format
+        getVisitsByPatient(patientId).forEach(visit -> {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("resourceType", "Encounter");
+            entry.put("id", "visit-" + visit.getId());
+            entry.put("status", "finished");
+            entry.put("subject", Map.of("reference", "Patient/" + patientId));
+            entry.put("period", Map.of("start", visit.getVisitDate().toString()));
+            
+            Map<String, Object> soap = new HashMap<>();
+            soap.put("subjective", visit.getSubjective());
+            soap.put("objective", visit.getObjective());
+            soap.put("assessment", visit.getAssessment());
+            soap.put("plan", visit.getPlan());
+            entry.put("text", soap);
+            
+            entries.add(Map.of("resource", entry));
+        });
+
+        bundle.put("entry", entries);
+        return bundle;
     }
 }

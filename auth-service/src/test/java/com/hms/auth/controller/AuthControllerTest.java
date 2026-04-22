@@ -61,7 +61,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("Should register user successfully")
     void testRegister() throws Exception {
-        when(authService.register(any(RegisterRequest.class))).thenReturn(testResponse);
+        when(authService.register(any(RegisterRequest.class), any())).thenReturn(testResponse);
 
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -69,7 +69,7 @@ class AuthControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("testuser"));
 
-        verify(authService, times(1)).register(any(RegisterRequest.class));
+        verify(authService, times(1)).register(any(RegisterRequest.class), any());
     }
 
     @Test
@@ -207,7 +207,7 @@ class AuthControllerTest {
 
          UserResponse adminResponse = new UserResponse(2L, "admin", "ADMIN");
 
-         when(authService.register(any(RegisterRequest.class))).thenReturn(adminResponse);
+         when(authService.register(any(RegisterRequest.class), any())).thenReturn(adminResponse);
 
          mockMvc.perform(post("/auth/register")
                  .contentType(MediaType.APPLICATION_JSON)
@@ -216,7 +216,7 @@ class AuthControllerTest {
                  .andExpect(jsonPath("$.username").value("admin"))
                  .andExpect(jsonPath("$.role").value("ADMIN"));
 
-         verify(authService, times(1)).register(any(RegisterRequest.class));
+         verify(authService, times(1)).register(any(RegisterRequest.class), any());
      }
 
      @Test
@@ -245,7 +245,7 @@ class AuthControllerTest {
 
          UserResponse fullResponse = new UserResponse(5L, "fulluser", "PATIENT");
 
-         when(authService.register(any(RegisterRequest.class))).thenReturn(fullResponse);
+         when(authService.register(any(RegisterRequest.class), any())).thenReturn(fullResponse);
 
          mockMvc.perform(post("/auth/register")
                  .contentType(MediaType.APPLICATION_JSON)

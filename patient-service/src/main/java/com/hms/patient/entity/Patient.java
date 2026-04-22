@@ -45,6 +45,11 @@ public class Patient {
     private String insuranceProvider;
 
     private String insurancePolicyNumber;
+    
+    @Column(unique = true)
+    private String mrn;
+
+    private Long mergedId; // ID of the patient record this one was merged into
 
     public Patient() {}
 
@@ -100,6 +105,10 @@ public class Patient {
     public void setInsuranceProvider(String insuranceProvider) { this.insuranceProvider = insuranceProvider; }
     public String getInsurancePolicyNumber() { return insurancePolicyNumber; }
     public void setInsurancePolicyNumber(String insurancePolicyNumber) { this.insurancePolicyNumber = insurancePolicyNumber; }
+    public String getMrn() { return mrn; }
+    public void setMrn(String mrn) { this.mrn = mrn; }
+    public Long getMergedId() { return mergedId; }
+    public void setMergedId(Long mergedId) { this.mergedId = mergedId; }
 
     @Transient
     @JsonProperty("fullName")

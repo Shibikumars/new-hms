@@ -27,8 +27,11 @@ public class AuthController {
     private JwtUtil jwtUtil;
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        UserResponse saved = authService.register(request);
+    public ResponseEntity<UserResponse> register(
+            @Valid @RequestBody RegisterRequest request,
+            @RequestHeader(value = "X-User-Role", required = false) String callerRole
+    ) {
+        UserResponse saved = authService.register(request, callerRole);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 

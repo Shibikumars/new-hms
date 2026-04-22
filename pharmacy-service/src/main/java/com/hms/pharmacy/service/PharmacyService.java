@@ -5,9 +5,10 @@ import com.hms.pharmacy.entity.Prescription;
 import com.hms.pharmacy.repository.MedicationRepository;
 import com.hms.pharmacy.repository.PrescriptionRepository;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class PharmacyService {
@@ -35,13 +36,43 @@ public class PharmacyService {
         if (prescription.getIssuedDate() == null) {
             prescription.setIssuedDate(LocalDate.now());
         }
-        if (prescription.getStatus() == null || prescription.getStatus().isBlank()) {
-            prescription.setStatus("ACTIVE");
-        }
-        return prescriptionRepository.save(prescription);
+        prescription.setStatus("ACTIVE");
+        
+        Prescription saved = prescriptionRepository.save(prescription);
+        
+        // Simulating Kafka Billing Event
+        publishBillingEvent(saved);
+        
+        return saved;
+    }
+
+    private void publishBillingEvent(Prescription prescription) {
+        // Minimal setup for Kafka - Stubbing the producer
+        System.out.println("KAFKA_PRODUCER [Topic: PHARMACY_BILLING]: New prescription issued for Patient ID " 
+            + prescription.getPatientId() + ". Pharmacy event ready for processing.");
     }
 
     public List<Prescription> getPrescriptionsByPatient(Long patientId) {
         return prescriptionRepository.findByPatientIdOrderByIssuedDateDesc(patientId);
+    }
+
+    public Map<String, Object> checkInteractions(List<Long> medicationIds) {
+        List<Medication> meds = medicationRepository.findAllById(medicationIds);
+        Map<String, Object> result = new HashMap<>();
+        result.put("hasInteraction", false);
+        result.put("severity", "NONE");
+        result.put("message", "No drug-drug interactions detected");
+
+        // Simple hardcoded logic for common interaction (Warfarin + Aspirin)
+        boolean hasWarfarin = meds.stream().anyMatch(m -> "Warfarin".equalsIgnoreCase(m.getGenericName()));
+        boolean hasAspirin = meds.stream().anyMatch(m -> "Aspirin".equalsIgnoreCase(m.getGenericName()));
+
+        if (hasWarfarin && hasAspirin) {
+            result.put("hasInteraction", true);
+            result.put("severity", "HIGH");
+            result.put("message", "DRUG-DRUG INTERACTION ALERT: Warfarin (anticoagulant) + Aspirin (antiplatelet) increased risk of life-threatening bleeding.");
+        }
+
+        return result;
     }
 }

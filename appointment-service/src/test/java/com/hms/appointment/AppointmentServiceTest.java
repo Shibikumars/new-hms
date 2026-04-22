@@ -1,6 +1,7 @@
 package com.hms.appointment;
 
 import com.hms.appointment.dto.DoctorDTO;
+import com.hms.appointment.dto.DoctorScheduleDTO;
 import com.hms.appointment.dto.PatientDTO;
 import com.hms.appointment.entity.Appointment;
 import com.hms.appointment.exception.DoctorUnavailableException;
@@ -43,7 +44,7 @@ class AppointmentServiceTest {
     void setUp() {
         appointment = new Appointment(1L, 1L, 1L,
                 LocalDate.of(2026, 5, 10),
-                LocalTime.of(11, 0), "BOOKED");
+                LocalTime.of(11, 0), "BOOKED", "Routine Follow-up");
 
         patientDTO = new PatientDTO();
         patientDTO.setId(1L);
@@ -52,7 +53,12 @@ class AppointmentServiceTest {
         doctorDTO = new DoctorDTO();
         doctorDTO.setId(1L);
         doctorDTO.setFullName("Dr. Smith");
-        doctorDTO.setAvailability("10AM-4PM");
+        
+        DoctorScheduleDTO schedule = new DoctorScheduleDTO();
+        schedule.setDayOfWeek("SUNDAY"); // 2026-05-10 is Sunday
+        schedule.setStartTime(LocalTime.of(10, 0));
+        schedule.setEndTime(LocalTime.of(16, 0));
+        doctorDTO.setSchedules(java.util.List.of(schedule));
     }
 
     // ── saveAppointment: happy path ──────────────────────────────────────────
@@ -103,7 +109,7 @@ class AppointmentServiceTest {
     void saveAppointment_doctorUnavailable_shouldThrow() {
         // Appointment at 8 AM but doctor available 10AM-4PM
         Appointment earlyAppt = new Appointment(2L, 1L, 1L,
-                LocalDate.of(2026, 5, 10), LocalTime.of(8, 0), null);
+                LocalDate.of(2026, 5, 10), LocalTime.of(8, 0), null, null);
 
         when(patientClient.getPatientById(1L)).thenReturn(patientDTO);
         when(doctorClient.getDoctorById(1L)).thenReturn(doctorDTO);
@@ -112,46 +118,18 @@ class AppointmentServiceTest {
                 () -> appointmentService.saveAppointment(earlyAppt));
     }
 
-    // ── saveAppointment: unrecognised availability string (no crash) ──────────
+    // ── saveAppointment: doctor unavailable (wrong day) ─────────────────────
     @Test
-    void saveAppointment_unrecognisedAvailability_shouldNotCrash() {
-        doctorDTO.setAvailability("Mon-Fri");      // no AM/PM — format skipped
+    void saveAppointment_doctorUnavailable_wrongDay_shouldThrow() {
+        // Appointment on Monday, but doctor only has Sunday schedule
+        Appointment monAppt = new Appointment(2L, 1L, 1L,
+                LocalDate.of(2026, 5, 11), LocalTime.of(12, 0), null, null);
+
         when(patientClient.getPatientById(1L)).thenReturn(patientDTO);
         when(doctorClient.getDoctorById(1L)).thenReturn(doctorDTO);
-        when(appointmentRepository
-                .existsByDoctorIdAndAppointmentDateAndAppointmentTime(any(), any(), any()))
-                .thenReturn(false);
-        when(appointmentRepository.save(any())).thenReturn(appointment);
 
-        assertDoesNotThrow(() -> appointmentService.saveAppointment(appointment));
-    }
-
-    // ── saveAppointment: null availability (branch coverage) ─────────────────
-    @Test
-    void saveAppointment_nullAvailability_shouldNotCrash() {
-        doctorDTO.setAvailability(null);
-        when(patientClient.getPatientById(1L)).thenReturn(patientDTO);
-        when(doctorClient.getDoctorById(1L)).thenReturn(doctorDTO);
-        when(appointmentRepository
-                .existsByDoctorIdAndAppointmentDateAndAppointmentTime(any(), any(), any()))
-                .thenReturn(false);
-        when(appointmentRepository.save(any())).thenReturn(appointment);
-
-        assertDoesNotThrow(() -> appointmentService.saveAppointment(appointment));
-    }
-
-    // ── saveAppointment: availability has no dash (branch coverage) ───────────
-    @Test
-    void saveAppointment_availabilityWithoutDash_shouldNotCrash() {
-        doctorDTO.setAvailability("ALWAYS");
-        when(patientClient.getPatientById(1L)).thenReturn(patientDTO);
-        when(doctorClient.getDoctorById(1L)).thenReturn(doctorDTO);
-        when(appointmentRepository
-                .existsByDoctorIdAndAppointmentDateAndAppointmentTime(any(), any(), any()))
-                .thenReturn(false);
-        when(appointmentRepository.save(any())).thenReturn(appointment);
-
-        assertDoesNotThrow(() -> appointmentService.saveAppointment(appointment));
+        assertThrows(DoctorUnavailableException.class,
+                () -> appointmentService.saveAppointment(monAppt));
     }
 
     // ── updateAppointmentStatus ───────────────────────────────────────────────
@@ -235,21 +213,19 @@ class AppointmentServiceTest {
         assertEquals(1, appointmentService.getByDoctorId(1L).size());
     }
 
-    // ── convertTo24Hour via saveAppointment ───────────────────────────────────
     @Test
-    void saveAppointment_12PM_boundary_shouldWork() {
-        // Covers: 12PM -> 12, 12AM -> 0 branches inside convertTo24Hour
-        doctorDTO.setAvailability("12AM-12PM");
-        Appointment noon = new Appointment(3L, 1L, 1L,
-                LocalDate.of(2026, 5, 10), LocalTime.of(11, 0), null);
+    void saveAppointment_boundaryTimes_shouldWork() {
+        // Test exactly at start time
+        Appointment startAppt = new Appointment(3L, 1L, 1L,
+                LocalDate.of(2026, 5, 10), LocalTime.of(10, 0), null, null);
 
         when(patientClient.getPatientById(1L)).thenReturn(patientDTO);
         when(doctorClient.getDoctorById(1L)).thenReturn(doctorDTO);
         when(appointmentRepository
                 .existsByDoctorIdAndAppointmentDateAndAppointmentTime(any(), any(), any()))
                 .thenReturn(false);
-        when(appointmentRepository.save(any())).thenReturn(noon);
+        when(appointmentRepository.save(any())).thenReturn(startAppt);
 
-        assertDoesNotThrow(() -> appointmentService.saveAppointment(noon));
+        assertDoesNotThrow(() -> appointmentService.saveAppointment(startAppt));
     }
 }

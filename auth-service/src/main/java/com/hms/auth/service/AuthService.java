@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 @Service
 public class AuthService {
 
-    private static final long ACCESS_TOKEN_EXPIRY_SECONDS = 10 * 60 * 60;
+    private static final long ACCESS_TOKEN_EXPIRY_SECONDS = 15 * 60;
 
     @Autowired
     private UserRepository userRepository;
@@ -43,9 +43,19 @@ public class AuthService {
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-    public UserResponse register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request, String callerRole) {
         String normalizedUsername = request.getUsername().trim();
         String normalizedRole = request.getRole().trim().toUpperCase(Locale.ROOT);
+
+        // ✅ SECURITY: Admin registration lock
+        if ("ADMIN".equals(normalizedRole)) {
+            long userCount = userRepository.count();
+            if (userCount > 0) {
+                if (callerRole == null || !"ADMIN".equals(callerRole.toUpperCase(Locale.ROOT))) {
+                    throw new SecurityException("Only an existing ADMIN can register a new ADMIN");
+                }
+            }
+        }
 
         if (userRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
             throw new IllegalArgumentException("Username already exists");

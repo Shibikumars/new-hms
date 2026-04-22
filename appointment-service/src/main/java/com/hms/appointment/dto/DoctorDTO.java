@@ -4,7 +4,7 @@ public class DoctorDTO {
 
     private Long id;
     private String fullName;
-    private String availability;   // ADD THIS
+    private java.util.List<DoctorScheduleDTO> schedules;
 
     public DoctorDTO() {}
 
@@ -14,6 +14,6 @@ public class DoctorDTO {
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
 
-    public String getAvailability() { return availability; }   // ADD THIS
-    public void setAvailability(String availability) { this.availability = availability; }  // ADD THIS
+    public java.util.List<DoctorScheduleDTO> getSchedules() { return schedules; }
+    public void setSchedules(java.util.List<DoctorScheduleDTO> schedules) { this.schedules = schedules; }
 }

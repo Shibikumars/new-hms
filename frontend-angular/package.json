@@ -8,8 +8,8 @@
     "test": "ng test"
   },
   "dependencies": {
-    "@stomp/stompjs": "^7.0.0",
     "@angular/animations": "^18.2.0",
+    "@angular/cdk": "^18.2.14",
     "@angular/common": "^18.2.0",
     "@angular/compiler": "^18.2.0",
     "@angular/core": "^18.2.0",
@@ -17,6 +17,14 @@
     "@angular/platform-browser": "^18.2.0",
     "@angular/platform-browser-dynamic": "^18.2.0",
     "@angular/router": "^18.2.0",
+    "@fullcalendar/angular": "^6.1.20",
+    "@fullcalendar/core": "^6.1.20",
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
+    "@stomp/stompjs": "^7.0.0",
+    "chart.js": "^4.5.1",
+    "ng2-charts": "^6.0.1",
     "rxjs": "^7.8.1",
     "sockjs-client": "^1.6.1",
     "tslib": "^2.6.2",
@@ -26,7 +34,7 @@
     "@angular-devkit/build-angular": "^18.2.0",
     "@angular/cli": "^18.2.0",
     "@angular/compiler-cli": "^18.2.0",
-    "typescript": "^5.5.4",
-    "@types/sockjs-client": "^1.5.4"
+    "@types/sockjs-client": "^1.5.4",
+    "typescript": "^5.5.4"
   }
 }

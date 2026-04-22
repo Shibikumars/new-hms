@@ -22,19 +22,18 @@ public class Doctor {
 
     private String email;
 
-    @NotBlank(message = "Availability is required (e.g. 10AM-4PM)")
-    private String availability;
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<DoctorSchedule> schedules = new java.util.ArrayList<>();
 
     public Doctor() {}
 
     public Doctor(Long id, String fullName, String specialization,
-                  String phone, String email, String availability) {
+                  String phone, String email) {
         this.id = id;
         this.fullName = fullName;
         this.specialization = specialization;
         this.phone = phone;
         this.email = email;
-        this.availability = availability;
     }
 
     public Long getId() { return id; }
@@ -47,6 +46,6 @@ public class Doctor {
     public void setPhone(String phone) { this.phone = phone; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-    public String getAvailability() { return availability; }
-    public void setAvailability(String availability) { this.availability = availability; }
+    public java.util.List<DoctorSchedule> getSchedules() { return schedules; }
+    public void setSchedules(java.util.List<DoctorSchedule> schedules) { this.schedules = schedules; }
 }

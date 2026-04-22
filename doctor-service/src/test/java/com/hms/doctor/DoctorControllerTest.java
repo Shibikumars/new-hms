@@ -43,7 +43,7 @@ class DoctorControllerTest {
                 .standaloneSetup(doctorController)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
-        doctor = new Doctor(1L, "Dr. Smith", "Cardiology", "9999999999", "smith@hms.com", "10AM-4PM");
+        doctor = new Doctor(1L, "Dr. Smith", "Cardiology", "9999999999", "smith@hms.com");
     }
 
     @Test

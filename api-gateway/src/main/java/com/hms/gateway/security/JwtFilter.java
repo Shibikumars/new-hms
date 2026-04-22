@@ -45,12 +45,15 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 return chain.filter(exchange);
             }
 
-            // ✅ Allow /auth endpoints (login/register/validate) without token
+            // ✅ Allow /auth endpoints (login/register/validate) without MANDATORY token
+            // But if they HAVE a token, we parse it to propagate roles (e.g. for Admin registry lock)
             if (path.startsWith("/auth/")) {
-                return chain.filter(exchange);
+                if (!exchange.getRequest().getHeaders().containsKey("Authorization")) {
+                    return chain.filter(exchange);
+                }
             }
 
-            // Block if no Authorization header
+            // Block if no Authorization header for protected routes
             if (!exchange.getRequest().getHeaders().containsKey("Authorization")) {
                 return onError(exchange, HttpStatus.UNAUTHORIZED, "Missing Authorization Header");
             }

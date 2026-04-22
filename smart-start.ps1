@@ -1,3 +1,6 @@
+# Set the JWT secret globally for this session and children
+$env:HMS_JWT_SECRET = 'HMS_SUPER_SECRET_KEY_FOR_JWT_VALIDATION_123'
+
 Stop-Process -Name "java" -Force -ErrorAction SilentlyContinue
 Start-Process powershell -Verb RunAs -ArgumentList "-WindowStyle Hidden", "-Command", "Restart-Service MySQL96"
 Start-Sleep -Seconds 5
@@ -21,23 +24,25 @@ foreach ($srv in $services) {
     $name = $srv[0]
     $port = $srv[1]
     Write-Host "Starting $name on port $port..."
-    # REDIRECTING TO LOG FILES NOW
-    $cmd = "cd d:\neww_proj\new-hms\$name ; ..\discovery-service\mvnw.cmd spring-boot:run -DskipTests > d:\neww_proj\new-hms\$name.log 2>&1"
+    
+    # Passing the env var explicitly again just to be safe
+    $cmd = "`$env:HMS_JWT_SECRET='HMS_SUPER_SECRET_KEY_FOR_JWT_VALIDATION_123'; cd d:\neww_proj\new-hms\$name; ..\discovery-service\mvnw.cmd spring-boot:run -DskipTests > d:\neww_proj\new-hms\$name.log 2>&1"
+    
     Start-Process powershell -ArgumentList "-WindowStyle Hidden", "-Command", $cmd
     
     $up = $false
-    for ($i = 0; $i -lt 40; $i++) {
+    for ($i = 0; $i -lt 45; $i++) {
         $c = Test-NetConnection -ComputerName localhost -Port $port -WarningAction SilentlyContinue
         if ($c.TcpTestSucceeded) {
             $up = $true
             Write-Host "$name is UP and listening!"
-            Start-Sleep -Seconds 3
+            Start-Sleep -Seconds 5
             break
         }
         Start-Sleep -Seconds 3
     }
     if (-not $up) {
-        Write-Host "WARNING: $name did not bind to $port within timeout!"
+        Write-Host "WARNING: $name did not bind to $port within timeout! Check $name.log"
     }
 }
 Write-Host "All services started sequentially with logging enabled!"

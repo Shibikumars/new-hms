@@ -11,172 +11,146 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./infra/mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hms-net
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: hms-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - hms-net
 
   discovery-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/discovery-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
+    build: 
+      context: ./discovery-service
+    container_name: discovery-service
     ports:
       - "8761:8761"
-    depends_on:
-      - mysql
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     networks:
       - hms-net
 
   api-gateway:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/api-gateway
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
+    build:
+      context: ./api-gateway
+    container_name: api-gateway
+    environment:
+      - HMS_JWT_SECRET=${HMS_JWT_SECRET}
+      - HMS_REDIS_HOST=redis
     ports:
       - "8080:8080"
     depends_on:
-      - discovery-service
+      discovery-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - hms-net
 
   auth-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/auth-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
+    build:
+      context: ./auth-service
+    container_name: auth-service
+    environment:
+      - HMS_JWT_SECRET=${HMS_JWT_SECRET}
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=auth_user
+      - HMS_DB_PASSWORD=auth_pass
     ports:
       - "8082:8082"
     depends_on:
-      - discovery-service
-      - mysql
-    networks:
-      - hms-net
-
-  patient-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/patient-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
-    ports:
-      - "8081:8081"
-    depends_on:
-      - discovery-service
-      - mysql
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - hms-net
 
   doctor-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/doctor-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
+    build:
+      context: ./doctor-service
+    container_name: doctor-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=doctor_user
+      - HMS_DB_PASSWORD=doctor_pass
     ports:
       - "8083:8083"
     depends_on:
-      - discovery-service
-      - mysql
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - hms-net
 
   appointment-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/appointment-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
+    build:
+      context: ./appointment-service
+    container_name: appointment-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=appointment_user
+      - HMS_DB_PASSWORD=appointment_pass
     ports:
       - "8084:8084"
     depends_on:
-      - discovery-service
-      - mysql
-    networks:
-      - hms-net
-
-  lab-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/lab-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
-    ports:
-      - "8087:8087"
-    depends_on:
-      - discovery-service
-      - mysql
-    networks:
-      - hms-net
-
-  medical-records-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/medical-records-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
-    ports:
-      - "8085:8085"
-    depends_on:
-      - discovery-service
-      - mysql
-    networks:
-      - hms-net
-
-  pharmacy-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/pharmacy-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
-    ports:
-      - "8086:8086"
-    depends_on:
-      - discovery-service
-      - mysql
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - hms-net
 
   billing-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/billing-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
+    build:
+      context: ./billing-service
+    container_name: billing-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=billing_user
+      - HMS_DB_PASSWORD=billing_pass
     ports:
       - "8088:8088"
     depends_on:
-      - discovery-service
-      - mysql
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - hms-net
 
-  notification-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/notification-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
+  patient-service:
+    build:
+      context: ./patient-service
+    container_name: patient-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=patient_user
+      - HMS_DB_PASSWORD=patient_pass
     ports:
-      - "8089:8089"
+      - "8081:8081"
     depends_on:
-      - discovery-service
-      - mysql
-    networks:
-      - hms-net
-
-  reporting-service:
-    image: maven:3.9-eclipse-temurin-17
-    working_dir: /workspace/reporting-service
-    volumes:
-      - ./:/workspace
-    command: mvn spring-boot:run
-    ports:
-      - "8090:8090"
-    depends_on:
-      - discovery-service
-      - mysql
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
     networks:
       - hms-net
 

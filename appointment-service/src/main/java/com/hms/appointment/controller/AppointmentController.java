@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,11 +26,13 @@ public class AppointmentController {
     public String test() { return "Appointment Service Working"; }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('PATIENT')")
     public Appointment createAppointment(@Valid @RequestBody Appointment appointment) {
         return appointmentService.saveAppointment(appointment);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<Appointment> getAllAppointments() {
         return appointmentService.getAllAppointments();
     }
@@ -47,16 +50,19 @@ public class AppointmentController {
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     public Appointment updateStatus(@PathVariable Long id, @RequestParam String status) {
         return appointmentService.updateAppointmentStatus(id, status);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     public Appointment updateAppointment(@PathVariable Long id, @RequestBody Appointment appointment) {
         return appointmentService.updateAppointment(id, appointment);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public String deleteAppointment(@PathVariable Long id) {
         appointmentService.deleteAppointment(id);
         return "Appointment deleted successfully";

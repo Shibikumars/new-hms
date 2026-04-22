@@ -5,6 +5,11 @@ spring:
   application:
     name: API-GATEWAY
 
+  data:
+    redis:
+      host: ${HMS_REDIS_HOST:localhost}
+      port: ${HMS_REDIS_PORT:6379}
+
   cloud:
     gateway:
 
@@ -36,6 +41,17 @@ spring:
         # If both gateway and downstream service add CORS headers, the browser rejects multiple values.
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
       routes:
+
+        - id: auth-login
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/auth/login
+#          filters:
+#            - name: RequestRateLimiter
+#              args:
+#                redis-rate-limiter.replenishRate: 5
+#                redis-rate-limiter.burstCapacity: 10
+#                key-resolver: "#{@ipKeyResolver}"
 
         - id: auth-service
           uri: lb://AUTH-SERVICE
@@ -130,4 +146,4 @@ eureka:
 hms:
   security:
     jwt:
-      secret: ${HMS_JWT_SECRET:mysecretkey12345678901234567890AB}
+      secret: ${HMS_JWT_SECRET}

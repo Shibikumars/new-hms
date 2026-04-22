@@ -70,7 +70,14 @@ public class DoctorService {
         doctor.setSpecialization(doctorDetails.getSpecialization());
         doctor.setPhone(doctorDetails.getPhone());
         doctor.setEmail(doctorDetails.getEmail());
-        doctor.setAvailability(doctorDetails.getAvailability());
+        
+        // Update schedules
+        doctor.getSchedules().clear();
+        if (doctorDetails.getSchedules() != null) {
+            doctorDetails.getSchedules().forEach(s -> s.setDoctor(doctor));
+            doctor.getSchedules().addAll(doctorDetails.getSchedules());
+        }
+        
         return doctorRepository.save(doctor);
     }
 

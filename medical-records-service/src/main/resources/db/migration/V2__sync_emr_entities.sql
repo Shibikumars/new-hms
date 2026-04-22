@@ -1,0 +1,18 @@
+-- Syncing missing entity fields into the database for Phase 2 EMR features
+ALTER TABLE visit_notes 
+ADD COLUMN IF NOT EXISTS subjective TEXT,
+ADD COLUMN IF NOT EXISTS objective TEXT,
+ADD COLUMN IF NOT EXISTS assessment TEXT,
+ADD COLUMN IF NOT EXISTS plan TEXT,
+ADD COLUMN IF NOT EXISTS diagnosis_code VARCHAR(20);
+
+ALTER TABLE allergy_records
+ADD COLUMN IF NOT EXISTS status VARCHAR(50),
+ADD COLUMN IF NOT EXISTS noted_date DATE;
+
+ALTER TABLE problem_records
+ADD COLUMN IF NOT EXISTS diagnosis_code VARCHAR(50),
+ADD COLUMN IF NOT EXISTS title VARCHAR(255),
+ADD COLUMN IF NOT EXISTS clinical_status VARCHAR(50),
+ADD COLUMN IF NOT EXISTS onset_date DATE,
+ADD COLUMN IF NOT EXISTS resolved_date DATE;

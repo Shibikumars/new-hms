@@ -9,6 +9,9 @@ import { NotificationItem, NotificationsApiService } from './features/notificati
 import { NotificationsSocketService } from './features/notifications/notifications-socket.service';
 import { PatientProfileService } from './features/patient/patient-profile.service';
 
+import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
+import { IdleService } from './core/idle.service';
+
 type NavItem = { label: string; path: string; icon: string; badge?: number };
 type NavGroup = { title: string; items: NavItem[] };
 type QuickAction = { label: string; path: string; icon: string };
@@ -16,9 +19,12 @@ type QuickAction = { label: string; path: string; icon: string };
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, CommandPaletteComponent],
   template: `
     <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <!-- Global Command Palette -->
+    <app-command-palette></app-command-palette>
 
     <!-- Global Toast Container -->
     <div class="toast-container" aria-live="polite">
@@ -33,56 +39,55 @@ type QuickAction = { label: string; path: string; icon: string };
       </div>
     </div>
 
+    <!-- Idle Timeout Modal -->
+    <div class="modal-backdrop" *ngIf="isIdle">
+      <div class="idle-modal">
+        <div class="idle-icon">
+          <i class="ph ph-shield-warning"></i>
+        </div>
+        <h3>Session Security Alert</h3>
+        <p>This clinical terminal has been idle for 15 minutes. To protect patient data, your session will automatically terminate in:</p>
+        
+        <div class="countdown-clock">
+          <span class="seconds">{{ idleCountdown }}</span>
+          <label>Seconds Remaining</label>
+        </div>
+
+        <div class="idle-actions">
+          <button class="ph-btn primary" (click)="stayLoggedIn()">
+            <i class="ph ph-key-return"></i> Extend Session
+          </button>
+          <button class="ph-btn secondary" (click)="logout()">
+            <i class="ph ph-sign-out"></i> Logout Now
+          </button>
+        </div>
+      </div>
+    </div>
+
     <ng-container *ngIf="showShell; else authLayout">
       <div class="shell" [class.sidebar-collapsed]="sidebarCollapsed" [class.sidebar-open]="sidebarOpenMobile">
-        <aside class="sidebar" aria-label="Main navigation">
+        <aside class="sidebar">
           <div class="brand">
-            <div class="brand-mark">HMS</div>
+            <div class="brand-mark">
+              <i class="ph ph-heartbeat"></i> HMS
+            </div>
             <div class="brand-sub">Healthcare OS</div>
           </div>
 
           <nav class="menu">
-            <section class="menu-group" *ngIf="favoriteItems.length > 0">
-              <button type="button" class="group-toggle" aria-expanded="true">
-                <span>Favorites</span>
-                <span class="caret">★</span>
-              </button>
-
-              <div class="group-items">
-                <a
-                  *ngFor="let item of favoriteItems"
-                  [routerLink]="item.path"
-                  routerLinkActive="active"
-                  class="menu-item"
-                  (click)="onNavItemClick()"
-                >
-                  <span class="menu-icon">{{ item.icon }}</span>
-                  <span class="menu-label">{{ item.label }}</span>
-                  <span class="menu-badge" *ngIf="item.badge && item.badge > 0">{{ item.badge }}</span>
-                </a>
-              </div>
-            </section>
-
-            <section class="menu-group" *ngFor="let group of navGroups" [class.group-active]="groupHasActiveRoute(group)">
-              <button
-                type="button"
-                class="group-toggle"
-                [attr.aria-expanded]="!isGroupCollapsed(group.title)"
-                (click)="toggleGroup(group.title)"
-              >
+            <section class="menu-group" *ngFor="let group of navGroups">
+              <button type="button" class="group-toggle" (click)="toggleGroup(group.title)">
                 <span>{{ group.title }}</span>
-                <span class="caret">{{ isGroupCollapsed(group.title) ? '▸' : '▾' }}</span>
+                <i class="ph" [class.ph-caret-right]="isGroupCollapsed(group.title)" [class.ph-caret-down]="!isGroupCollapsed(group.title)"></i>
               </button>
 
               <div class="group-items" [class.collapsed]="isGroupCollapsed(group.title)">
-                <a
-                  *ngFor="let item of group.items"
-                  [routerLink]="item.path"
-                  routerLinkActive="active"
-                  class="menu-item"
-                  (click)="onNavItemClick()"
-                >
-                  <span class="menu-icon">{{ item.icon }}</span>
+                <a *ngFor="let item of group.items"
+                   [routerLink]="item.path"
+                   routerLinkActive="active"
+                   class="menu-item"
+                   (click)="onNavItemClick()">
+                  <i class="ph" [class]="'ph-' + item.icon"></i>
                   <span class="menu-label">{{ item.label }}</span>
                   <span class="menu-badge" *ngIf="item.badge && item.badge > 0">{{ item.badge }}</span>
                 </a>
@@ -94,13 +99,15 @@ type QuickAction = { label: string; path: string; icon: string };
         <div class="workspace" (click)="closeProfileMenu()">
           <header class="topbar">
             <div class="topbar-left">
-              <button type="button" class="menu-toggle" (click)="toggleSidebar($event)">☰</button>
+              <button type="button" class="menu-toggle" (click)="toggleSidebar($event)">
+                <i class="ph ph-list"></i>
+              </button>
               <div class="breadcrumb">{{ breadcrumbText }}</div>
             </div>
 
-            <div class="quick-actions" *ngIf="quickActions.length > 0">
+            <div class="quick-actions">
               <a *ngFor="let action of quickActions" [routerLink]="action.path" class="quick-btn">
-                <span>{{ action.icon }}</span>
+                <i class="ph" [class]="'ph-' + action.icon"></i>
                 <span>{{ action.label }}</span>
               </a>
             </div>
@@ -108,15 +115,19 @@ type QuickAction = { label: string; path: string; icon: string };
             <div class="profile-wrap">
               <button type="button" class="profile-btn" (click)="toggleProfileMenu($event)">
                 <span class="avatar">{{ profileInitials }}</span>
-                <span class="profile-meta">
+                <div class="profile-meta">
                   <strong>{{ profileName }}</strong>
                   <small>{{ roleLabel }}</small>
-                </span>
+                </div>
               </button>
 
               <div class="profile-menu" *ngIf="profileMenuOpen">
-                <a [routerLink]="profileRoute" (click)="closeProfileMenu()">View Dashboard</a>
-                <button type="button" (click)="logout()">Logout</button>
+                <a [routerLink]="profileRoute" (click)="closeProfileMenu()">
+                  <i class="ph ph-layout"></i> Dashboard
+                </a>
+                <button (click)="logout()">
+                  <i class="ph ph-sign-out"></i> Logout
+                </button>
               </div>
             </div>
           </header>
@@ -155,46 +166,61 @@ type QuickAction = { label: string; path: string; icon: string };
     .skip-link:focus { top: 0.75rem; }
 
     .shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; gap: 0; }
-    .sidebar { border-right: 1px solid var(--border); background: linear-gradient(180deg, rgba(12,19,34,0.96), rgba(7,12,23,0.98)); padding: 1rem 0.85rem; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar { background: #0F172A; padding: 1rem 0.85rem; position: sticky; top: 0; height: 100vh; overflow-y: auto; border-right: 1px solid rgba(255,255,255,0.05); }
     .brand { display: grid; gap: 0.35rem; margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border); }
     .brand-mark { font-family: 'Syne', sans-serif; letter-spacing: 0.06em; color: var(--primary); font-weight: 800; font-size: 1.15rem; }
     .brand-sub { color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
 
-    .menu { display: grid; gap: 0.7rem; }
-    .menu-group { border: 1px solid var(--border); border-radius: 10px; background: rgba(11, 18, 32, 0.38); overflow: hidden; }
-    .menu-group.group-active { border-color: rgba(0, 212, 170, 0.45); }
-    .group-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; border: none; border-bottom: 1px solid rgba(255,255,255,0.04); background: rgba(15, 24, 39, 0.8); color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.72rem; font-weight: 700; padding: 0.45rem 0.55rem; }
+    .menu { display: grid; gap: 0.75rem; }
+    .menu-group { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.03); overflow: hidden; }
+    .menu-group.group-active { border-color: var(--primary); }
+    .group-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; border: none; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255, 255, 255, 0.02); color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7rem; font-weight: 800; padding: 0.6rem 0.75rem; }
 
     .group-items { display: grid; gap: 0.2rem; padding: 0.35rem; max-height: 800px; overflow: hidden; transition: all 0.2s; }
     .group-items.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; }
 
-    .menu-item { display: flex; align-items: center; gap: 0.6rem; border: 1px solid transparent; border-radius: 8px; padding: 0.45rem 0.5rem; color: var(--text-soft); text-decoration: none; font-size: 0.9rem; background: rgba(11, 18, 32, 0.45); transition: all 0.2s; }
-    .menu-item.active, .menu-item:hover { border-color: rgba(0, 212, 170, 0.55); color: var(--primary); background: rgba(0, 212, 170, 0.1); }
+    .menu-item { display: flex; align-items: center; gap: 0.75rem; border-radius: 8px; padding: 0.6rem 0.75rem; color: #94a3b8; text-decoration: none; font-size: 0.9rem; transition: all 0.2s; font-weight: 500; }
+    .menu-item.active, .menu-item:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
     .menu-icon { width: 1.2rem; text-align: center; }
     .menu-label { flex: 1; }
-    .menu-badge { min-width: 18px; height: 18px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.66rem; font-weight: 700; color: #001f17; background: var(--primary); padding: 0 0.28rem; }
+    .menu-badge { min-width: 18px; height: 18px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 800; color: #fff; background: var(--error); padding: 0 0.28rem; }
 
     .workspace { min-width: 0; }
-    .topbar { position: sticky; top: 0; z-index: 100; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1.5rem; padding: 0.7rem 1.5rem; border-bottom: 1px solid var(--border); background: rgba(7, 12, 23, 0.84); backdrop-filter: blur(8px); }
+    .topbar { position: sticky; top: 0; z-index: 100; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1.5rem; padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
     .topbar-left { display: flex; align-items: center; gap: 1rem; }
-    .breadcrumb { color: var(--text-soft); font-size: 0.84rem; font-weight: 600; text-transform: capitalize; }
-    .quick-actions { display: flex; gap: 0.6rem; }
-    .quick-btn { border: 1px solid var(--border); border-radius: 999px; background: rgba(11,18,32,0.58); color: var(--text-soft); text-decoration: none; padding: 0.35rem 0.8rem; font-size: 0.76rem; display: flex; align-items: center; gap: 0.4rem; text-transform: uppercase; font-weight: 700; transition: all 0.2s; }
-    .quick-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .breadcrumb { color: var(--text); font-size: 0.85rem; font-weight: 700; text-transform: capitalize; }
+    .quick-actions { display: flex; gap: 0.5rem; }
+    .quick-btn { border: 1px solid var(--border); border-radius: 999px; background: #fff; color: var(--text-soft); text-decoration: none; padding: 0.4rem 1rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.4rem; text-transform: uppercase; font-weight: 800; transition: all 0.2s; box-shadow: var(--shadow-soft); }
+    .quick-btn:hover { color: var(--primary); border-color: var(--primary); transform: translateY(-1px); }
 
     .menu-toggle { border: 1px solid var(--border); background: rgba(11, 18, 32, 0.68); color: var(--text); border-radius: 8px; width: 36px; height: 36px; display: none; }
 
     .profile-wrap { position: relative; }
-    .profile-btn { border: 1px solid var(--border); border-radius: 999px; background: rgba(11, 18, 32, 0.65); color: var(--text); display: flex; align-items: center; gap: 0.6rem; padding: 0.34rem 0.62rem; transition: all 0.2s; }
+    .profile-btn { border: 1px solid var(--border); border-radius: 999px; background: #fff; color: var(--text); display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0.75rem; transition: all 0.2s; box-shadow: var(--shadow-soft); }
     .profile-btn:hover { border-color: var(--primary); }
-    .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; background: rgba(0, 212, 170, 0.2); color: var(--primary); border: 1px solid rgba(0, 212, 170, 0.5); }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; background: var(--surface-strong); color: var(--primary); border: 1px solid var(--border); }
     .profile-meta { display: grid; text-align: left; }
-    .profile-meta strong { font-size: 0.85rem; color: var(--text); }
-    .profile-meta small { color: var(--text-muted); font-size: 0.72rem; }
+    .profile-meta strong { font-size: 0.85rem; color: var(--text); font-weight: 700; }
+    .profile-meta small { color: var(--text-muted); font-size: 0.7rem; font-weight: 600; }
 
-    .profile-menu { position: absolute; right: 0; top: calc(100% + 0.5rem); min-width: 180px; border: 1px solid var(--border); background: rgba(12, 19, 34, 0.98); border-radius: 12px; padding: 0.5rem; display: grid; gap: 0.25rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .profile-menu a, .profile-menu button { border: none; background: transparent; color: var(--text-soft); border-radius: 8px; padding: 0.6rem; text-align: left; text-decoration: none; font-size: 0.85rem; transition: all 0.2s; }
-    .profile-menu a:hover, .profile-menu button:hover { background: rgba(255,255,255,0.05); color: var(--primary); }
+    .profile-menu { position: absolute; right: 0; top: calc(100% + 0.5rem); min-width: 200px; border: 1px solid var(--border); background: #fff; border-radius: 12px; padding: 0.5rem; display: grid; gap: 0.25rem; box-shadow: var(--shadow-strong); }
+    .profile-menu a, .profile-menu button { border: none; background: transparent; color: var(--text-soft); border-radius: 8px; padding: 0.75rem; text-align: left; text-decoration: none; font-size: 0.85rem; transition: all 0.2s; font-weight: 600; }
+    .profile-menu a:hover, .profile-menu button:hover { background: var(--surface-soft); color: var(--primary); }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(12, 19, 34, 0.85); backdrop-filter: blur(8px); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .idle-modal { background: #fff; border-radius: 20px; border: 1px solid var(--border); padding: 3rem 2rem; max-width: 460px; width: 100%; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    .idle-icon { font-size: 4rem; color: var(--warning); margin-bottom: 1.5rem; }
+    .idle-modal h3 { font-size: 1.5rem; color: var(--text); font-weight: 800; margin-bottom: 1rem; }
+    .idle-modal p { color: var(--text-soft); font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; font-weight: 600; }
+    
+    .countdown-clock { background: var(--surface-soft); border: 2px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 2.5rem; display: flex; flex-direction: column; align-items: center; }
+    .countdown-clock .seconds { font-size: 3.5rem; font-family: 'Syne', sans-serif; font-weight: 800; color: var(--primary); line-height: 1; }
+    .countdown-clock label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; margin-top: 0.5rem; }
+
+    .idle-actions { display: grid; gap: 1rem; }
+    .ph-btn { display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding: 0.85rem 1.5rem; border-radius: 99px; font-weight: 800; font-size: 0.9rem; transition: 0.2s; border: 1px solid var(--border); cursor: pointer; }
+    .ph-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .ph-btn.secondary { background: #fff; color: var(--text-soft); }
 
     @media (max-width: 980px) {
       .shell { grid-template-columns: 1fr; }
@@ -210,22 +236,21 @@ export class AppComponent implements OnInit, OnDestroy {
   sidebarCollapsed = false;
   sidebarOpenMobile = false;
   profileMenuOpen = false;
-
-  roleLabel = 'Guest';
-  profileName = 'User';
-  profileInitials = 'U';
-  profileRoute = '/auth/login';
-  breadcrumbText = 'Home';
-
+  profileName = '';
+  profileInitials = '';
+  roleLabel = '';
+  breadcrumbText = '';
+  profileRoute = '';
   navGroups: NavGroup[] = [];
   quickActions: QuickAction[] = [];
-  favoriteItems: NavItem[] = [];
-  
-  toasts$ = this.toastService.toasts$;
+  groupCollapseState: Record<string, boolean> = {};
 
-  private groupCollapseState: Record<string, boolean> = {};
-  private readonly sub = new Subscription();
-  private notificationSub: any = null;
+  isIdle = false;
+  idleCountdown = 0;
+
+  private sub = new Subscription();
+  private notificationSub?: Subscription;
+  public toasts$ = this.toastService.toasts$;
 
   private readonly unreadSyncHandler = (event: Event) => {
     const custom = event as CustomEvent<number>;
@@ -237,15 +262,28 @@ export class AppComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private toastService: ToastService,
     private notificationSocket: NotificationsSocketService,
-    private notificationsApi: NotificationsApiService
-  ) {}
+    private notificationsApi: NotificationsApiService,
+    private idleService: IdleService
+  ) { }
 
   ngOnInit(): void {
     window.addEventListener('hms-unread-count', this.unreadSyncHandler as EventListener);
-    
+
     this.sub.add(
       this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(() => {
         this.refreshShellState();
+      })
+    );
+
+    this.sub.add(
+      this.idleService.idleState$.subscribe(isIdle => {
+        this.isIdle = isIdle;
+      })
+    );
+
+    this.sub.add(
+      this.idleService.countdownState$.subscribe(count => {
+        this.idleCountdown = count;
       })
     );
 
@@ -257,8 +295,132 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.notificationSub) this.notificationSub.unsubscribe();
     window.removeEventListener('hms-unread-count', this.unreadSyncHandler as EventListener);
     this.notificationSocket.disconnect();
+    this.idleService.stopTracking();
   }
 
+  stayLoggedIn() {
+    this.isIdle = false;
+    this.idleService.reset();
+  }
+
+  // ... (rest of the methods remain similar but with icon mapping)
+
+  private refreshShellState(): void {
+    const url = this.router.url || '';
+    const isAuthRoute = url.startsWith('/auth');
+
+    this.showShell = this.authService.isAuthenticated() && !isAuthRoute;
+    if (!this.showShell) {
+      this.notificationSocket.disconnect();
+      this.idleService.stopTracking();
+      return;
+    }
+
+    this.idleService.startTracking();
+
+    const role = (this.authService.getRole() ?? '').toUpperCase();
+    this.roleLabel = role || 'User';
+    this.profileName = this.authService.getUsername() ?? 'User';
+    this.profileInitials = (this.profileName || 'U').charAt(0).toUpperCase();
+
+    this.configureNavigation(role);
+    this.breadcrumbText = url.split('/').pop() || 'Home';
+
+    const userId = this.authService.getUserId();
+    if (userId) {
+      this.notificationSocket.connect(userId, (item) => {
+        this.toastService.show({
+          title: item.title,
+          message: item.message,
+          type: item.type?.toLowerCase() === 'critical' || item.type?.toLowerCase() === 'alert' ? 'error' : 'info'
+        });
+        this.fetchUnreadCount(userId);
+      });
+      this.fetchUnreadCount(userId);
+    }
+  }
+
+  private configureNavigation(role: string): void {
+    if (role === 'ADMIN') {
+      this.profileRoute = '/admin/dashboard';
+      this.navGroups = [
+        {
+          title: 'Command Center', items: [
+            { label: 'Dashboard', path: '/admin/dashboard', icon: 'chart-bar' },
+            { label: 'Analytics', path: '/admin/analytics', icon: 'presentation-chart' }
+          ]
+        },
+        {
+          title: 'Operations', items: [
+            { label: 'Billing', path: '/admin/billing', icon: 'credit-card' },
+            { label: 'Appointments', path: '/appointments', icon: 'calendar' }
+          ]
+        },
+        {
+          title: 'System', items: [
+            { label: 'Notifications', path: '/admin/notifications', icon: 'bell' }
+          ]
+        }
+      ];
+      this.quickActions = [{ label: 'Analytics', path: '/admin/analytics', icon: 'presentation-chart' }];
+    } else if (role === 'DOCTOR') {
+      this.profileRoute = '/doctor/dashboard';
+      this.navGroups = [
+        {
+          title: 'Clinical Workspace', items: [
+            { label: 'Dashboard', path: '/doctor/dashboard', icon: 'stethoscope' },
+            { label: 'Appointments', path: '/doctor/appointments', icon: 'calendar' },
+            { label: 'Medical Records', path: '/doctor/records', icon: 'clipboard-text' }
+          ]
+        },
+        {
+          title: 'Diagnostics', items: [
+            { label: 'Lab Results', path: '/doctor/lab', icon: 'test-tube' },
+            { label: 'Pharmacy', path: '/doctor/pharmacy', icon: 'pill' }
+          ]
+        },
+        {
+          title: 'Messages', items: [
+            { label: 'Notifications', path: '/doctor/notifications', icon: 'bell' }
+          ]
+        }
+      ];
+      this.quickActions = [
+        { label: 'Lab', path: '/doctor/lab', icon: 'test-tube' },
+        { label: 'Records', path: '/doctor/records', icon: 'clipboard-text' }
+      ];
+    } else {
+      this.profileRoute = '/patient/portal';
+      this.navGroups = [
+        {
+          title: 'Patient Portal', items: [
+            { label: 'Dashboard', path: '/patient/portal', icon: 'hospital' },
+            { label: 'Profile', path: '/patient/profile', icon: 'user' }
+          ]
+        },
+        {
+          title: 'Medical', items: [
+            { label: 'Appointments', path: '/patient/appointments', icon: 'calendar' },
+            { label: 'Records', path: '/patient/records', icon: 'clipboard-text' },
+            { label: 'Labs', path: '/patient/lab', icon: 'test-tube' },
+            { label: 'Meds', path: '/patient/pharmacy', icon: 'pill' }
+          ]
+        },
+        {
+          title: 'Finances', items: [
+            { label: 'Billing', path: '/patient/billing', icon: 'credit-card' },
+            { label: 'Alerts', path: '/patient/notifications', icon: 'bell' }
+          ]
+        }
+      ];
+      this.quickActions = [
+        { label: 'Book', path: '/patient/appointments', icon: 'calendar' },
+        { label: 'Meds', path: '/patient/pharmacy', icon: 'pill' }
+      ];
+    }
+  }
+
+  // Helper methods remained same (toggleSidebar, toggleGroup etc.)
   toggleSidebar(event?: Event): void {
     event?.stopPropagation();
     if (window.innerWidth <= 980) {
@@ -303,41 +465,9 @@ export class AppComponent implements OnInit, OnDestroy {
   logout(): void {
     this.authService.logout();
     this.notificationSocket.disconnect();
+    this.idleService.stopTracking();
     this.profileMenuOpen = false;
     this.router.navigate(['/auth/login']);
-  }
-
-  private refreshShellState(): void {
-    const url = this.router.url || '';
-    const isAuthRoute = url.startsWith('/auth');
-
-    this.showShell = this.authService.isAuthenticated() && !isAuthRoute;
-    if (!this.showShell) {
-      this.notificationSocket.disconnect();
-      return;
-    }
-
-    const role = (this.authService.getRole() ?? '').toUpperCase();
-    this.roleLabel = role || 'User';
-    this.profileName = this.authService.getUserName() ?? 'User';
-    this.profileInitials = (this.profileName || 'U').charAt(0).toUpperCase();
-
-    this.configureNavigation(role);
-    this.breadcrumbText = url.split('/').pop() || 'Home';
-    
-    // Connect to real-time notifications if not already connected
-    const userId = this.authService.getUserId();
-    if (userId) {
-      this.notificationSocket.connect(userId, (item) => {
-        this.toastService.show({
-          title: item.title,
-          message: item.message,
-          type: item.type?.toLowerCase() === 'critical' || item.type?.toLowerCase() === 'alert' ? 'error' : 'info'
-        });
-        this.fetchUnreadCount(userId);
-      });
-      this.fetchUnreadCount(userId);
-    }
   }
 
   private fetchUnreadCount(userId: number): void {
@@ -356,70 +486,5 @@ export class AppComponent implements OnInit, OnDestroy {
       });
     });
   }
-
-  private configureNavigation(role: string): void {
-    if (role === 'ADMIN') {
-      this.profileRoute = '/admin/dashboard';
-      this.navGroups = [
-        { title: 'Command Center', items: [
-          { label: 'Dashboard', path: '/admin/dashboard', icon: '📊' },
-          { label: 'Analytics', path: '/admin/analytics', icon: '📈' }
-        ]},
-        { title: 'Operations', items: [
-          { label: 'Billing', path: '/admin/billing', icon: '💳' },
-          { label: 'Appointments', path: '/appointments', icon: '📅' }
-        ]},
-        { title: 'System', items: [
-          { label: 'Notifications', path: '/admin/notifications', icon: '🔔' }
-        ]}
-      ];
-      this.quickActions = [{ label: 'Analytics', path: '/admin/analytics', icon: '📈' }];
-    } else if (role === 'DOCTOR') {
-      this.profileRoute = '/doctor/dashboard';
-      this.navGroups = [
-        { title: 'Clinical Workspace', items: [
-          { label: 'Dashboard', path: '/doctor/dashboard', icon: '🩺' },
-          { label: 'Appointments', path: '/doctor/appointments', icon: '📅' },
-          { label: 'Medical Records', path: '/doctor/records', icon: '📋' }
-        ]},
-        { title: 'Diagnostics', items: [
-          { label: 'Lab Results', path: '/doctor/lab', icon: '🧪' },
-          { label: 'Pharmacy', path: '/doctor/pharmacy', icon: '💊' }
-        ]},
-        { title: 'Messages', items: [
-          { label: 'Notifications', path: '/doctor/notifications', icon: '🔔' }
-        ]}
-      ];
-      this.quickActions = [
-        { label: 'Lab', path: '/doctor/lab', icon: '🧪' },
-        { label: 'Records', path: '/doctor/records', icon: '📋' }
-      ];
-    } else {
-      this.profileRoute = '/patient/portal';
-      this.navGroups = [
-        { title: 'Patient Portal', items: [
-          { label: 'Dashboard', path: '/patient/portal', icon: '🏥' },
-          { label: 'Profile', path: '/patient/profile', icon: '👤' }
-        ]},
-        { title: 'Medical', items: [
-          { label: 'Appointments', path: '/patient/appointments', icon: '📅' },
-          { label: 'Records', path: '/patient/records', icon: '📋' },
-          { label: 'Labs', path: '/patient/lab', icon: '🧪' },
-          { label: 'Meds', path: '/patient/pharmacy', icon: '💊' }
-        ]},
-        { title: 'Finances', items: [
-          { label: 'Billing', path: '/patient/billing', icon: '💳' },
-          { label: 'Alerts', path: '/patient/notifications', icon: '🔔' }
-        ]}
-      ];
-      this.quickActions = [
-        { label: 'Book', path: '/patient/appointments', icon: '📅' },
-        { label: 'Meds', path: '/patient/pharmacy', icon: '💊' }
-      ];
-    }
-  }
-
-  private getInitials(name: string): string {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-  }
 }
+

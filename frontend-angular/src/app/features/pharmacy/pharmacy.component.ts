@@ -3,277 +3,269 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Subscription, forkJoin } from 'rxjs';
 import { Medication, PharmacyApiService, Prescription } from './pharmacy-api.service';
-import { AllergyRecord, RecordsApiService } from '../records/records-api.service';
+import { AllergyRecord, MedicalRecordsApiService } from '../medical-records/medical-records-api.service';
 import { PatientContextService } from '../../core/patient-context.service';
 import { AuthService } from '../../core/auth.service';
+import { AutocompleteComponent } from '../../shared/components/autocomplete/autocomplete.component';
+import { DataTableComponent, ColumnConfig } from '../../shared/components/data-table/data-table.component';
+import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-pharmacy',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AutocompleteComponent, DataTableComponent, StatusBadgeComponent],
   template: `
-    <div class="container overflow-hidden">
-      <div class="hero">
-        <div>
-          <h2>E-Prescribing Suite</h2>
-          <p class="subtitle">Digital Rx pad with real-time allergy cross-referencing and safety verification.</p>
+    <div class="container clinical-bg">
+      <header class="ph-header">
+        <div class="header-left">
+          <h1 class="page-title">E-Prescribing Suite</h1>
+          <p class="page-subtitle">Pharmacological management with real-time safety verification and therapy tracking.</p>
         </div>
-        <div class="pill">Clinical Pharmacology</div>
-      </div>
-
-      <div class="success" *ngIf="successMessage" role="status" aria-live="polite">{{ successMessage }}</div>
-
-      <!-- Active Patient context -->
-      <div class="ctx-banner" *ngIf="activePatient; else noPatient">
-        <div class="ctx-info">
-          <div class="avatar">{{ activePatient.name.charAt(0) }}</div>
-          <div>
-            <strong>{{ activePatient.name }}</strong>
-            <div class="small">Chart #{{ activePatient.id }} · Clinical Session Active</div>
+        <div class="header-right">
+          <div class="safety-score">
+             <i class="ph ph-shield-check"></i>
+             <span>Safety Check: <strong>ENABLED</strong></span>
           </div>
         </div>
-        <div class="ctx-allergies">
-           <label>Documented Allergies:</label>
-           <div class="allergy-chips">
-              <span class="chip" *ngFor="let a of patientAllergies" [class.severe]="a.severity === 'SEVERE'">
-                {{ a.allergen }}
-              </span>
-              <span class="muted small" *ngIf="patientAllergies.length === 0">No known allergies</span>
-           </div>
+      </header>
+
+      <div class="alert success" *ngIf="successMessage">
+        <i class="ph ph-check-circle"></i> {{ successMessage }}
+      </div>
+
+      <div class="context-banner" [class.no-patient]="!activePatient">
+        <div class="banner-content" *ngIf="activePatient">
+          <div class="patient-brief">
+            <div class="avatar">{{ activePatient.name.charAt(0) }}</div>
+            <div class="p-meta">
+              <strong>Patient: {{ activePatient.name }}</strong>
+              <span>Chart #{{ activePatient.id }} · Verified ID</span>
+            </div>
+          </div>
+          <div class="allergies-list">
+             <label>Contraindicated Allergies</label>
+             <div class="chips">
+                <span class="chip" *ngFor="let a of patientAllergies" [class.severe]="a.severity === 'SEVERE'">
+                  {{ a.allergen }}
+                </span>
+                <span class="muted small" *ngIf="patientAllergies.length === 0">NKA (No Known Allergies)</span>
+             </div>
+          </div>
+        </div>
+        <div class="banner-empty" *ngIf="!activePatient">
+          <i class="ph ph-warning-diamond"></i>
+          <span>Patient context must be established before issuing therapeutic orders.</span>
         </div>
       </div>
 
-      <ng-template #noPatient>
-        <div class="warning-alert">
-          <div class="icon">⚠️</div>
-          <div>No patient context selected. Please select a patient from the clinical dashboard to manage therapy.</div>
-        </div>
-      </ng-template>
+      <div class="ph-workspace" *ngIf="activePatient">
+        <!-- Pad Side: Drafting the Rx -->
+        <div class="rx-column">
+          <section class="card pad-card">
+            <div class="pad-hdr">
+              <div class="hdr-main">
+                <i class="ph ph-scroll"></i>
+                <h3>New therapeutic Order</h3>
+              </div>
+              <span class="rx-brand">℞ DigitalPad v2.0</span>
+            </div>
 
-      <div class="workspace" *ngIf="activePatient">
-        <!-- Sidebar: Med search & Safety Analysis -->
-        <div class="sidebar">
-          <section class="card med-search shadow-glass">
-            <h3>Pharmacopeia Search</h3>
-            <div class="search-wrap">
-              <input type="text" [(ngModel)]="search" (input)="onSearch($event)" placeholder="Search medications..." />
+            <form [formGroup]="form" (ngSubmit)="issue()" class="pad-form">
+              <div class="form-row">
+                <div class="form-group flex-2">
+                  <label>Search Pharmacopeia</label>
+                  <app-autocomplete 
+                    [suggestions]="medSuggestions"
+                    placeholder="Search medication name..."
+                    (onQuery)="searchMeds($event)"
+                    (onSelect)="selectMed($event)">
+                  </app-autocomplete>
+                </div>
+                <div class="form-group">
+                  <label>Selected Drug</label>
+                  <input type="text" formControlName="medicationName" readonly class="locked-input" placeholder="Select drug..." />
+                </div>
+              </div>
+
+              <div class="safety-drawer" *ngIf="selectedMedication" [class.warning]="allergyWarning">
+                <div class="sd-icon">
+                  <i [class]="allergyWarning ? 'ph ph-warning-octagon' : 'ph ph-check-circle'"></i>
+                </div>
+                <div class="sd-content">
+                  <strong>Clinical Safety Analysis</strong>
+                  <p *ngIf="!allergyWarning">No known interactions found between {{ selectedMedication.medicationName }} and active allergy profile.</p>
+                  <p *ngIf="allergyWarning" class="alert-text">FATAL: Patient has documented allergy to {{ allergyWarning }}. Proceed with extreme caution.</p>
+                </div>
+              </div>
+
+              <div class="form-row mt-4">
+                <div class="form-group">
+                  <label>Dose</label>
+                  <input type="text" formControlName="dose" placeholder="e.g. 500mg" />
+                </div>
+                <div class="form-group">
+                  <label>Frequency</label>
+                  <input type="text" formControlName="frequency" placeholder="e.g. BID" />
+                </div>
+                <div class="form-group">
+                  <label>Duration</label>
+                  <input type="text" formControlName="duration" placeholder="e.g. 7 Days" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Administration Route</label>
+                  <select formControlName="route">
+                    <option value="ORAL">Oral</option>
+                    <option value="IV">Intravenous</option>
+                    <option value="IM">Intramuscular</option>
+                    <option value="TOPICAL">Topical</option>
+                    <option value="INHALATION">Inhalation</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Instructions for Pharmacy</label>
+                <textarea formControlName="instructions" rows="2" placeholder="Specific titration or administration notes..."></textarea>
+              </div>
+
+              <div class="pad-footer">
+                <div class="audit-trail">
+                  <span>Digitally Authorized by</span>
+                  <strong>Dr. {{ doctorName }}</strong>
+                </div>
+                <button type="submit" class="ph-btn primary xl" [disabled]="form.invalid || issuingPrescription || (allergyWarning !== null)">
+                  <i class="ph ph-signature"></i> {{ issuingPrescription ? 'Authorizing...' : 'Issue Prescription' }}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <!-- History Side: Timeline of Therapy -->
+        <aside class="history-column">
+          <div class="card history-card">
+            <div class="pane-header">
+              <h3>Active Therapy</h3>
+              <button class="ph-btn sm" (click)="loadHistory()"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
             </div>
             
-            <div class="search-results custom-scroll">
-              <div class="loading-spinner" *ngIf="loadingMedications">Analyzing Catalog...</div>
-              <ul class="med-list" *ngIf="!loadingMedications">
-                <li *ngFor="let med of medications" (click)="selectMedication(med)">
-                  <div class="med-name">{{ med.medicationName }}</div>
-                  <div class="med-meta">{{ med.genericName }} · {{ med.strength }}</div>
-                </li>
-              </ul>
+            <div class="med-history-list">
+              <div class="med-item" *ngFor="let item of history">
+                <div class="med-hdr">
+                  <strong>{{ item.medicationName }}</strong>
+                  <app-status-badge [status]="item.status || 'ACTIVE'"></app-status-badge>
+                </div>
+                <div class="med-body">
+                  <span>{{ item.dose }} · {{ item.frequency }}</span>
+                  <span>{{ item.issuedDate }}</span>
+                </div>
+                <div class="med-note" *ngIf="item.instructions">
+                  <i class="ph ph-note"></i> {{ item.instructions }}
+                </div>
+              </div>
             </div>
-          </section>
 
-          <section class="card safety-check shadow-glass" [class.alert]="allergyWarning">
-             <div class="safety-header">
-               <h3>Clinical Safety Link</h3>
-               <div class="status-dot" [class.active]="!allergyWarning"></div>
-             </div>
-             <div class="safety-content">
-                <div *ngIf="!selectedMedication" class="muted small">Select a medication to perform real-time allergy cross-referencing.</div>
-                <div *ngIf="selectedMedication && !allergyWarning" class="safe">
-                   ✓ No matches found for <strong>{{ selectedMedication.medicationName }}</strong> against patient's allergy profile.
-                </div>
-                <div *ngIf="allergyWarning" class="danger">
-                   <div class="danger-title">⚠️ ALLERGY INTERACTION</div>
-                   <p>Warning: <strong>{{ selectedMedication?.medicationName }}</strong> may interact with documented allergy: <strong>{{ allergyWarning }}</strong>.</p>
-                </div>
-             </div>
-          </section>
-        </div>
-
-        <!-- Main: The Rx Pad & History -->
-        <div class="main-content">
-          <section class="card rx-pad shadow-glass">
-             <div class="pad-header">
-                <h3>Digital Prescription Pad</h3>
-                <span class="rx-symbol">℞</span>
-             </div>
-             
-             <form [formGroup]="form" (ngSubmit)="issue()" class="pad-body">
-                <div class="pad-row">
-                   <div class="pad-field">
-                      <label>Medication</label>
-                      <input type="text" formControlName="medicationName" readonly />
-                   </div>
-                   <div class="pad-field flex-2">
-                      <label>Sig (Dose & Frequency)</label>
-                      <div class="split-input">
-                         <input type="text" formControlName="dose" placeholder="500mg" />
-                         <input type="text" formControlName="frequency" placeholder="BID (2x daily)" />
-                      </div>
-                   </div>
-                </div>
-
-                <div class="pad-row">
-                   <div class="pad-field">
-                      <label>Duration</label>
-                      <input type="text" formControlName="duration" placeholder="7 days" />
-                   </div>
-                   <div class="pad-field">
-                      <label>Route</label>
-                      <select formControlName="route">
-                         <option value="ORAL">Oral</option>
-                         <option value="IV">Intravenous</option>
-                         <option value="IM">Intramuscular</option>
-                         <option value="TOPICAL">Topical</option>
-                         <option value="INHALATION">Inhalation</option>
-                      </select>
-                   </div>
-                </div>
-
-                <div class="pad-field">
-                   <label>Pharmacist Instructions</label>
-                   <textarea formControlName="instructions" rows="2" placeholder="e.g. Take with food, avoid alcohol..."></textarea>
-                </div>
-
-                <div class="pad-footer">
-                   <div class="doc-sig">
-                      <div class="sig-line"></div>
-                      <div class="sig-label">Digitally Signed by Dr. {{ doctorName }}</div>
-                   </div>
-                   <button type="submit" class="signature-btn" [disabled]="form.invalid || issuingPrescription || allergyWarning">
-                      {{ issuingPrescription ? 'Issuing...' : 'Issue Prescription' }}
-                   </button>
-                </div>
-             </form>
-          </section>
-
-          <section class="card history shadow-glass">
-             <div class="history-header">
-                <h3>Active Therapy & Prescription History</h3>
-                <button class="refresh-btn" (click)="loadHistory()">Sync Records</button>
-             </div>
-             
-             <div class="timeline custom-scroll">
-                <div class="empty-state" *ngIf="history.length === 0 && !loadingHistory">No current medication orders.</div>
-                <div class="loading-state" *ngIf="loadingHistory">Syncing clinical records...</div>
-                
-                <div class="timeline-item" *ngFor="let item of history">
-                   <div class="time-meta">
-                      <span class="date">{{ item.issuedDate }}</span>
-                      <span class="badge" [class.active]="item.status === 'ACTIVE'">{{ item.status }}</span>
-                   </div>
-                   <div class="time-body">
-                      <div class="med-info">
-                         <strong>{{ item.medicationName }}</strong>
-                         <span class="details">{{ item.dose }} · {{ item.frequency }} · {{ item.route }}</span>
-                      </div>
-                      <div class="inst" *ngIf="item.instructions"><em>Note: {{ item.instructions }}</em></div>
-                   </div>
-                </div>
-             </div>
-          </section>
-        </div>
+            <div class="empty-state" *ngIf="history.length === 0">
+              <i class="ph ph-prescription"></i>
+              <p>No active therapeutic orders found.</p>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   `,
   styles: [`
-    .hero { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
-    .subtitle { margin-top: 0.4rem; color: var(--text-soft); }
-    .pill { border: 1px solid rgba(0, 212, 170, 0.4); color: var(--primary); background: rgba(0, 212, 170, 0.1); border-radius: 99px; padding: 0.3rem 0.8rem; font-size: 0.75rem; font-weight: 700; }
+    .clinical-bg { padding: 2rem; background: var(--bg); min-height: 100vh; }
+    .ph-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+    .page-title { font-size: 1.75rem; color: var(--primary); font-weight: 800; }
+    .page-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
 
-    .success { background: rgba(34, 197, 94, 0.1); color: #80e8a6; padding: 0.8rem; border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.3); margin-bottom: 1.5rem; }
+    .safety-score { background: #fff; border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 999px; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--accent); font-weight: 800; box-shadow: var(--shadow-soft); }
+
+    .context-banner { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 2rem; box-shadow: var(--shadow-soft); display: flex; align-items: center; justify-content: space-between; border-left: 6px solid var(--primary); }
+    .context-banner.no-patient { border-left-color: var(--warning); background: rgba(217, 119, 6, 0.05); }
+    .banner-content { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .patient-brief { display: flex; gap: 1rem; align-items: center; }
+    .avatar { width: 44px; height: 44px; background: var(--primary); color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; }
+    .p-meta strong { display: block; font-size: 1rem; color: var(--text); }
+    .p-meta span { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
     
-    .ctx-banner { 
-      display: flex; justify-content: space-between; align-items: center; 
-      background: rgba(109, 124, 255, 0.1); border: 1px solid rgba(109, 124, 255, 0.3); 
-      border-radius: 16px; padding: 1.2rem; margin-bottom: 2rem; backdrop-filter: blur(10px);
-    }
-    .ctx-info { display: flex; gap: 1rem; align-items: center; }
-    .avatar { width: 42px; height: 42px; background: var(--primary); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; }
-    .ctx-allergies label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
-    .allergy-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .chip { font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
-    .chip.severe { background: rgba(255, 90, 114, 0.1); color: #ff9ca9; border-color: rgba(255, 90, 114, 0.3); }
+    .allergies-list { text-align: right; }
+    .allergies-list label { display: block; font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; margin-bottom: 0.4rem; }
+    .chips { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
+    .chip { font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 4px; background: var(--surface-soft); color: var(--text-soft); }
+    .chip.severe { background: rgba(220, 38, 38, 0.1); color: var(--danger); }
+    .banner-empty { display: flex; align-items: center; gap: 1rem; color: var(--warning); font-weight: 700; }
 
-    .warning-alert { display: flex; gap: 1rem; align-items: center; padding: 2rem; background: rgba(255, 90, 114, 0.05); border: 1px solid rgba(255, 90, 114, 0.2); border-radius: 16px; color: #ff9ca9; }
-
-    .workspace { display: grid; grid-template-columns: 340px 1fr; gap: 1.5rem; }
-    .shadow-glass { background: rgba(26, 39, 64, 0.6); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; }
-    .card h3 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.2rem; }
-
-    /* Sidebar */
-    .search-wrap input { width: 100%; padding: 0.8rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 10px; color: #fff; margin-bottom: 1rem; }
-    .search-results { max-height: 250px; overflow-y: auto; }
-    .med-list { list-style: none; padding: 0; }
-    .med-list li { padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
-    .med-list li:hover { background: rgba(0, 212, 170, 0.1); }
-    .med-name { font-weight: 700; font-size: 0.9rem; }
-    .med-meta { font-size: 0.75rem; color: var(--text-soft); }
-
-    .safety-check { margin-top: 1.5rem; border-left: 4px solid var(--primary); transition: 0.3s; }
-    .safety-check.alert { border-color: #ff5a72; background: rgba(255, 90, 114, 0.05); }
-    .safety-header { display: flex; justify-content: space-between; align-items: baseline; }
-    .status-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border); }
-    .status-dot.active { background: #80e8a6; border-color: rgba(34, 197, 94, 0.4); box-shadow: 0 0 8px #80e8a6; }
-    .safety-content { font-size: 0.85rem; margin-top: 0.5rem; line-height: 1.4; }
-    .danger { color: #ff9ca9; }
-    .danger-title { font-weight: 800; font-size: 0.75rem; margin-bottom: 0.4rem; }
-
-    /* Rx Pad */
-    .rx-pad { margin-bottom: 1.5rem; position: relative; }
-    .pad-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; padding-bottom: 0.5rem; }
-    .rx-symbol { font-size: 2rem; font-style: italic; color: var(--primary); font-family: serif; }
-    .pad-body { display: grid; gap: 1.2rem; }
-    .pad-row { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem; }
-    .pad-field { display: flex; flex-direction: column; gap: 0.5rem; }
-    .pad-field label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-    .pad-field input, .pad-field select, .pad-field textarea { padding: 0.8rem; background: rgba(11, 18, 32, 0.6); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-family: inherit; }
-    .pad-field input[readonly] { background: transparent; border-style: dashed; }
-    .split-input { display: flex; gap: 0.5rem; }
-    .split-input input { flex: 1; }
+    .ph-workspace { display: grid; grid-template-columns: 1fr 340px; gap: 2rem; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2rem; box-shadow: var(--shadow-soft); }
     
-    .pad-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); }
-    .sig-line { width: 220px; height: 1px; background: var(--text-muted); margin-bottom: 0.5rem; }
-    .sig-label { font-size: 0.7rem; font-style: italic; color: var(--text-soft); }
-    .signature-btn { background: var(--primary); color: #000; border: none; padding: 1rem 2rem; border-radius: 12px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; }
-    .signature-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px var(--primary); }
-    .signature-btn:disabled { background: var(--border); color: var(--text-muted); transform: none; box-shadow: none; cursor: not-allowed; }
+    .pad-card { border-top: 8px solid var(--primary); }
+    .pad-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .hdr-main { display: flex; align-items: center; gap: 0.75rem; }
+    .hdr-main i { font-size: 1.50rem; color: var(--primary); }
+    .hdr-main h3 { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: 0; }
+    .rx-brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.75rem; color: var(--text-muted); }
 
-    /* History */
-    .history-header { display: flex; justify-content: space-between; align-items: start; }
-    .refresh-btn { font-size: 0.7rem; background: transparent; border: 1px solid var(--border); color: var(--text-soft); padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
-    .timeline { max-height: 300px; overflow-y: auto; display: grid; gap: 1rem; padding-top: 1rem; }
-    .timeline-item { padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); display: flex; gap: 1.5rem; }
-    .time-meta { min-width: 90px; display: flex; flex-direction: column; gap: 0.5rem; }
-    .time-meta .date { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
-    .badge { font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); width: fit-content; }
-    .badge.active { color: #80e8a6; border-color: rgba(34, 197, 94, 0.4); }
-    .time-body { flex: 1; }
-    .med-info strong { display: block; margin-bottom: 0.2rem; }
-    .med-info .details { font-size: 0.85rem; color: var(--text-soft); }
-    .inst { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; }
+    .pad-form { display: grid; gap: 1.5rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .form-group { display: grid; gap: 0.5rem; }
+    .flex-2 { grid-column: span 1; }
+    .form-group label { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+    .form-group input, .form-group select, .form-group textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem; font-family: inherit; font-size: 0.95rem; transition: 0.2s; }
+    .form-group input:focus { border-color: var(--primary); outline: none; }
+    .locked-input { background: var(--surface-soft); border-style: dashed; font-weight: 700; color: var(--primary); }
 
-    .custom-scroll::-webkit-scrollbar { width: 4px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    .safety-drawer { background: rgba(13, 126, 106, 0.05); border: 1px solid rgba(13, 126, 106, 0.2); border-radius: 12px; padding: 1.25rem; display: flex; gap: 1rem; align-items: flex-start; }
+    .safety-drawer.warning { background: rgba(220, 38, 38, 0.1); border-color: rgba(220, 38, 38, 0.2); }
+    .sd-icon i { font-size: 1.5rem; color: var(--accent); }
+    .safety-drawer.warning .sd-icon i { color: var(--danger); }
+    .sd-content strong { display: block; font-size: 0.85rem; color: var(--text); font-weight: 800; margin-bottom: 0.25rem; }
+    .sd-content p { font-size: 0.85rem; color: var(--text-soft); line-height: 1.5; font-weight: 600; margin: 0; }
+    .alert-text { color: var(--danger) !important; font-weight: 800 !important; }
 
-    @media (max-width: 1000px) {
-      .workspace { grid-template-columns: 1fr; }
-    }
+    .pad-footer { margin-top: 1rem; padding-top: 2rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-end; }
+    .audit-trail { display: flex; flex-direction: column; gap: 0.25rem; }
+    .audit-trail span { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+    .audit-trail strong { font-size: 1rem; color: var(--text); font-style: italic; }
+
+    .ph-btn { background: var(--surface); border: 1px solid var(--border); padding: 0.6rem 1.25rem; border-radius: 999px; color: var(--text-soft); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; justify-content: center; }
+    .ph-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+    .ph-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .ph-btn.xl { padding: 1rem 3rem; font-size: 1rem; }
+    .ph-btn.sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+
+    .history-column { display: flex; flex-direction: column; }
+    .history-card { height: 100%; min-height: 600px; }
+    .med-history-list { display: grid; gap: 1rem; margin-top: 1.5rem; }
+    .med-item { background: var(--surface-soft); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--border); }
+    .med-hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+    .med-hdr strong { font-size: 0.95rem; color: var(--text); }
+    .med-body { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-soft); font-weight: 600; }
+    .med-note { margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); font-style: italic; display: flex; gap: 0.4rem; align-items: center; background: #fff; padding: 0.5rem; border-radius: 6px; }
+
+    .alert.success { background: rgba(13, 126, 106, 0.1); color: var(--accent); border: 1px solid rgba(13, 126, 106, 0.2); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-weight: 700; }
+    .empty-state { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
+    .empty-state i { font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; }
+
+    @media (max-width: 1200px) { .ph-workspace { grid-template-columns: 1fr; } .history-column { order: -1; } .form-row { grid-template-columns: 1fr; } }
   `]
 })
 export class PharmacyComponent implements OnInit, OnDestroy {
   activePatient: any | null = null;
   doctorName = '';
-  search = '';
   medications: Medication[] = [];
   history: Prescription[] = [];
   patientAllergies: AllergyRecord[] = [];
   selectedMedication: Medication | null = null;
   allergyWarning: string | null = null;
-  
-  loadingMedications = false;
+  medSuggestions: string[] = [];
+
   issuingPrescription = false;
-  loadingHistory = false;
   successMessage = '';
-  
   private sub = new Subscription();
 
   readonly form = this.fb.nonNullable.group({
@@ -288,19 +280,19 @@ export class PharmacyComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private pharmacyApi: PharmacyApiService,
-    private recordsApi: RecordsApiService,
+    private medicalApi: MedicalRecordsApiService,
     private contextService: PatientContextService,
     private auth: AuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
-    this.doctorName = this.auth.getUserName() || 'Physician';
+    this.doctorName = this.auth.getUsername() || 'Physician';
     this.sub.add(this.contextService.activePatient$.subscribe(p => {
       this.activePatient = p;
       this.selectedMedication = null;
       this.allergyWarning = null;
       this.form.reset({ route: 'ORAL', frequency: 'QD (Once daily)', duration: '7 days' });
-      
+
       if (p) {
         this.loadClinicalData(Number(p.id));
       } else {
@@ -315,61 +307,50 @@ export class PharmacyComponent implements OnInit, OnDestroy {
   }
 
   private loadClinicalData(patientId: number): void {
-    this.loadingHistory = true;
     forkJoin({
       history: this.pharmacyApi.getPatientPrescriptions(patientId),
-      allergies: this.recordsApi.getAllergies(patientId)
+      allergies: this.medicalApi.getAllergies(patientId)
     }).subscribe({
       next: res => {
-        this.history = res.history.sort((a,b) => (b.id || 0) - (a.id || 0));
+        this.history = res.history.sort((a, b) => (b.id || 0) - (a.id || 0));
         this.patientAllergies = res.allergies;
-        this.loadingHistory = false;
-      },
-      error: () => this.loadingHistory = false
+      }
     });
   }
 
-  onSearch(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const q = target.value.trim();
+  searchMeds(q: string): void {
     if (q.length < 2) {
-      this.medications = [];
+      this.medSuggestions = [];
       return;
     }
-    this.loadingMedications = true;
     this.pharmacyApi.searchMedications(q).subscribe({
       next: items => {
         this.medications = items;
-        this.loadingMedications = false;
-      },
-      error: () => this.loadingMedications = false
+        this.medSuggestions = items.map(m => m.medicationName);
+      }
     });
   }
 
-  selectMedication(med: Medication): void {
-    this.selectedMedication = med;
-    this.form.patchValue({
-      medicationName: med.medicationName,
-      dose: med.strength || ''
-    });
-    this.medications = [];
-    this.search = '';
-    this.performSafetyCheck(med.medicationName);
+  selectMed(name: string): void {
+    const med = this.medications.find(m => m.medicationName === name);
+    if (med) {
+      this.selectedMedication = med;
+      this.form.patchValue({
+        medicationName: med.medicationName,
+        dose: med.strength || ''
+      });
+      this.performSafetyCheck(med.medicationName);
+    }
   }
 
   private performSafetyCheck(medName: string): void {
     this.allergyWarning = null;
     const medication = medName.toLowerCase();
-    
-    // Safety Logic: Match medication name against documentation allergens
-    const match = this.patientAllergies.find(a => 
-      medication.includes(a.allergen.toLowerCase()) || 
+    const match = this.patientAllergies.find(a =>
+      medication.includes(a.allergen.toLowerCase()) ||
       a.allergen.toLowerCase().includes(medication)
     );
-
-    if (match) {
-      this.allergyWarning = match.allergen;
-    }
+    if (match) this.allergyWarning = match.allergen;
   }
 
   issue(): void {
@@ -383,16 +364,15 @@ export class PharmacyComponent implements OnInit, OnDestroy {
     };
 
     this.issuingPrescription = true;
-    this.successMessage = '';
-
     this.pharmacyApi.issuePrescription(payload).subscribe({
       next: () => {
-        this.successMessage = `Prescription for ${payload.medicationName} issued successfully.`;
+        this.successMessage = `Therapeutic order for ${payload.medicationName} authorized successfully.`;
         this.issuingPrescription = false;
         this.selectedMedication = null;
         this.allergyWarning = null;
         this.form.reset({ route: 'ORAL', frequency: 'QD (Once daily)', duration: '7 days' });
         this.loadHistory();
+        setTimeout(() => this.successMessage = '', 5000);
       },
       error: () => this.issuingPrescription = false
     });
@@ -400,13 +380,11 @@ export class PharmacyComponent implements OnInit, OnDestroy {
 
   loadHistory(): void {
     if (!this.activePatient) return;
-    this.loadingHistory = true;
     this.pharmacyApi.getPatientPrescriptions(Number(this.activePatient.id)).subscribe({
       next: items => {
-        this.history = items.sort((a,b) => (b.id || 0) - (a.id || 0));
-        this.loadingHistory = false;
-      },
-      error: () => this.loadingHistory = false
+        this.history = items.sort((a, b) => (b.id || 0) - (a.id || 0));
+      }
     });
   }
 }
+

@@ -45,7 +45,7 @@ class AuthServiceIntegrationTest {
         newUser.setPassword("password123");
         newUser.setRole("PATIENT");
 
-        authService.register(newUser);
+        authService.register(newUser, null);
 
         // Login
         AuthResponse auth = authService.login("integrationtest", "password123");
@@ -62,7 +62,7 @@ class AuthServiceIntegrationTest {
         newUser.setPassword("correctpass123");
         newUser.setRole("PATIENT");
 
-        authService.register(newUser);
+        authService.register(newUser, null);
 
         assertThrows(RuntimeException.class, () ->
             authService.login("wrongpasstest", "incorrectpass")
@@ -77,7 +77,7 @@ class AuthServiceIntegrationTest {
         newUser.setPassword("password123");
         newUser.setRole("DOCTOR");
 
-        authService.register(newUser);
+        authService.register(newUser, null);
         AuthResponse auth = authService.login("jwttest", "password123");
 
         String username = jwtUtil.extractUsername(auth.getToken());
@@ -100,8 +100,8 @@ class AuthServiceIntegrationTest {
         user2.setPassword("password2");
         user2.setRole("DOCTOR");
 
-        authService.register(user1);
-        authService.register(user2);
+        authService.register(user1, null);
+        authService.register(user2, null);
 
         AuthResponse auth1 = authService.login("user1", "password1");
         AuthResponse auth2 = authService.login("user2", "password2");
@@ -117,7 +117,7 @@ class AuthServiceIntegrationTest {
         user.setPassword("password123");
         user.setRole("PATIENT");
 
-        authService.register(user);
+        authService.register(user, null);
         AuthResponse auth = authService.login("roletest", "password123");
 
         String extractedRole = jwtUtil.extractRole(auth.getToken());
@@ -132,7 +132,7 @@ class AuthServiceIntegrationTest {
         user.setPassword("password123");
         user.setRole("PATIENT");
 
-        authService.register(user);
+        authService.register(user, null);
 
         assertDoesNotThrow(() -> authService.login("CaseTest", "password123"));
         assertThrows(RuntimeException.class, () -> authService.login("casetest", "password123"));
@@ -146,7 +146,7 @@ class AuthServiceIntegrationTest {
         user.setPassword("password123");
         user.setRole("PATIENT");
 
-        authService.register(user);
+        authService.register(user, null);
 
         assertTrue(userRepository.findByUsername("repotest").isPresent());
     }
@@ -160,7 +160,7 @@ class AuthServiceIntegrationTest {
         user.setPassword(plainPassword);
         user.setRole("PATIENT");
 
-        authService.register(user);
+        authService.register(user, null);
 
         User savedUser = userRepository.findByUsername("encodingtest").get();
         assertNotEquals(plainPassword, savedUser.getPassword());
@@ -175,7 +175,7 @@ class AuthServiceIntegrationTest {
         adminUser.setPassword("adminpass123");
         adminUser.setRole("ADMIN");
 
-        authService.register(adminUser);
+        authService.register(adminUser, null);
 
         AuthResponse auth = authService.login("admin", "adminpass123");
         assertEquals("ADMIN", jwtUtil.extractRole(auth.getToken()));
@@ -189,7 +189,7 @@ class AuthServiceIntegrationTest {
         user.setPassword("password123");
         user.setRole("PATIENT");
 
-        authService.register(user);
+        authService.register(user, null);
         AuthResponse auth = authService.login("extracttest", "password123");
 
         String extractedUsername = jwtUtil.extractUsername(auth.getToken());

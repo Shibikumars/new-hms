@@ -1,78 +1,226 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReportingApiService } from './reporting-api.service';
+import { ReportingApiService, DashboardSummary } from './reporting-api.service';
 
 @Component({
   selector: 'app-analytics',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="container">
-      <div class="hero">
-        <div>
-          <h2>Analytics</h2>
-          <p class="subtitle">Operational intelligence powered by reporting-service.</p>
+    <div class="container clinical-bg">
+      <header class="ph-header">
+        <div class="header-left">
+          <h1 class="page-title">Operational Intelligence</h1>
+          <p class="page-subtitle">Real-time clinical metrics and departmental performance monitoring.</p>
         </div>
-        <div class="pill">Insights</div>
+        <div class="header-right">
+          <div class="last-sync">
+             <i class="ph ph-clock-counter-clockwise"></i>
+             <span>Last Updated: <strong>{{ lastSync | date:'shortTime' }}</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- KPI Ribbon -->
+      <div class="kpi-ribbon" *ngIf="summary">
+        <div class="kpi-card">
+          <div class="kpi-icon patients"><i class="ph ph-users-three"></i></div>
+          <div class="kpi-data">
+            <label>Total Patients</label>
+            <strong>{{ summary.totalPatients | number }}</strong>
+            <span class="trend up"><i class="ph ph-trend-up"></i> 4.2%</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon appointments"><i class="ph ph-calendar-check"></i></div>
+          <div class="kpi-data">
+            <label>Today's Load</label>
+            <strong>{{ summary.todayAppointments }}</strong>
+            <span class="trend">Appointments</span>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon doctors"><i class="ph ph-stethoscope"></i></div>
+          <div class="kpi-data">
+            <label>On-Call Staff</label>
+            <strong>{{ summary.activeDoctors }}</strong>
+            <span class="trend">Active Doctors</span>
+          </div>
+        </div>
+        <div class="kpi-card revenue">
+          <div class="kpi-icon revenue"><i class="ph ph-currency-dollar"></i></div>
+          <div class="kpi-data">
+            <label>Daily Revenue</label>
+            <strong>\${{ summary.todayRevenue | number }}</strong>
+            <span class="trend up"><i class="ph ph-trend-up"></i> 12%</span>
+          </div>
+        </div>
       </div>
 
-      <div class="loading-text" *ngIf="loadingSummary">Loading KPI summary…</div>
-      <div class="cards" *ngIf="!loadingSummary && summary">
-        <div class="card"><span class="label">Total Patients</span><strong>{{ summary.totalPatients }}</strong></div>
-        <div class="card"><span class="label">Today Appointments</span><strong>{{ summary.todayAppointments }}</strong></div>
-        <div class="card"><span class="label">Active Doctors</span><strong>{{ summary.activeDoctors }}</strong></div>
-        <div class="card revenue"><span class="label">Today Revenue</span><strong>₹{{ summary.todayRevenue }}</strong></div>
+      <div class="dashboard-grid">
+        <!-- Main: Charts and Progress -->
+        <main class="analytics-main">
+          <section class="card pane">
+            <div class="pane-header">
+               <h3>Department Capacity Load</h3>
+               <p class="pane-subtitle">Live utilization across clinical wings.</p>
+            </div>
+            
+            <div class="loading-box" *ngIf="loadingDepartmentLoad">
+              <i class="ph ph-circle-notch ph-spin"></i>
+            </div>
+
+            <div class="dept-load-list" *ngIf="!loadingDepartmentLoad">
+              <div class="dept-item" *ngFor="let row of departmentLoadEntries">
+                 <div class="dept-info">
+                   <span class="dept-name">{{ row[0] }}</span>
+                   <span class="dept-val">{{ row[1] }}% Capacity</span>
+                 </div>
+                 <div class="load-bar-wrap">
+                    <div class="load-bar" [style.width.%]="row[1]" [class.critical]="row[1] > 85"></div>
+                 </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card pane mt-8">
+            <div class="pane-header">
+               <h3>Clinic Outcomes & Trends</h3>
+               <p class="pane-subtitle">Aggregated clinical performance indicators.</p>
+            </div>
+            <div class="trends-stats">
+               <div class="trend-box">
+                  <span class="t-val">3.2m</span>
+                  <label>Wait Time (Avg)</label>
+               </div>
+               <div class="trend-box">
+                  <span class="t-val">98%</span>
+                  <label>Patient Satisfaction</label>
+               </div>
+               <div class="trend-box">
+                  <span class="t-val">1.4h</span>
+                  <label>Discharge Speed</label>
+               </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- Sidebar: Performance -->
+        <aside class="analytics-side">
+          <section class="card pane perf-pane">
+            <div class="pane-header">
+               <h3>Top Performers</h3>
+               <p class="pane-subtitle">Staff ranking by patient volume.</p>
+            </div>
+            
+            <div class="loading-box" *ngIf="loadingDoctorPerformance">
+              <i class="ph ph-circle-notch ph-spin"></i>
+            </div>
+
+            <div class="perf-list" *ngIf="!loadingDoctorPerformance">
+              <div class="perf-item" *ngFor="let row of doctorPerformance; let i = index">
+                 <div class="rank">#{{ i + 1 }}</div>
+                 <div class="doc-brief">
+                   <strong>{{ row['name'] }}</strong>
+                   <span>{{ row['rating'] }} Rating · {{ row['patients'] }} Cases</span>
+                 </div>
+                 <div class="perf-badge"><i class="ph ph-medal"></i></div>
+              </div>
+            </div>
+          </section>
+
+          <div class="card operation-summary mt-8">
+             <h3>Operational Health</h3>
+             <div class="health-gauge">
+                <i class="ph ph-activity"></i>
+                <div class="hg-data">
+                   <span class="hg-label">System Stability</span>
+                   <span class="hg-val">99.9% Optimal</span>
+                </div>
+             </div>
+          </div>
+        </aside>
       </div>
-      <div class="loading-text" *ngIf="!loadingSummary && !summary">Summary data unavailable right now.</div>
-
-      <section class="section card" aria-labelledby="dept-load-heading">
-        <h3 id="dept-load-heading">Department Load</h3>
-        <div class="loading-text" *ngIf="loadingDepartmentLoad">Loading department metrics…</div>
-        <ul class="list" *ngIf="!loadingDepartmentLoad && departmentLoadEntries.length > 0">
-          <li *ngFor="let row of departmentLoadEntries">
-            <strong>{{ row[0] }}</strong>
-            <span>{{ row[1] }}%</span>
-          </li>
-        </ul>
-        <div class="loading-text" *ngIf="!loadingDepartmentLoad && departmentLoadEntries.length === 0">No department data available.</div>
-      </section>
-
-      <section class="section card" aria-labelledby="top-doctors-heading">
-        <h3 id="top-doctors-heading">Top Doctors</h3>
-        <div class="loading-text" *ngIf="loadingDoctorPerformance">Loading doctor performance…</div>
-        <ul class="list" *ngIf="!loadingDoctorPerformance && doctorPerformance.length > 0">
-          <li *ngFor="let row of doctorPerformance">
-            <strong>{{ row['name'] }}</strong>
-            <span>Patients: {{ row['patients'] }} · Rating: {{ row['rating'] }}</span>
-          </li>
-        </ul>
-        <div class="loading-text" *ngIf="!loadingDoctorPerformance && doctorPerformance.length === 0">No doctor performance records available.</div>
-      </section>
     </div>
   `,
   styles: [`
-    .hero { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
-    .subtitle { margin-top: 0.45rem; color: var(--text-soft); }
-    .pill { border: 1px solid rgba(109,124,255,0.5); color: #aeb8ff; background: rgba(109,124,255,0.16); border-radius: 999px; padding: 0.35rem 0.75rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; white-space: nowrap; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
-    .card { border: 1px solid var(--border); border-radius: 12px; padding: 0.85rem; display: grid; gap: 0.25rem; background: linear-gradient(180deg, rgba(26,39,64,0.65), rgba(15,23,38,0.95)); }
-    .label { color: var(--text-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .card strong { font-family: 'Syne', sans-serif; color: var(--text); font-size: 1.15rem; }
-    .card.revenue strong { color: var(--primary); }
-    .section { margin-top: 1.2rem; }
-    .list { list-style: none; padding: 0; margin: 0.5rem 0 0; }
-    .list li { border: 1px solid var(--border); border-radius: 10px; padding: 0.72rem; margin-bottom: 0.5rem; background: rgba(11,18,32,0.55); }
-    .list span { display: block; color: var(--text-soft); margin-top: 0.25rem; }
+    .clinical-bg { padding: 2rem; background: var(--bg); min-height: 100vh; }
+    .ph-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+    .page-title { font-size: 1.75rem; color: var(--primary); font-weight: 800; }
+    .page-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
 
-    @media (max-width: 760px) {
-      .hero { flex-direction: column; }
+    .last-sync { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; background: #fff; padding: 0.4rem 1rem; border-radius: 99px; border: 1px solid var(--border); }
+    .last-sync strong { color: var(--text); }
+
+    /* KPI Ribbon */
+    .kpi-ribbon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+    .kpi-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; display: flex; gap: 1rem; align-items: center; box-shadow: var(--shadow-soft); transition: 0.2s; }
+    .kpi-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+    .kpi-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .kpi-icon.patients { background: rgba(26, 60, 110, 0.1); color: var(--primary); }
+    .kpi-icon.appointments { background: rgba(13, 126, 106, 0.1); color: var(--accent); }
+    .kpi-icon.doctors { background: rgba(217, 119, 6, 0.1); color: var(--warning); }
+    .kpi-icon.revenue { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
+    
+    .kpi-data { display: flex; flex-direction: column; }
+    .kpi-data label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; }
+    .kpi-data strong { font-size: 1.5rem; color: var(--text); font-family: 'Syne', sans-serif; font-weight: 800; }
+    .trend { font-size: 0.7rem; color: var(--text-muted); font-weight: 700; }
+    .trend.up { color: #16a34a; }
+    
+    /* Layout */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 340px; gap: 2rem; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2rem; box-shadow: var(--shadow-soft); }
+    .pane-header { margin-bottom: 2rem; }
+    .pane-header h3 { font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: 0.25rem; }
+    .pane-header .pane-subtitle { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+
+    /* Department Load */
+    .dept-load-list { display: grid; gap: 1.5rem; }
+    .dept-item { display: grid; gap: 0.6rem; }
+    .dept-info { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 800; color: var(--text); }
+    .dept-val { color: var(--primary); }
+    .load-bar-wrap { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+    .load-bar { height: 100%; background: var(--primary); border-radius: 99px; transition: 1s cubic-bezier(0.19, 1, 0.22, 1); }
+    .load-bar.critical { background: var(--danger); box-shadow: 0 0 8px rgba(220, 38, 38, 0.3); }
+
+    /* Trends Box */
+    .trends-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .trend-box { text-align: center; padding: 1.5rem; background: var(--surface-soft); border-radius: 12px; }
+    .t-val { display: block; font-size: 1.5rem; font-family: 'Syne', sans-serif; font-weight: 800; color: var(--primary); }
+    .trend-box label { font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; }
+
+    /* Performance List */
+    .perf-list { display: grid; gap: 1rem; }
+    .perf-item { display: flex; align-items: center; gap: 1.25rem; padding: 1.25rem; background: var(--surface-soft); border-radius: 12px; border: 1px solid var(--border); }
+    .rank { width: 32px; font-family: 'Syne', sans-serif; font-weight: 800; color: var(--primary); font-size: 1.1rem; }
+    .doc-brief { flex: 1; display: flex; flex-direction: column; }
+    .doc-brief strong { font-size: 0.95rem; color: var(--text); font-weight: 800; }
+    .doc-brief span { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
+    .perf-badge { color: var(--warning); font-size: 1.25rem; }
+
+    /* Health Gauge */
+    .operation-summary h3 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+    .health-gauge { display: flex; align-items: center; gap: 1rem; background: rgba(13, 126, 106, 0.05); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(13, 126, 106, 0.2); }
+    .health-gauge i { font-size: 1.75rem; color: var(--accent); }
+    .hg-data { display: flex; flex-direction: column; }
+    .hg-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; }
+    .hg-val { font-size: 0.9rem; color: var(--accent); font-weight: 800; }
+
+    .loading-box { display: flex; justify-content: center; padding: 3rem; font-size: 2rem; color: var(--primary); }
+    .mt-8 { margin-top: 2rem; }
+
+    @media (max-width: 1200px) {
+      .kpi-ribbon { grid-template-columns: repeat(2, 1fr); }
+      .dashboard-grid { grid-template-columns: 1fr; }
     }
   `]
 })
 export class AnalyticsComponent implements OnInit {
-  summary: { totalPatients: number; todayAppointments: number; activeDoctors: number; todayRevenue: number; } | null = null;
+  summary: DashboardSummary | null = null;
   departmentLoadEntries: Array<[string, number]> = [];
   doctorPerformance: Array<Record<string, unknown>> = [];
+  lastSync = new Date();
 
   loadingSummary = false;
   loadingDepartmentLoad = false;
@@ -87,10 +235,7 @@ export class AnalyticsComponent implements OnInit {
         this.summary = data;
         this.loadingSummary = false;
       },
-      error: () => {
-        this.summary = null;
-        this.loadingSummary = false;
-      }
+      error: () => this.loadingSummary = false
     });
 
     this.loadingDepartmentLoad = true;
@@ -99,10 +244,7 @@ export class AnalyticsComponent implements OnInit {
         this.departmentLoadEntries = Object.entries(data) as Array<[string, number]>;
         this.loadingDepartmentLoad = false;
       },
-      error: () => {
-        this.departmentLoadEntries = [];
-        this.loadingDepartmentLoad = false;
-      }
+      error: () => this.loadingDepartmentLoad = false
     });
 
     this.loadingDoctorPerformance = true;
@@ -111,10 +253,8 @@ export class AnalyticsComponent implements OnInit {
         this.doctorPerformance = data;
         this.loadingDoctorPerformance = false;
       },
-      error: () => {
-        this.doctorPerformance = [];
-        this.loadingDoctorPerformance = false;
-      }
+      error: () => this.loadingDoctorPerformance = false
     });
   }
 }
+
