@@ -1,0 +1,47 @@
+@{Line=    return this.http.post(`${environment.apiBaseUrl}/auth/register`, payload);}
+@{Line=    return this.http.post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, payload).pipe(}
+@{Line=    return this.http.post<AuthResponse>(`${environment.apiBaseUrl}/auth/refresh`, { refreshToken }).pipe(}
+@{Line=    return this.http.get<DashboardSummary>(`${environment.apiBaseUrl}/reporting/dashboard/summary`);}
+@{Line=    return this.http.get<Record<string, number>>(`${environment.apiBaseUrl}/reporting/departments/load`);}
+@{Line=    return this.http.get<Record<string, unknown>>(`${environment.apiBaseUrl}/reporting/appointments/volume?range=${range}`);}
+@{Line=    return this.http.get<Record<string, unknown>>(`${environment.apiBaseUrl}/reporting/revenue?groupBy=${groupBy}`);}
+@{Line=    return this.http.get<Array<Record<string, unknown>>>(`${environment.apiBaseUrl}/reporting/doctors/performance`);}
+@{Line=    return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments`);}
+@{Line=    return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments/patient/${patientId}`);}
+@{Line=    return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments/patient/${patientId}?upcoming=true`);}
+@{Line=    return this.http.get<DoctorOption[]>(`${environment.apiBaseUrl}/doctors${suffix}`);}
+@{Line=    return this.http.get<string[]>(`${environment.apiBaseUrl}/doctors/specialties`);}
+@{Line=    return this.http.get<TimeSlot[]>(`${environment.apiBaseUrl}/appointments/timeslots?doctorId=${doctorId}&date=${date}`);}
+@{Line=    return this.http.post<Appointment>(`${environment.apiBaseUrl}/appointments`, payload);}
+@{Line=    return this.http.get<Invoice[]>(`${environment.apiBaseUrl}/invoices/patient/${patientId}`);}
+@{Line=    return this.http.post<Invoice>(`${environment.apiBaseUrl}/invoices`, payload);}
+@{Line=    return this.http.post<Invoice>(`${environment.apiBaseUrl}/invoices/${invoiceId}/pay`, payload ?? {});}
+@{Line=    return this.http.post<Invoice>(`${environment.apiBaseUrl}/invoices/${invoiceId}/claims/transition`, payload);}
+@{Line=    return this.http.get<Record<string, string>>(`${environment.apiBaseUrl}/invoices/claims/rejection-taxonomy`);}
+@{Line=    return this.http.get<LabTest[]>(`${environment.apiBaseUrl}/labs/tests-catalog`);}
+@{Line=    return this.http.post<LabOrder>(`${environment.apiBaseUrl}/labs/orders`, payload);}
+@{Line=    return this.http.put<LabReport>(`${environment.apiBaseUrl}/labs/orders/${orderId}/results`, { result, status: 'READY' });}
+@{Line=    return this.http.get<LabReport[]>(`${environment.apiBaseUrl}/lab-results/patient/${patientId}`);}
+@{Line=    return this.http.get<LabReport[]>(`${environment.apiBaseUrl}/lab-results/patient/${patientId}/trend?test=${encodeURIComponent(test)}`);}
+@{Line=    return this.http.put<LabReport>(`${environment.apiBaseUrl}/lab-results/${reportId}/verify`, { verifiedBy });}
+@{Line=    return this.http.get<LabReportArtifact>(`${environment.apiBaseUrl}/lab-results/${reportId}/pdf`);}
+@{Line=    return this.http.get<NotificationItem[]>(`${environment.apiBaseUrl}/notifications/me?userId=${userId}${escalatedOnly}${resolvedOnly}`);}
+@{Line=    return this.http.put<NotificationItem>(`${environment.apiBaseUrl}/notifications/${id}/read`, {});}
+@{Line=    return this.http.get<NotificationPreference>(`${environment.apiBaseUrl}/notifications/preferences?userId=${userId}`);}
+@{Line=    return this.http.put<NotificationPreference>(`${environment.apiBaseUrl}/notifications/preferences?userId=${userId}`, payload);}
+@{Line=    return this.http.post<NotificationItem>(`${environment.apiBaseUrl}/notifications/publish`, payload);}
+@{Line=    return this.http.post<NotificationItem>(}
+@{Line=    return this.http.post<NotificationItem>(`${environment.apiBaseUrl}/notifications/${id}/resolve${noteQuery}`, {});}
+@{Line=    return this.http.post<NotificationItem>(}
+@{Line=    return this.http.get<PatientProfile>(`${environment.apiBaseUrl}/patients/${patientId}`);}
+@{Line=    return this.http.get<Medication[]>(`${environment.apiBaseUrl}/medications?search=${encodeURIComponent(search)}`);}
+@{Line=    return this.http.post<Prescription>(`${environment.apiBaseUrl}/prescriptions`, payload);}
+@{Line=    return this.http.get<Prescription[]>(`${environment.apiBaseUrl}/prescriptions/patient/${patientId}`);}
+@{Line=    return this.http.get<VisitNote[]>(`${environment.apiBaseUrl}/records/patient/${patientId}/visits`);}
+@{Line=    return this.http.post<VisitNote>(`${environment.apiBaseUrl}/records/visits`, payload);}
+@{Line=    return this.http.get<VitalRecord[]>(`${environment.apiBaseUrl}/records/patient/${patientId}/vitals`);}
+@{Line=    return this.http.get<string[]>(`${environment.apiBaseUrl}/records/icd10?search=${encodeURIComponent(term)}`);}
+@{Line=    return this.http.get<AllergyRecord[]>(`${environment.apiBaseUrl}/records/patient/${patientId}/allergies`);}
+@{Line=    return this.http.post<AllergyRecord>(`${environment.apiBaseUrl}/records/patient/${patientId}/allergies`, payload);}
+@{Line=    return this.http.get<ProblemRecord[]>(`${environment.apiBaseUrl}/records/patient/${patientId}/problems`);}
+@{Line=    return this.http.post<ProblemRecord>(`${environment.apiBaseUrl}/records/patient/${patientId}/problems`, payload);}

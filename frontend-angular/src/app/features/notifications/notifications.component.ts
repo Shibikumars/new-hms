@@ -1,363 +1,287 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { NotificationItem, NotificationPreference, NotificationsApiService } from './notifications-api.service';
 import { NotificationsSocketService } from './notifications-socket.service';
 
-type NotificationFilter = 'ALL' | 'UNREAD' | 'ALERT' | 'READ';
-type PriorityFilter = 'ALL' | 'CRITICAL' | 'BILLING' | 'APPOINTMENT';
-
-type NotificationGroup = {
-  label: string;
-  items: NotificationItem[];
-};
-
-type FilterPreset = {
-  name: string;
-  filter: NotificationFilter;
-  priority: PriorityFilter;
-  search: string;
-};
-
-type TrendPoint = {
-  label: string;
-  count: number;
-  width: number;
-};
-
-type EscalationEntry = {
-  id: number;
-  title: string;
-  target: 'ADMIN' | 'CARE';
-  owner: string;
-  status: 'ACTIVE' | 'RESOLVED' | 'NONE';
-  resolvedBy?: string;
-  resolvedNote?: string;
-  escalatedAt: string;
-};
+type RecordsTab = 'inbox' | 'analytics' | 'settings';
 
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   template: `
-    <div class="container">
-      <h2>Notifications</h2>
-      <p class="subtitle">Global notification center with mark-as-read actions and auto refresh.</p>
-
-      <form [formGroup]="userForm" (ngSubmit)="load()" class="section" *ngIf="manualUserSelection">
-        <input type="number" formControlName="userId" placeholder="User ID" />
-        <button type="submit" [disabled]="userForm.invalid">Connect</button>
-      </form>
-
-      <div class="toolbar" *ngIf="items.length > 0 || loadingNotifications" role="status" aria-live="polite">
-        <span class="pill">Unread: {{ unreadCount }}</span>
-        <span class="pill" [class.offline]="!socketConnected">{{ socketConnected ? 'Live' : 'Polling' }}</span>
-        <button type="button" (click)="markAllRead()" [disabled]="unreadCount === 0 || bulkUpdating">{{ bulkUpdating ? 'Updating…' : 'Mark all read' }}</button>
-      </div>
-
-      <div class="sla-grid" *ngIf="filteredItems.length > 0">
-        <div class="sla-card">
-          <span>Total In View</span>
-          <strong>{{ filteredItems.length }}</strong>
+    <div class="container overflow-hidden">
+      <div class="hero">
+        <div>
+          <h2>Clinical Communication Hub</h2>
+          <p class="subtitle">Real-time alerting, escalation tracking, and notification intelligence.</p>
         </div>
-        <div class="sla-card">
-          <span>Unread In View</span>
-          <strong>{{ filteredUnreadCount }}</strong>
-        </div>
-        <div class="sla-card">
-          <span>Critical Alerts</span>
-          <strong>{{ filteredCriticalCount }}</strong>
-        </div>
-        <div class="sla-card">
-          <span>Avg Alert Age</span>
-          <strong>{{ averageAlertAgeHours }}</strong>
-        </div>
-        <div class="sla-card warning">
-          <span>SLA Warnings</span>
-          <strong>{{ slaWarningCount }}</strong>
-        </div>
-        <div class="sla-card breach">
-          <span>SLA Breaches</span>
-          <strong>{{ slaBreachCount }}</strong>
-        </div>
-        <div class="sla-card">
-          <span>Escalated Alerts</span>
-          <strong>{{ escalatedCount }}</strong>
+        <div class="hero-actions">
+           <span class="status-pill" [class.live]="socketConnected">
+             {{ socketConnected ? 'System Live' : 'Polling Sync' }}
+           </span>
         </div>
       </div>
 
-      <div class="escalation-info" *ngIf="escalationMessage" role="status" aria-live="polite">{{ escalationMessage }}</div>
+      <!-- Main Navigation Tabs (Admin gets Analytics) -->
+      <nav class="hub-tabs">
+        <button [class.active]="activeTab === 'inbox'" (click)="activeTab = 'inbox'">
+           Inbox <span class="badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+        </button>
+        <button *ngIf="isAdmin" [class.active]="activeTab === 'analytics'" (click)="activeTab = 'analytics'">
+           Intelligence Dashboard
+        </button>
+        <button [class.active]="activeTab === 'settings'" (click)="activeTab = 'settings'">
+           Preferences
+        </button>
+      </nav>
 
-      <div class="trend card" *ngIf="trendPoints.length > 0">
-        <h3>5-Day Notification Trend</h3>
-        <div class="trend-row" *ngFor="let point of trendPoints">
-          <span>{{ point.label }}</span>
-          <div class="bar-track">
-            <div class="bar-fill" [style.width.%]="point.width"></div>
-          </div>
-          <strong>{{ point.count }}</strong>
-        </div>
-      </div>
-
-      <section class="aging card" *ngIf="oldestUnreadAlerts.length > 0">
-        <h3>Alert Aging Spotlight</h3>
-        <ul class="list">
-            <li *ngFor="let alert of oldestUnreadAlerts">
-            <strong>{{ alert.title }}</strong>
-            <span>{{ alert.message }}</span>
-            <div class="sla-row">
-              <small class="meta">Open for {{ getAgeLabel(alert.createdAt) }}</small>
-              <span class="sla-chip" [class.ok]="getSlaState(alert.createdAt) === 'OK'" [class.warn]="getSlaState(alert.createdAt) === 'WARN'" [class.breach]="getSlaState(alert.createdAt) === 'BREACH'">
-                {{ getSlaLabel(alert.createdAt) }}
-              </span>
+      <div class="hub-workspace card shadow-glass">
+        
+        <!-- INBOX TAB -->
+        <div *ngIf="activeTab === 'inbox'" class="inbox-view">
+          <div class="inbox-header">
+            <div class="search-wrap">
+              <input type="text" [(ngModel)]="searchTerm" placeholder="Search notifications..." />
             </div>
-              <div class="actions-row" *ngIf="canManageEscalations && getSlaState(alert.createdAt) === 'BREACH' && alert.id && !isEscalated(alert.id)">
-                <button type="button" (click)="escalateAlert(alert, 'ADMIN')">Escalate to Admin</button>
-                <button type="button" (click)="escalateAlert(alert, 'CARE')">Escalate to Care Team</button>
-              </div>
-          </li>
-        </ul>
-      </section>
+            <div class="bulk-actions">
+               <button class="secondary-btn" (click)="markAllRead()" [disabled]="unreadCount === 0 || bulkUpdating">
+                 {{ bulkUpdating ? 'Syncing...' : 'Mark All Read' }}
+               </button>
+            </div>
+          </div>
 
-      <div class="filters" *ngIf="items.length > 0">
-        <button type="button" class="chip" [class.active]="activeFilter === 'ALL'" (click)="setFilter('ALL')">All</button>
-        <button type="button" class="chip" [class.active]="activeFilter === 'UNREAD'" (click)="setFilter('UNREAD')">Unread</button>
-        <button type="button" class="chip" [class.active]="activeFilter === 'ALERT'" (click)="setFilter('ALERT')">Alerts</button>
-        <button type="button" class="chip" [class.active]="activeFilter === 'READ'" (click)="setFilter('READ')">Read</button>
-      </div>
+          <div class="loading-grid" *ngIf="loadingNotifications">
+             <div class="skeleton sk-item" *ngFor="let i of [1,2,3]"></div>
+          </div>
 
-      <div class="filters secondary" *ngIf="items.length > 0">
-        <button type="button" class="chip" [class.active]="priorityFilter === 'ALL'" (click)="setPriority('ALL')">Priority: All</button>
-        <button type="button" class="chip" [class.active]="priorityFilter === 'CRITICAL'" (click)="setPriority('CRITICAL')">Critical</button>
-        <button type="button" class="chip" [class.active]="priorityFilter === 'BILLING'" (click)="setPriority('BILLING')">Billing</button>
-        <button type="button" class="chip" [class.active]="priorityFilter === 'APPOINTMENT'" (click)="setPriority('APPOINTMENT')">Appointment</button>
-        <button type="button" class="chip" [class.active]="onlyEscalated" (click)="toggleEscalatedOnly()">Escalated Only</button>
-        <button type="button" class="chip" [class.active]="onlyResolved" (click)="toggleResolvedOnly()">Resolved Only</button>
-      </div>
+          <div class="empty-state" *ngIf="!loadingNotifications && filteredItems.length === 0">
+             <div class="icon">📭</div>
+             <h3>All caught up!</h3>
+             <p>You have no pending notifications matching your current filters.</p>
+          </div>
 
-      <div class="section" *ngIf="items.length > 0">
-        <input #searchBox type="text" [value]="searchTerm" (input)="onSearch($event)" placeholder="Search notifications (/ to focus)" aria-label="Search notifications" />
-      </div>
-
-      <div class="preset-row" *ngIf="items.length > 0">
-        <button type="button" class="chip" (click)="savePreset()">Save Preset</button>
-        <button type="button" class="chip" (click)="exportFiltered()">Export Filtered JSON</button>
-      </div>
-
-      <div class="preset-list" *ngIf="presets.length > 0">
-        <div class="preset-item" *ngFor="let preset of presets">
-          <button type="button" class="chip" (click)="applyPreset(preset)">{{ preset.name }}</button>
-          <button type="button" class="chip danger" (click)="deletePreset(preset.name)">Delete</button>
-        </div>
-      </div>
-
-      <div class="hint" *ngIf="items.length > 0">Shortcuts: <code>/</code> focus search, <code>u</code> unread, <code>a</code> all, <code>r</code> read, <code>c</code> critical</div>
-
-      <form [formGroup]="preferencesForm" (ngSubmit)="savePreferences()" class="section" *ngIf="!userForm.invalid" aria-label="Notification preferences form">
-        <h3>Notification Preferences</h3>
-        <label class="check-row">
-          <input type="checkbox" formControlName="emailAppointmentConfirmation" />
-          Email on appointment confirmation
-        </label>
-        <label class="check-row">
-          <input type="checkbox" formControlName="smsReminder24h" />
-          SMS 24h reminders
-        </label>
-        <label class="check-row">
-          <input type="checkbox" formControlName="pushLabResults" />
-          Push notifications for lab results
-        </label>
-        <button type="submit">Save Preferences</button>
-      </form>
-
-      <form [formGroup]="publishForm" (ngSubmit)="publish()" class="section" aria-label="Publish notification test form">
-        <h3>Publish Test Notification</h3>
-        <input type="text" formControlName="title" placeholder="Title" />
-        <input type="text" formControlName="message" placeholder="Message" />
-        <button type="submit" [disabled]="publishForm.invalid || userForm.invalid">Publish</button>
-      </form>
-
-      <div *ngIf="loadingNotifications" class="section" role="status" aria-live="polite">
-        <div class="skeleton sk-line"></div>
-        <div class="skeleton sk-line"></div>
-        <div class="skeleton sk-line"></div>
-        <span class="loading-text">Loading notifications…</span>
-      </div>
-
-      <div *ngIf="!loadingNotifications && groupedItems.length > 0" class="groups">
-        <section class="group" *ngFor="let group of groupedItems">
-          <h3>{{ group.label }}</h3>
-          <ul class="list">
-            <li *ngFor="let item of group.items" [class.read]="item.read" [class.alert]="isAlert(item)" [class.warn]="isWarning(item)" [class.sla-warn]="isSlaWarn(item)" [class.sla-breach]="isSlaBreach(item)">
-              <div class="row-head">
-                <strong>{{ item.title }}</strong>
-                <div class="row-tags">
-                  <span class="type">{{ (item.type || 'INFO').toUpperCase() }}</span>
-                  <span class="status-chip" [class.active]="getEscalationStatus(item) === 'ACTIVE'" [class.resolved]="getEscalationStatus(item) === 'RESOLVED'">{{ getEscalationStatus(item) }}</span>
+          <ul class="notification-list" *ngIf="!loadingNotifications && filteredItems.length > 0">
+            <li *ngFor="let item of filteredItems" class="notif-item" 
+                [class.unread]="!item.read" 
+                [class.critical]="isAlert(item)">
+              <div class="notif-indicator"></div>
+              <div class="notif-body">
+                <div class="notif-meta">
+                  <span class="notif-type">{{ (item.type || 'INFO').toUpperCase() }}</span>
+                  <span class="notif-time">{{ formatTime(item.createdAt) }}</span>
                 </div>
-              </div>
-              <span>{{ item.message }}</span>
-              <small class="meta">{{ formatCreatedAt(item.createdAt) }}</small>
-              <div class="actions-row">
-                <button type="button" *ngIf="item.id && !item.read" (click)="markRead(item.id)" [attr.aria-label]="'Mark notification ' + item.title + ' as read'">Mark Read</button>
-                <button type="button" *ngIf="getActionLabel(item)" (click)="goToAction(item)" [attr.aria-label]="(getActionLabel(item) || 'Open') + ' for notification ' + item.title">{{ getActionLabel(item) }}</button>
-                <button type="button" *ngIf="canManageEscalations && item.id && isSlaBreach(item) && !isEscalated(item.id)" (click)="escalateAlert(item, 'ADMIN')">Escalate</button>
-                <span class="owner-tag" *ngIf="item.id && isEscalated(item.id)">Owned by {{ getEscalationOwner(item.id) }}</span>
+                <div class="notif-title">{{ item.title }}</div>
+                <div class="notif-msg">{{ item.message }}</div>
+                
+                <div class="notif-actions">
+                  <button *ngIf="!item.read" (click)="markRead(item.id!)" class="text-btn">Mark Seen</button>
+                  <button *ngIf="getActionLabel(item)" (click)="goToAction(item)" class="action-btn">
+                    {{ getActionLabel(item) }}
+                  </button>
+                  <span class="escalated-badge" *ngIf="item.escalated">Escalated</span>
+                </div>
               </div>
             </li>
           </ul>
-        </section>
+        </div>
+
+        <!-- ANALYTICS TAB (Admin Only) -->
+        <div *ngIf="activeTab === 'analytics' && isAdmin" class="analytics-view">
+           <div class="stats-grid">
+              <div class="stat-card">
+                 <label>Global Unread</label>
+                 <strong>{{ unreadCount }}</strong>
+              </div>
+              <div class="stat-card warning">
+                 <label>SLA Warnings</label>
+                 <strong>{{ slaWarningCount }}</strong>
+              </div>
+              <div class="stat-card error">
+                 <label>SLA Breaches</label>
+                 <strong>{{ slaBreachCount }}</strong>
+              </div>
+              <div class="stat-card">
+                 <label>Critical Ratio</label>
+                 <strong>{{ criticalRatio }}%</strong>
+              </div>
+           </div>
+
+           <section class="admin-section">
+              <h3>Notification Trends (Last 5 Days)</h3>
+              <div class="trend-chart">
+                 <div class="chart-column" *ngFor="let point of trendPoints">
+                   <div class="bar-wrap">
+                      <div class="bar" [style.height.%]="point.width"></div>
+                   </div>
+                   <label>{{ point.label }}</label>
+                   <span class="val">{{ point.count }}</span>
+                 </div>
+              </div>
+           </section>
+
+           <section class="admin-section">
+              <h3>Escalation Audit Timeline</h3>
+              <div class="audit-list">
+                 <div class="audit-item" *ngFor="let entry of escalationAudit">
+                    <div class="audit-header">
+                       <strong>{{ entry.title }}</strong>
+                       <span class="status" [class.active]="entry.status === 'ACTIVE'">{{ entry.status }}</span>
+                    </div>
+                    <div class="audit-meta">Owner: {{ entry.owner }} · Target: {{ entry.target }}</div>
+                    <div class="audit-time">{{ entry.escalatedAt | date:'short' }}</div>
+                 </div>
+              </div>
+           </section>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div *ngIf="activeTab === 'settings'" class="settings-view">
+           <h3>Delivery Preferences</h3>
+           <p class="subtitle">Configure how you receive critical clinical updates.</p>
+           
+           <form [formGroup]="preferencesForm" (ngSubmit)="savePreferences()" class="pref-form">
+             <label class="toggle">
+               <input type="checkbox" formControlName="emailAppointmentConfirmation" />
+               <span class="slider"></span>
+               Email on appointment confirmation
+             </label>
+             <label class="toggle">
+               <input type="checkbox" formControlName="smsReminder24h" />
+               <span class="slider"></span>
+               SMS 24h reminders
+             </label>
+             <label class="toggle">
+               <input type="checkbox" formControlName="pushLabResults" />
+               <span class="slider"></span>
+               Real-time push for lab results
+             </label>
+             <button type="submit" class="primary-btn">Save Changes</button>
+           </form>
+
+           <hr class="divider" />
+
+           <section class="test-area">
+              <h3>System Test</h3>
+              <p class="small text-soft">Send a test notification to your current session to verify socket connectivity.</p>
+              <div class="test-form">
+                 <input type="text" #testTitle placeholder="Title" />
+                 <input type="text" #testMsg placeholder="Message" />
+                 <button (click)="publishTest(testTitle.value, testMsg.value); testTitle.value=''; testMsg.value=''">
+                   Send Test Alert
+                 </button>
+              </div>
+           </section>
+        </div>
+
       </div>
-
-      <section class="audit card" *ngIf="escalationAudit.length > 0">
-        <h3>Escalation Audit Timeline</h3>
-        <ul class="list">
-          <li *ngFor="let entry of escalationAudit">
-            <div class="row-head">
-              <strong>#{{ entry.id }} · {{ entry.title }}</strong>
-              <span class="type">{{ entry.target }}</span>
-            </div>
-            <span>Owner: {{ entry.owner }}</span>
-            <small class="meta">Escalated at {{ formatCreatedAt(entry.escalatedAt) }} · {{ entry.status }}<span *ngIf="entry.owner === 'SLA-BOT'"> · Auto-SLA</span><span *ngIf="entry.resolvedBy"> · Resolved by {{ entry.resolvedBy }}</span><span *ngIf="entry.resolvedNote"> · Note: {{ entry.resolvedNote }}</span></small>
-            <div class="actions-row">
-              <input *ngIf="canManageEscalations && entry.status !== 'RESOLVED'" type="text" [value]="resolverNotesById[entry.id] || ''" (input)="setResolverNote(entry.id, $event)" placeholder="Resolve note" />
-              <button type="button" *ngIf="canManageEscalations && entry.status !== 'RESOLVED'" (click)="reassignEscalation(entry.id, 'ADMIN')">Reassign Admin</button>
-              <button type="button" *ngIf="canManageEscalations && entry.status !== 'RESOLVED'" (click)="reassignEscalation(entry.id, 'CARE')">Reassign Care</button>
-              <button type="button" *ngIf="canManageEscalations && entry.status !== 'RESOLVED'" (click)="undoEscalation(entry.id)">Resolve Escalation</button>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <section class="history" *ngIf="!loadingNotifications && historyItems.length > 0">
-        <button type="button" class="history-toggle" (click)="historyOpen = !historyOpen">
-          {{ historyOpen ? 'Hide' : 'Show' }} Read History ({{ historyItems.length }})
-        </button>
-
-        <ul class="list" *ngIf="historyOpen">
-          <li *ngFor="let item of historyItems">
-            <div class="row-head">
-              <strong>{{ item.title }}</strong>
-              <span class="type">{{ (item.type || 'INFO').toUpperCase() }}</span>
-            </div>
-            <span>{{ item.message }}</span>
-            <small class="meta">{{ formatCreatedAt(item.createdAt) }}</small>
-          </li>
-        </ul>
-      </section>
-
-      <div class="loading-text" *ngIf="!loadingNotifications && groupedItems.length === 0">No notifications yet.</div>
     </div>
   `,
   styles: [`
-    .subtitle { color: var(--text-light); margin-top: 0.5rem; }
-    .section { margin-top: 1.2rem; display: grid; gap: 0.6rem; }
-    .toolbar { margin-top: 1rem; display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
-    .pill { background: rgba(37, 99, 235, 0.1); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 999px; padding: 0.2rem 0.6rem; font-size: 0.85rem; }
-    .pill.offline { color: #b45309; border-color: rgba(180, 83, 9, 0.25); background: rgba(245, 158, 11, 0.1); }
-    .sla-grid { margin-top: 0.9rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.55rem; }
-    .sla-card { border: 1px solid var(--border); border-radius: 10px; padding: 0.65rem; background: rgba(11,18,32,0.52); display: grid; gap: 0.22rem; }
-    .sla-card span { color: var(--text-muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    .sla-card strong { color: var(--text); font-family: 'Syne', sans-serif; font-size: 1.05rem; }
-    .sla-card.warning { border-color: rgba(246,178,63,0.55); }
-    .sla-card.warning strong { color: #ffd58d; }
-    .sla-card.breach { border-color: rgba(255,90,114,0.55); }
-    .sla-card.breach strong { color: #ff9ca9; }
-    .card { margin-top: 0.85rem; border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem; background: rgba(11,18,32,0.52); }
-    .escalation-info { margin-top: 0.7rem; border: 1px solid rgba(109,124,255,0.5); background: rgba(109,124,255,0.14); color: #c4ceff; border-radius: 10px; padding: 0.5rem 0.7rem; }
-    .trend-row { display: grid; grid-template-columns: 48px 1fr auto; gap: 0.55rem; align-items: center; margin-top: 0.35rem; }
-    .trend-row span { color: var(--text-muted); font-size: 0.78rem; }
-    .bar-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
-    .bar-fill { height: 100%; background: linear-gradient(90deg, rgba(0,212,170,0.8), rgba(109,124,255,0.8)); }
-    .aging .list { margin-top: 0.55rem; }
-    .sla-row { display: flex; justify-content: space-between; gap: 0.5rem; align-items: center; }
-    .sla-chip {
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      padding: 0.16rem 0.5rem;
-      font-size: 0.66rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      font-weight: 700;
+    .hero { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+    .subtitle { margin-top: 0.4rem; color: var(--text-soft); }
+    .status-pill { 
+      padding: 0.4rem 0.8rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700;
+      background: rgba(255, 90, 114, 0.1); color: #ff9ca9; border: 1px solid rgba(255, 90, 114, 0.3);
     }
-    .sla-chip.ok { border-color: rgba(34,197,94,0.45); color: #80e8a6; background: rgba(34,197,94,0.12); }
-    .sla-chip.warn { border-color: rgba(246,178,63,0.5); color: #ffd58d; background: rgba(246,178,63,0.12); }
-    .sla-chip.breach { border-color: rgba(255,90,114,0.5); color: #ff9ca9; background: rgba(255,90,114,0.12); }
-    .filters { margin-top: 0.8rem; display: flex; gap: 0.45rem; flex-wrap: wrap; }
-    .filters.secondary { margin-top: 0.45rem; }
-    .chip { border: 1px solid var(--border); background: rgba(11,18,32,0.58); color: var(--text-soft); border-radius: 999px; padding: 0.28rem 0.66rem; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
-    .chip.active { border-color: rgba(0,212,170,0.6); color: var(--primary); background: rgba(0,212,170,0.12); }
-    .chip.danger { border-color: rgba(255,90,114,0.45); color: #ff9ca9; }
-    .preset-row { margin-top: 0.7rem; display: flex; gap: 0.45rem; flex-wrap: wrap; }
-    .preset-list { margin-top: 0.45rem; display: grid; gap: 0.35rem; }
-    .preset-item { display: flex; gap: 0.35rem; flex-wrap: wrap; }
-    .hint { margin-top: 0.5rem; color: var(--text-muted); font-size: 0.78rem; }
-    .hint code { background: rgba(11,18,32,0.6); border: 1px solid var(--border); border-radius: 6px; padding: 0.05rem 0.3rem; }
-    .check-row { display: flex; gap: 0.5rem; align-items: center; color: var(--text-light); }
-    .sk-line { height: 44px; }
-    .groups { margin-top: 1rem; display: grid; gap: 1rem; }
-    .group h3 { margin-bottom: 0.5rem; color: var(--text-soft); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    .list { list-style: none; padding: 0; margin: 0; }
-    .list li { border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem; margin-bottom: 0.5rem; display: grid; gap: 0.35rem; }
-    .list li.read { opacity: 0.75; }
-    .list li.alert { border-color: rgba(255,90,114,0.55); }
-    .list li.warn { border-color: rgba(246,178,63,0.55); }
-    .list li.sla-warn { box-shadow: inset 0 0 0 1px rgba(246,178,63,0.35); }
-    .list li.sla-breach { box-shadow: inset 0 0 0 1px rgba(255,90,114,0.42); }
-    .list span { color: var(--text-light); }
-    .meta { color: var(--text-muted); font-size: 0.78rem; }
-    .row-head { display: flex; justify-content: space-between; gap: 0.6rem; align-items: center; }
-    .row-tags { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
-    .type { border: 1px solid rgba(0,212,170,0.45); background: rgba(0,212,170,0.12); color: var(--primary); border-radius: 999px; padding: 0.18rem 0.5rem; font-size: 0.68rem; letter-spacing: 0.04em; font-weight: 700; }
-    .status-chip { border: 1px solid var(--border); border-radius: 999px; padding: 0.18rem 0.5rem; font-size: 0.64rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
-    .status-chip.active { border-color: rgba(109,124,255,0.5); color: #c4ceff; background: rgba(109,124,255,0.14); }
-    .status-chip.resolved { border-color: rgba(34,197,94,0.45); color: #80e8a6; background: rgba(34,197,94,0.12); }
-    .actions-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .owner-tag { border: 1px solid rgba(109,124,255,0.45); background: rgba(109,124,255,0.14); color: #c4ceff; border-radius: 999px; padding: 0.16rem 0.48rem; font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; }
-    .history { margin-top: 1rem; }
-    .history-toggle { width: fit-content; }
+    .status-pill.live { background: rgba(34, 197, 94, 0.1); color: #80e8a6; border-color: rgba(34, 197, 94, 0.3); }
 
-    @media (max-width: 700px) {
-      .toolbar { flex-direction: column; align-items: stretch; }
-      .actions-row { display: grid; grid-template-columns: 1fr; }
-      .row-head { flex-direction: column; align-items: flex-start; }
-      .trend-row { grid-template-columns: 1fr; }
+    .hub-tabs { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    .hub-tabs button { 
+      background: none; border: none; color: var(--text-soft); font-weight: 600; padding: 0.5rem 0; cursor: pointer; position: relative;
+    }
+    .hub-tabs button.active { color: var(--primary); }
+    .hub-tabs button.active::after { content: ''; position: absolute; bottom: -0.5rem; left: 0; right: 0; height: 2px; background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+    .badge { background: var(--primary); color: #000; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.4rem; vertical-align: middle; }
+
+    .hub-workspace { min-height: 600px; padding: 2rem; position: relative; overflow: hidden; }
+    .shadow-glass { background: rgba(26, 39, 64, 0.6); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; }
+
+    /* Inbox Styles */
+    .inbox-header { display: flex; justify-content: space-between; margin-bottom: 2rem; gap: 1rem; }
+    .search-wrap { flex: 1; }
+    .search-wrap input { width: 100%; max-width: 400px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 0.7rem 1rem; border-radius: 10px; color: #fff; }
+    .secondary-btn { background: transparent; border: 1px solid var(--border); color: var(--text-soft); padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; }
+
+    .notification-list { list-style: none; padding: 0; margin: 0; }
+    .notif-item { 
+      display: flex; gap: 1.2rem; padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);
+      position: relative; transition: background 0.2s;
+    }
+    .notif-item:hover { background: rgba(255,255,255,0.02); }
+    .notif-item.unread .notif-indicator { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; position: absolute; left: 1rem; top: 1.8rem; box-shadow: 0 0 8px var(--primary); }
+    .notif-item.critical { border-left: 4px solid #ff5a72; background: rgba(255, 90, 114, 0.03); }
+    
+    .notif-body { flex: 1; }
+    .notif-meta { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+    .notif-type { font-size: 0.65rem; letter-spacing: 0.08em; font-weight: 800; color: var(--primary); }
+    .notif-time { font-size: 0.75rem; color: var(--text-muted); }
+    .notif-title { font-weight: 700; font-size: 1.05rem; margin-bottom: 0.3rem; }
+    .notif-msg { color: var(--text-soft); font-size: 0.92rem; line-height: 1.5; }
+    
+    .notif-actions { display: flex; gap: 1rem; margin-top: 1rem; align-items: center; }
+    .text-btn { background: none; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+    .action-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }
+    .action-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .escalated-badge { font-size: 0.6rem; text-transform: uppercase; border: 1px solid #f6b23f; color: #f6b23f; padding: 0.2rem 0.5rem; border-radius: 4px; }
+
+    /* Analytics Styles */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 3rem; }
+    .stat-card { background: rgba(0,0,0,0.2); padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border); }
+    .stat-card label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .stat-card strong { font-size: 1.5rem; font-family: 'Syne', sans-serif; }
+    .stat-card.warning { border-color: #f6b23f; color: #f6b23f; }
+    .stat-card.error { border-color: #ff5a72; color: #ff5a72; }
+
+    .admin-section { margin-bottom: 3rem; }
+    .admin-section h3 { font-size: 1rem; color: var(--text-soft); text-transform: uppercase; margin-bottom: 1.5rem; }
+    
+    .trend-chart { display: flex; justify-content: space-between; align-items: flex-end; height: 150px; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+    .chart-column { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .bar-wrap { flex: 1; width: 30px; display: flex; align-items: flex-end; margin-bottom: 0.5rem; }
+    .bar { width: 100%; background: linear-gradient(0deg, var(--primary), #6d7cff); border-radius: 4px 4px 0 0; }
+    .chart-column label { font-size: 0.7rem; color: var(--text-muted); }
+    .chart-column .val { font-size: 0.8rem; font-weight: 700; margin-top: 0.2rem; }
+
+    .audit-list { display: grid; gap: 0.8rem; }
+    .audit-item { background: rgba(0,0,0,0.15); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); }
+    .audit-header { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+    .audit-meta { font-size: 0.8rem; color: var(--text-soft); }
+    .audit-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.4rem; }
+    .status { font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 4px; border: 1px solid var(--border); }
+    .status.active { color: #f6b23f; border-color: #f6b23f; }
+
+    /* Settings Styles */
+    .pref-form { display: grid; gap: 1.5rem; max-width: 500px; }
+    .toggle { display: flex; align-items: center; gap: 1rem; cursor: pointer; color: var(--text-soft); }
+    .primary-btn { background: var(--primary); color: #000; border: none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: 700; cursor: pointer; justify-self: start; }
+    .divider { border: 0; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+    .test-form { display: flex; gap: 1rem; margin-top: 1.5rem; }
+    .test-form input { background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 0.6rem; border-radius: 8px; color: #fff; flex: 1; }
+    .test-form button { background: transparent; border: 1px solid var(--border); color: var(--text-soft); padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; }
+
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .inbox-header { flex-direction: column; }
     }
   `]
 })
 export class NotificationsComponent implements OnInit, OnDestroy {
-  @ViewChild('searchBox') searchBox?: ElementRef<HTMLInputElement>;
-
+  activeTab: RecordsTab = 'inbox';
+  isAdmin = false;
   items: NotificationItem[] = [];
   unreadCount = 0;
-  manualUserSelection = true;
-  socketConnected = false;
   loadingNotifications = false;
   bulkUpdating = false;
-  userRole = '';
-  canManageEscalations = false;
-  activeFilter: NotificationFilter = 'ALL';
-  priorityFilter: PriorityFilter = 'ALL';
-  onlyEscalated = false;
-  onlyResolved = false;
-  historyOpen = false;
   searchTerm = '';
-  presets: FilterPreset[] = [];
-  escalationMessage = '';
-  resolverNotesById: Record<number, string> = {};
-  private escalationSet = new Set<number>();
-  escalationAudit: EscalationEntry[] = [];
-
-  private pollHandle: number | null = null;
-  private readonly keyHandler = (event: KeyboardEvent) => this.onKeydown(event);
-
-  readonly userForm = this.fb.nonNullable.group({
-    userId: [0, [Validators.required, Validators.min(1)]]
-  });
+  socketConnected = false;
+  escalationAudit: any[] = [];
+  
+  private sub = new Subscription();
 
   readonly preferencesForm = this.fb.nonNullable.group({
     emailAppointmentConfirmation: [true],
@@ -365,598 +289,178 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     pushLabResults: [true]
   });
 
-  readonly publishForm = this.fb.nonNullable.group({
-    title: ['', Validators.required],
-    message: ['', Validators.required]
-  });
-
   constructor(
     private fb: FormBuilder,
     private notificationsApi: NotificationsApiService,
-    private authService: AuthService,
+    private auth: AuthService,
     private router: Router,
     private notificationsSocket: NotificationsSocketService
   ) {}
 
   ngOnInit(): void {
-    this.loadPresets();
-    window.addEventListener('keydown', this.keyHandler);
+    const role = this.auth.getRole()?.toUpperCase();
+    this.isAdmin = role === 'ADMIN';
+    this.activeTab = 'inbox';
 
-    this.userRole = (this.authService.getRole() ?? '').toUpperCase();
-    this.canManageEscalations = this.userRole === 'ADMIN' || this.userRole === 'DOCTOR';
-
-    const fromToken = this.authService.getUserId();
-    const remembered = Number(localStorage.getItem('hms_notifications_user_id') ?? '0');
-    const selected = fromToken ?? (remembered > 0 ? remembered : null);
-
-    if (selected && selected > 0) {
-      this.manualUserSelection = false;
-      this.userForm.controls.userId.setValue(selected);
-      this.load();
+    const userId = this.auth.getUserId();
+    if (userId) {
+      this.load(userId);
     }
-  }
-
-  get escalatedCount(): number {
-    return this.escalationSet.size;
   }
 
   ngOnDestroy(): void {
-    window.removeEventListener('keydown', this.keyHandler);
+    this.sub.unsubscribe();
     this.notificationsSocket.disconnect();
-    if (this.pollHandle !== null) {
-      window.clearInterval(this.pollHandle);
-      this.pollHandle = null;
-    }
   }
 
-  get historyItems(): NotificationItem[] {
-    return this.items
-      .filter(item => item.read)
-      .slice(0, 25);
-  }
-
-  get filteredItems(): NotificationItem[] {
-    return this.getFilteredItems();
-  }
-
-  get filteredUnreadCount(): number {
-    return this.filteredItems.filter(item => !item.read).length;
-  }
-
-  get filteredCriticalCount(): number {
-    return this.filteredItems.filter(item => this.isAlert(item)).length;
-  }
-
-  get averageAlertAgeHours(): string {
-    const alerts = this.filteredItems.filter(item => this.isAlert(item) && !item.read && item.createdAt);
-    if (alerts.length === 0) return '0h';
-
-    const now = Date.now();
-    const avgMs = alerts.reduce((sum, item) => {
-      const ts = new Date(item.createdAt as string).getTime();
-      return sum + Math.max(0, now - ts);
-    }, 0) / alerts.length;
-
-    return `${(avgMs / (1000 * 60 * 60)).toFixed(1)}h`;
-  }
-
-  get slaWarningCount(): number {
-    return this.filteredItems
-      .filter(item => !item.read && this.isAlert(item))
-      .filter(item => this.getSlaState(item.createdAt) === 'WARN')
-      .length;
-  }
-
-  get slaBreachCount(): number {
-    return this.filteredItems
-      .filter(item => !item.read && this.isAlert(item))
-      .filter(item => this.getSlaState(item.createdAt) === 'BREACH')
-      .length;
-  }
-
-  get trendPoints(): TrendPoint[] {
-    const source = this.filteredItems;
-    if (source.length === 0) return [];
-
-    const now = new Date();
-    const buckets: Array<{ key: string; label: string; count: number }> = [];
-    for (let i = 4; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-      buckets.push({ key, label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), count: 0 });
-    }
-
-    for (const item of source) {
-      const d = item.createdAt ? new Date(item.createdAt) : null;
-      if (!d || Number.isNaN(d.getTime())) continue;
-      const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-      const bucket = buckets.find(x => x.key === key);
-      if (bucket) bucket.count += 1;
-    }
-
-    const max = Math.max(...buckets.map(x => x.count), 1);
-    return buckets.map(x => ({ label: x.label, count: x.count, width: (x.count / max) * 100 }));
-  }
-
-  get oldestUnreadAlerts(): NotificationItem[] {
-    return this.filteredItems
-      .filter(item => !item.read && this.isAlert(item) && !!item.createdAt)
-      .sort((a, b) => new Date(a.createdAt as string).getTime() - new Date(b.createdAt as string).getTime())
-      .slice(0, 3);
-  }
-
-  get groupedItems(): NotificationGroup[] {
-    const filtered = this.getFilteredItems();
-    const groups = new Map<string, NotificationItem[]>();
-
-    for (const item of filtered) {
-      const bucket = this.getDateBucket(item.createdAt);
-      if (!groups.has(bucket)) groups.set(bucket, []);
-      groups.get(bucket)?.push(item);
-    }
-
-    return Array.from(groups.entries()).map(([label, items]) => ({ label, items }));
-  }
-
-  setFilter(filter: NotificationFilter): void {
-    this.activeFilter = filter;
-  }
-
-  setPriority(priority: PriorityFilter): void {
-    this.priorityFilter = priority;
-  }
-
-  toggleEscalatedOnly(): void {
-    this.onlyEscalated = !this.onlyEscalated;
-    if (this.onlyEscalated) this.onlyResolved = false;
-    this.loadSilent();
-  }
-
-  toggleResolvedOnly(): void {
-    this.onlyResolved = !this.onlyResolved;
-    if (this.onlyResolved) this.onlyEscalated = false;
-    this.loadSilent();
-  }
-
-  onSearch(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.searchTerm = target.value;
-  }
-
-  savePreset(): void {
-    const name = window.prompt('Preset name');
-    if (!name) return;
-
-    const preset: FilterPreset = {
-      name: name.trim(),
-      filter: this.activeFilter,
-      priority: this.priorityFilter,
-      search: this.searchTerm
-    };
-
-    if (!preset.name) return;
-
-    this.presets = [
-      ...this.presets.filter(item => item.name.toLowerCase() !== preset.name.toLowerCase()),
-      preset
-    ];
-
-    this.persistPresets();
-  }
-
-  applyPreset(preset: FilterPreset): void {
-    this.activeFilter = preset.filter;
-    this.priorityFilter = preset.priority;
-    this.searchTerm = preset.search;
-  }
-
-  deletePreset(name: string): void {
-    this.presets = this.presets.filter(item => item.name !== name);
-    this.persistPresets();
-  }
-
-  exportFiltered(): void {
-    const rows = this.getFilteredItems();
-    const fileName = `notifications-export-${new Date().toISOString().slice(0, 10)}.json`;
-    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = fileName;
-    anchor.click();
-
-    URL.revokeObjectURL(url);
-  }
-
-  isEscalated(id: number): boolean {
-    return this.escalationSet.has(id);
-  }
-
-  getEscalationOwner(id: number): string {
-    return this.escalationAudit.find(item => item.id === id)?.owner ?? 'N/A';
-  }
-
-  escalateAlert(item: NotificationItem, target: 'ADMIN' | 'CARE'): void {
-    const id = item.id;
-    if (!id || this.userForm.invalid || this.escalationSet.has(id)) return;
-
-    const owner = target === 'ADMIN' ? 'Admin Desk' : 'Care Team';
-
-    this.notificationsApi.escalate(id, target, owner).subscribe({
-      next: updated => {
-        this.upsertById(updated);
-        this.syncEscalationFromItems();
-        this.escalationMessage = `Alert #${id} escalated to ${target}.`;
-      }
-    });
-  }
-
-  undoEscalation(id: number): void {
-    const note = this.resolverNotesById[id] || '';
-    this.notificationsApi.resolveEscalation(id, note).subscribe({
-      next: updated => {
-        this.upsertById(updated);
-        this.syncEscalationFromItems();
-        delete this.resolverNotesById[id];
-        this.escalationMessage = `Escalation removed for alert #${id}.`;
-      }
-    });
-  }
-
-  setResolverNote(id: number, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.resolverNotesById[id] = input.value;
-  }
-
-  getAgeLabel(value?: string): string {
-    if (!value) return 'unknown time';
-    const time = new Date(value).getTime();
-    if (Number.isNaN(time)) return 'unknown time';
-
-    const diffMs = Math.max(0, Date.now() - time);
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) return `${hours}h ${mins}m`;
-    return `${mins}m`;
-  }
-
-  getSlaState(value?: string): 'OK' | 'WARN' | 'BREACH' {
-    const ageHours = this.getAgeInHours(value);
-    if (ageHours >= 6) return 'BREACH';
-    if (ageHours >= 2) return 'WARN';
-    return 'OK';
-  }
-
-  getSlaLabel(value?: string): string {
-    const state = this.getSlaState(value);
-    if (state === 'BREACH') return 'SLA Breach';
-    if (state === 'WARN') return 'SLA Warning';
-    return 'On Track';
-  }
-
-  isSlaWarn(item: NotificationItem): boolean {
-    return !item.read && this.isAlert(item) && this.getSlaState(item.createdAt) === 'WARN';
-  }
-
-  isSlaBreach(item: NotificationItem): boolean {
-    return !item.read && this.isAlert(item) && this.getSlaState(item.createdAt) === 'BREACH';
-  }
-
-  load(): void {
-    if (this.userForm.invalid) return;
-
-    const userId = this.userForm.controls.userId.value;
-    localStorage.setItem('hms_notifications_user_id', String(userId));
+  load(userId: number): void {
     this.loadingNotifications = true;
-
-    this.notificationsApi.getMyNotifications(userId, this.getBackendFilters()).subscribe({
+    this.notificationsApi.getMyNotifications(userId, {}).subscribe({
       next: items => {
-        this.setItems(items);
+        this.items = items.sort((a,b) => (b.id || 0) - (a.id || 0));
+        this.unreadCount = items.filter(i => !i.read).length;
         this.loadingNotifications = false;
+        this.syncEscalationAudit();
       },
-      error: () => {
-        this.setItems([]);
-        this.loadingNotifications = false;
-      }
+      error: () => this.loadingNotifications = false
     });
 
     this.notificationsApi.getPreferences(userId).subscribe({
-      next: pref => this.preferencesForm.patchValue({
-        emailAppointmentConfirmation: pref.emailAppointmentConfirmation,
-        smsReminder24h: pref.smsReminder24h,
-        pushLabResults: pref.pushLabResults
-      })
+      next: pref => this.preferencesForm.patchValue(pref)
     });
 
     this.notificationsSocket.connect(
       userId,
-      (incoming) => this.upsertIncoming(incoming),
+      (incoming) => {
+        const existing = this.items.findIndex(i => i.id === incoming.id);
+        if (existing >= 0) this.items[existing] = incoming;
+        else this.items = [incoming, ...this.items];
+        this.unreadCount = this.items.filter(i => !i.read).length;
+      },
       () => (this.socketConnected = true),
       () => (this.socketConnected = false)
     );
+  }
 
-    if (this.pollHandle === null) {
-      this.pollHandle = window.setInterval(() => this.loadSilent(), 15000);
+  get filteredItems(): NotificationItem[] {
+    const q = this.searchTerm.toLowerCase().trim();
+    return this.items.filter(item => 
+      !q || item.title.toLowerCase().includes(q) || item.message.toLowerCase().includes(q)
+    );
+  }
+
+  get slaWarningCount(): number {
+    return this.items.filter(i => !i.read && this.getAgeHours(i.createdAt) > 2).length;
+  }
+
+  get slaBreachCount(): number {
+    return this.items.filter(i => !i.read && this.getAgeHours(i.createdAt) > 6).length;
+  }
+
+  get criticalRatio(): number {
+    if (this.items.length === 0) return 0;
+    const crit = this.items.filter(i => this.isAlert(i)).length;
+    return Math.round((crit / this.items.length) * 100);
+  }
+
+  get trendPoints(): any[] {
+    const buckets: any[] = [];
+    const now = new Date();
+    for (let i = 4; i >= 0; i--) {
+      const d = new Date(); d.setDate(now.getDate() - i);
+      const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const count = this.items.filter(item => {
+        const cd = new Date(item.createdAt!);
+        return cd.getMonth() === d.getMonth() && cd.getDate() === d.getDate();
+      }).length;
+      buckets.push({ label, count });
     }
-  }
-
-  private setItems(items: NotificationItem[]): void {
-    this.items = items;
-    this.syncEscalationFromItems();
-    this.unreadCount = items.filter(item => !item.read).length;
-    window.dispatchEvent(new CustomEvent<number>('hms-unread-count', { detail: this.unreadCount }));
-  }
-
-  private upsertIncoming(incoming: NotificationItem): void {
-    const existingIndex = this.items.findIndex(item => item.id === incoming.id);
-    if (existingIndex >= 0) {
-      this.items[existingIndex] = incoming;
-    } else {
-      this.items = [incoming, ...this.items];
-    }
-    this.syncEscalationFromItems();
-    this.unreadCount = this.items.filter(item => !item.read).length;
-    window.dispatchEvent(new CustomEvent<number>('hms-unread-count', { detail: this.unreadCount }));
-  }
-
-  private loadSilent(): void {
-    if (this.userForm.invalid) return;
-    this.notificationsApi.getMyNotifications(this.userForm.controls.userId.value, this.getBackendFilters()).subscribe({
-      next: items => this.setItems(items)
-    });
-  }
-
-  savePreferences(): void {
-    if (this.userForm.invalid) return;
-
-    const userId = this.userForm.controls.userId.value;
-    const payload: NotificationPreference = {
-      emailAppointmentConfirmation: this.preferencesForm.controls.emailAppointmentConfirmation.value,
-      smsReminder24h: this.preferencesForm.controls.smsReminder24h.value,
-      pushLabResults: this.preferencesForm.controls.pushLabResults.value
-    };
-
-    this.notificationsApi.updatePreferences(userId, payload).subscribe();
-  }
-
-  publish(): void {
-    if (this.userForm.invalid || this.publishForm.invalid) return;
-
-    const payload: NotificationItem = {
-      userId: this.userForm.controls.userId.value,
-      title: this.publishForm.controls.title.value,
-      message: this.publishForm.controls.message.value,
-      type: 'INFO'
-    };
-
-    this.notificationsApi.publish(payload).subscribe({
-      next: () => this.loadSilent()
-    });
+    const max = Math.max(...buckets.map(b => b.count), 1);
+    return buckets.map(b => ({ ...b, width: (b.count / max) * 100 }));
   }
 
   markRead(id: number): void {
-    const existing = this.items.find(item => item.id === id);
-    if (!existing || existing.read) return;
-
-    existing.read = true;
-    this.unreadCount = this.items.filter(item => !item.read).length;
-    window.dispatchEvent(new CustomEvent<number>('hms-unread-count', { detail: this.unreadCount }));
-
     this.notificationsApi.markRead(id).subscribe({
-      error: () => this.loadSilent()
+      next: () => {
+        const item = this.items.find(i => i.id === id);
+        if (item) item.read = true;
+        this.unreadCount = this.items.filter(i => !i.read).length;
+        window.dispatchEvent(new CustomEvent('hms-unread-count', { detail: this.unreadCount }));
+      }
     });
   }
 
   markAllRead(): void {
-    const pendingIds = this.items.filter(item => item.id && !item.read).map(item => item.id as number);
-    if (pendingIds.length === 0) return;
-
+    const unreadIds = this.items.filter(i => !i.read).map(i => i.id!);
+    if (unreadIds.length === 0) return;
     this.bulkUpdating = true;
-    this.items.forEach(item => { if (!item.read) item.read = true; });
-    this.unreadCount = 0;
-    window.dispatchEvent(new CustomEvent<number>('hms-unread-count', { detail: this.unreadCount }));
-
-    forkJoin(pendingIds.map(id => this.notificationsApi.markRead(id))).subscribe({
+    forkJoin(unreadIds.map(id => this.notificationsApi.markRead(id))).subscribe({
       next: () => {
+        this.items.forEach(i => i.read = true);
+        this.unreadCount = 0;
         this.bulkUpdating = false;
+        window.dispatchEvent(new CustomEvent('hms-unread-count', { detail: 0 }));
       },
-      error: () => {
-        this.bulkUpdating = false;
-        this.loadSilent();
-      }
+      error: () => this.bulkUpdating = false
     });
   }
 
-  getActionLabel(item: NotificationItem): string | null {
-    const route = this.resolveActionRoute(item);
-    if (!route) return null;
-    if (route.includes('/billing')) return 'View Billing';
-    if (route.includes('/lab')) return 'View Lab Results';
-    if (route.includes('/appointments')) return 'View Appointments';
-    return 'Open';
+  savePreferences(): void {
+    const userId = this.auth.getUserId();
+    if (!userId) return;
+    this.notificationsApi.updatePreferences(userId, this.preferencesForm.getRawValue()).subscribe();
   }
 
-  goToAction(item: NotificationItem): void {
-    const route = this.resolveActionRoute(item);
-    if (route) this.router.navigate([route]);
+  publishTest(title: string, message: string): void {
+    const userId = this.auth.getUserId();
+    if (!userId || !title || !message) return;
+    this.notificationsApi.publish({ userId, title, message, type: 'INFO' }).subscribe();
   }
 
   isAlert(item: NotificationItem): boolean {
-    const text = `${item.type ?? ''} ${item.title} ${item.message}`.toLowerCase();
-    return text.includes('critical') || text.includes('alert') || text.includes('abnormal');
+    const text = (item.title + item.message).toLowerCase();
+    return text.includes('critical') || text.includes('alert') || item.type === 'CRITICAL';
   }
 
-  isWarning(item: NotificationItem): boolean {
-    const text = `${item.type ?? ''} ${item.title} ${item.message}`.toLowerCase();
-    return text.includes('bill') || text.includes('invoice') || text.includes('due') || text.includes('warn');
-  }
-
-  isAppointment(item: NotificationItem): boolean {
-    const text = `${item.type ?? ''} ${item.title} ${item.message}`.toLowerCase();
-    return text.includes('appointment') || text.includes('slot') || text.includes('schedule');
-  }
-
-  formatCreatedAt(value?: string): string {
-    if (!value) return 'Recent';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Recent';
-    return date.toLocaleString();
-  }
-
-  private getDateBucket(value?: string): string {
-    if (!value) return 'Recent';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Recent';
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffDays = Math.round((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays <= 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    return 'Earlier';
-  }
-
-  private getAgeInHours(value?: string): number {
-    if (!value) return 0;
-    const time = new Date(value).getTime();
-    if (Number.isNaN(time)) return 0;
-    return Math.max(0, (Date.now() - time) / (1000 * 60 * 60));
-  }
-
-  private getFilteredItems(): NotificationItem[] {
-    const search = this.searchTerm.trim().toLowerCase();
-
-    return this.items.filter(item => {
-      const text = `${item.title} ${item.message} ${item.type ?? ''}`.toLowerCase();
-
-      if (search && !text.includes(search)) return false;
-
-      if (this.activeFilter === 'UNREAD' && item.read) return false;
-      if (this.activeFilter === 'READ' && !item.read) return false;
-      if (this.activeFilter === 'ALERT' && !(this.isAlert(item) || this.isWarning(item))) return false;
-
-      if (this.priorityFilter === 'CRITICAL' && !this.isAlert(item)) return false;
-      if (this.priorityFilter === 'BILLING' && !this.isWarning(item)) return false;
-      if (this.priorityFilter === 'APPOINTMENT' && !this.isAppointment(item)) return false;
-
-      return true;
-    });
-  }
-
-  private onKeydown(event: KeyboardEvent): void {
-    const key = event.key.toLowerCase();
-
-    if (key === '/' && !this.manualUserSelection) {
-      event.preventDefault();
-      this.searchBox?.nativeElement.focus();
-      return;
-    }
-
-    const activeElement = document.activeElement as HTMLElement | null;
-    const tagName = activeElement?.tagName?.toLowerCase();
-    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
-      return;
-    }
-
-    if (key === 'u') this.activeFilter = 'UNREAD';
-    if (key === 'a') this.activeFilter = 'ALL';
-    if (key === 'r') this.activeFilter = 'READ';
-    if (key === 'c') this.priorityFilter = 'CRITICAL';
-  }
-
-  private loadPresets(): void {
-    const raw = localStorage.getItem('hms_notification_presets');
-    if (!raw) {
-      this.presets = [];
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      if (!Array.isArray(parsed)) {
-        this.presets = [];
-        return;
-      }
-
-      this.presets = parsed.filter(item =>
-        typeof item?.name === 'string'
-        && typeof item?.filter === 'string'
-        && typeof item?.priority === 'string'
-        && typeof item?.search === 'string'
-      ) as FilterPreset[];
-    } catch {
-      this.presets = [];
-    }
-  }
-
-  private persistPresets(): void {
-    localStorage.setItem('hms_notification_presets', JSON.stringify(this.presets));
-  }
-
-  private upsertById(updated: NotificationItem): void {
-    if (!updated.id) return;
-    const index = this.items.findIndex(item => item.id === updated.id);
-    if (index >= 0) {
-      this.items[index] = { ...this.items[index], ...updated };
-      return;
-    }
-    this.items = [updated, ...this.items];
-  }
-
-  private syncEscalationFromItems(): void {
-    const escalated = this.items.filter(item => item.id && item.escalated);
-    this.escalationSet = new Set<number>(escalated.map(item => item.id as number));
-
-    const auditRows = this.items.filter(item => item.id && (item.escalated || item.escalationStatus === 'RESOLVED'));
-    this.escalationAudit = auditRows.map(item => ({
-      id: item.id as number,
-      title: item.title,
-      target: item.escalationTarget === 'CARE' ? 'CARE' : 'ADMIN',
-      owner: item.escalationOwner || 'SYSTEM',
-      status: this.getEscalationStatus(item),
-      resolvedBy: item.resolvedBy,
-      resolvedNote: item.resolvedNote,
-      escalatedAt: item.escalatedAt || item.createdAt || new Date().toISOString()
-    }));
-  }
-
-  getEscalationStatus(item: NotificationItem): 'ACTIVE' | 'RESOLVED' | 'NONE' {
-    const status = (item.escalationStatus || '').toUpperCase();
-    if (status === 'RESOLVED') return 'RESOLVED';
-    if (status === 'ACTIVE' || item.escalated) return 'ACTIVE';
-    return 'NONE';
-  }
-
-  private getBackendFilters(): { escalatedOnly?: boolean; resolvedOnly?: boolean } {
-    return {
-      escalatedOnly: this.onlyEscalated || undefined,
-      resolvedOnly: this.onlyResolved || undefined
-    };
-  }
-
-  private resolveActionRoute(item: NotificationItem): string | null {
-    const text = `${item.type ?? ''} ${item.title} ${item.message}`.toLowerCase();
-    const role = (this.authService.getRole() ?? '').toUpperCase();
-
-    if (text.includes('bill') || text.includes('invoice') || text.includes('payment')) {
-      return role === 'ADMIN' ? '/admin/billing' : '/patient/billing';
-    }
-
-    if (text.includes('lab') || text.includes('result')) {
-      return role === 'DOCTOR' ? '/doctor/lab' : '/patient/lab';
-    }
-
-    if (text.includes('appointment')) {
-      if (role === 'DOCTOR') return '/doctor/appointments';
-      if (role === 'ADMIN') return '/appointments';
-      return '/patient/appointments';
-    }
-
+  getActionLabel(item: NotificationItem): string | null {
+    const msg = item.message.toLowerCase();
+    if (msg.includes('lab')) return 'View Lab';
+    if (msg.includes('billing') || msg.includes('invoice')) return 'Pay Bill';
+    if (msg.includes('appointment')) return 'View Schedule';
     return null;
+  }
+
+  goToAction(item: NotificationItem): void {
+    const msg = item.message.toLowerCase();
+    const rolePrefix = this.auth.getRole()?.toLowerCase();
+    if (msg.includes('lab')) this.router.navigate([`/${rolePrefix}/lab`]);
+    else if (msg.includes('billing')) this.router.navigate([`/${rolePrefix}/billing`]);
+    else if (msg.includes('appointment')) this.router.navigate([`/${rolePrefix}/appointments`]);
+  }
+
+  formatTime(dateStr?: string): string {
+    if (!dateStr) return 'Recently';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  private getAgeHours(dateStr?: string): number {
+    if (!dateStr) return 0;
+    const diff = Date.now() - new Date(dateStr).getTime();
+    return diff / (1000 * 60 * 60);
+  }
+
+  private syncEscalationAudit(): void {
+    // Mimic the escalation audit log from items
+    this.escalationAudit = this.items
+      .filter(i => i.escalated)
+      .map(i => ({
+        id: i.id,
+        title: i.title,
+        status: i.escalationStatus || 'ACTIVE',
+        owner: i.escalationOwner || 'System',
+        target: i.escalationTarget || 'Admin',
+        escalatedAt: i.escalatedAt
+      }));
   }
 }

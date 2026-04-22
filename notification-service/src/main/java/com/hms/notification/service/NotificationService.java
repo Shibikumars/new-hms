@@ -110,6 +110,7 @@ public class NotificationService {
         item.setResolvedBy(null);
         NotificationItem saved = notificationRepository.save(item);
         logEvent(saved.getId(), "ESCALATE", null, "target=" + target + ",owner=" + owner);
+        sendWithRetry(saved);
         return saved;
     }
 
@@ -122,6 +123,7 @@ public class NotificationService {
         item.setResolvedAt(LocalDateTime.now());
         NotificationItem saved = notificationRepository.save(item);
         logEvent(saved.getId(), "RESOLVE", null, "resolvedBy=" + resolvedBy);
+        sendWithRetry(saved);
         return saved;
     }
 
@@ -138,6 +140,7 @@ public class NotificationService {
         item.setResolvedBy(null);
         NotificationItem saved = notificationRepository.save(item);
         logEvent(saved.getId(), "REASSIGN", null, "target=" + target + ",owner=" + owner);
+        sendWithRetry(saved);
         return saved;
     }
 

@@ -155,6 +155,13 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 if (path.startsWith("/notifications/") && path.endsWith("/escalate") && method == HttpMethod.POST) return true;
                 if (path.startsWith("/notifications/") && path.endsWith("/resolve") && method == HttpMethod.POST) return true;
                 if (path.startsWith("/notifications/") && path.endsWith("/reassign") && method == HttpMethod.POST) return true;
+                if (path.startsWith("/notifications/") && path.endsWith("/reassign") && method == HttpMethod.POST) return true;
+                if (path.startsWith("/reporting/")) return true;
+                if (path.startsWith("/labs/tests-catalog")) return true;
+                if (path.startsWith("/labs/orders")) return true;
+                if (path.startsWith("/prescriptions")) return true;
+                if (path.startsWith("/records")) return true;
+                if (path.startsWith("/medications")) return true;
                 return false;
 
             case "PATIENT":
@@ -163,6 +170,7 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 if (path.startsWith("/patients") && method == HttpMethod.GET) return true;
                 if (path.equals("/appointments") && method == HttpMethod.POST) return true;
                 if (path.startsWith("/appointments/patient/")) return true;
+                if (path.startsWith("/appointments/timeslots")) return true;
                 if (path.startsWith("/slots/available/")) return true;
                 if (path.startsWith("/lab/orders/patient/")) return true;
                 if (path.startsWith("/lab/reports/patient/")) return true;
@@ -173,6 +181,16 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 if (path.startsWith("/invoices/patient/") && method == HttpMethod.GET) return true;
                 if (path.startsWith("/invoices/") && path.endsWith("/pay") && method == HttpMethod.POST) return true;
                 if (path.startsWith("/invoices/") && path.endsWith("/claim-status") && method == HttpMethod.GET) return true;
+                if (path.startsWith("/reporting/")) return true;
+                if (path.startsWith("/medications") && method == HttpMethod.GET) return true;
+                if (path.startsWith("/prescriptions/patient/")) return true;
+                if (path.startsWith("/invoices/patient/") && method == HttpMethod.GET) return true;
+                if (path.startsWith("/records/patient/")) return true;
+                if (path.startsWith("/records/icd10")) return true;
+                if (path.startsWith("/labs/tests-catalog")) return true;
+                if (path.startsWith("/labs/orders") && method == HttpMethod.POST) return true;
+                if (path.startsWith("/lab-results/") && path.endsWith("/pdf")) return true;
+                if (path.startsWith("/doctors/specialties")) return true;
                 return false;
 
             default:
@@ -232,6 +250,12 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
         }
         if (path.startsWith("/invoices/patient/")) {
             return parseTailId(path, "/invoices/patient/");
+        }
+        if (path.startsWith("/prescriptions/patient/")) {
+            return parseTailId(path, "/prescriptions/patient/");
+        }
+        if (path.startsWith("/records/patient/")) {
+            return parseTailId(path, "/records/patient/");
         }
 
         return null;

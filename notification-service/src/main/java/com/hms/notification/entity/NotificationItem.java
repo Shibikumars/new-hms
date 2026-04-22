@@ -16,6 +16,7 @@ public class NotificationItem {
     private String title;
     private String message;
     private String type;
+    @Column(name = "`read`")
     private boolean read;
     private LocalDateTime createdAt;
     private boolean escalated;

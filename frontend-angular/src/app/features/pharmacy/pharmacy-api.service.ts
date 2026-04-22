@@ -34,7 +34,8 @@ export class PharmacyApiService {
   }
 
   issuePrescription(payload: Prescription): Observable<Prescription> {
-    return this.http.post<Prescription>(`${environment.apiBaseUrl}/prescriptions`, payload);
+    const data = { ...payload, issuedDate: new Date().toISOString().slice(0, 10) };
+    return this.http.post<Prescription>(`${environment.apiBaseUrl}/prescriptions`, data);
   }
 
   getPatientPrescriptions(patientId: number): Observable<Prescription[]> {

@@ -1,224 +1,315 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
 import { Appointment, AppointmentApiService, DoctorOption, TimeSlot } from './appointment-api.service';
 import { AuthService } from '../../core/auth.service';
+import { PatientContextService } from '../../core/patient-context.service';
 
 @Component({
   selector: 'app-appointment-dashboard',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="container">
-      <div class="toolbar topbar">
-        <div>
-          <h2>{{ role === 'PATIENT' ? 'Book Appointment' : 'Appointment Workspace' }}</h2>
-          <p class="toolbar-subtitle">{{ role === 'PATIENT' ? 'Search doctors and reserve visual time slots' : 'Manage and monitor appointment flow' }}</p>
+    <div class="container clinical-container">
+      <div class="header-band glass">
+        <div class="title-group">
+          <h2>{{ role === 'PATIENT' ? 'Patient Access Center' : 'Clinical Appointment Workspace' }}</h2>
+          <p class="subtitle">{{ role === 'PATIENT' ? 'Search specialists and manage your health schedule' : 'High-efficiency daily agenda and workflow management' }}</p>
         </div>
-        <button class="secondary" (click)="logout()">Logout</button>
+        <div class="global-actions">
+           <div class="status-indicator">
+              <span class="pulse"></span>
+              {{ role }} Session Secure
+           </div>
+           <button class="logout-pill" (click)="logout()">Terminate Session</button>
+        </div>
       </div>
 
-      <div class="error" *ngIf="error">{{ error }}</div>
+      <div class="error-msg" *ngIf="error" role="alert">{{ error }}</div>
 
-      <div class="booking-layout" *ngIf="role === 'PATIENT'; else standardBooking" aria-describedby="booking-flow-help">
-        <section class="card" aria-labelledby="find-doctor-heading">
-          <h3 id="find-doctor-heading">1 · Find a Doctor</h3>
+      <!-- DOCTOR VIEW -->
+      <div class="dr-workspace" *ngIf="role !== 'PATIENT'">
+         <div class="workflow-grid">
+            <!-- Sidebar: Agenda View -->
+            <div class="agenda-sidebar card shadow-glass">
+               <div class="section-header">
+                  <h3>Daily Schedule Agenda</h3>
+                  <button class="refresh-pill" (click)="refresh()">Sync API</button>
+               </div>
 
-          <div class="form-group">
-            <label for="search">Search by name or specialty</label>
-            <input id="search" type="text" [value]="searchTerm" (input)="onSearchInput($event)" placeholder="e.g. Priya or Cardiology" aria-label="Search doctors by name or specialty" />
-          </div>
+               <div class="daily-timeline custom-scroll">
+                  <div class="empty-agenda" *ngIf="appointments.length === 0">No appointments scheduled for today.</div>
+                  
+                  <div class="agenda-item" *ngFor="let item of appointments" [class.active-slot]="item.id === activeAppointmentId">
+                     <div class="agenda-time">
+                        {{ item.appointmentTime.slice(0,5) }}
+                     </div>
+                     <div class="agenda-card" (click)="activeAppointmentId = item.id">
+                        <div class="patient-line">
+                           <strong>Patient ID #{{ item.patientId }}</strong>
+                           <span class="status-dot" [class.waiting]="item.status === 'SCHEDULED'"></span>
+                        </div>
+                        <div class="complaint-preview" *ngIf="item.chiefComplaint">
+                           "{{ item.chiefComplaint }}"
+                        </div>
+                        <div class="actions-row">
+                           <button class="mini-btn primary" (click)="beginSession(item)">Begin Session</button>
+                           <span class="type-badge">OPD</span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
 
-          <div class="chip-row" *ngIf="specialties.length > 0">
-            <button type="button" class="chip" [class.active]="activeSpecialty === ''" (click)="selectSpecialty('')">All</button>
-            <button type="button" class="chip" *ngFor="let item of specialties" [class.active]="activeSpecialty === item" (click)="selectSpecialty(item)">{{ item }}</button>
-          </div>
+            <!-- Main Panel: Workflow & Selected Appointment Details -->
+            <div class="workflow-panel">
+               <div class="card shadow-glass empty-panel" *ngIf="!selectedForAction">
+                  <div class="placeholder-icon">📋</div>
+                  <h4>Select an appointment to view clinical details</h4>
+                  <p>Identify patient readiness and synchronize records from the side agenda.</p>
+               </div>
 
-          <div class="doctor-list" *ngIf="doctors.length > 0; else noDoctorData">
-            <button type="button" class="doctor-card" *ngFor="let doctor of doctors" [class.selected]="selectedDoctor?.id === doctor.id" (click)="selectDoctor(doctor)" [attr.aria-label]="'Select doctor ' + doctor.fullName + ', ' + doctor.specialization">
-              <div class="doctor-name">{{ doctor.fullName }}</div>
-              <div class="doctor-meta">{{ doctor.specialization }} · {{ doctor.availability }}</div>
-            </button>
-          </div>
-          <ng-template #noDoctorData>
-            <p class="muted">No doctors found for current filter.</p>
-          </ng-template>
-        </section>
+               <div class="card shadow-glass flow-active" *ngIf="selectedForAction">
+                  <div class="visit-header">
+                     <span class="p-id">MRN #{{ selectedForAction.patientId }}</span>
+                     <h3>Appointment Detail — #{{ selectedForAction.id }}</h3>
+                     <span class="v-status">{{ selectedForAction.status }}</span>
+                  </div>
 
-        <section class="card" [formGroup]="form" aria-labelledby="pick-slot-heading">
-          <h3 id="pick-slot-heading">2 · Pick Date and Slot</h3>
+                  <div class="clinical-preview">
+                     <div class="vital-snip">
+                        <label>Vitals Status</label>
+                        <div class="snip-box ready">READY</div>
+                     </div>
+                     <div class="reason-snip">
+                        <label>Chief Complaint</label>
+                        <p>{{ selectedForAction.chiefComplaint || 'No specific complaint documented' }}</p>
+                     </div>
+                  </div>
 
-          <div class="form-group">
-            <label for="patientId">Patient ID</label>
-            <input id="patientId" type="number" formControlName="patientId" placeholder="Your patient ID" />
-          </div>
+                  <div class="workflow-actions">
+                     <div class="action-card" (click)="beginSession(selectedForAction)">
+                        <div class="icon">🏥</div>
+                        <div class="txt">
+                           <strong>Sync Clinical Context</strong>
+                           <span class="small">Auto-open EMR, Lab & Pharmacy for this patient.</span>
+                        </div>
+                     </div>
+                     <div class="action-card muted">
+                        <div class="icon">✅</div>
+                        <div class="txt">
+                           <strong>Mark as Completed</strong>
+                           <span class="small">Move visit to billing and checkout phase.</span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
 
-      <p id="booking-flow-help" class="sr-only">Select a doctor, choose a date and available slot, then confirm booking.</p>
-
-          <div class="form-group">
-            <label for="appointmentDate">Date</label>
-            <input id="appointmentDate" type="date" formControlName="appointmentDate" (change)="loadSlots()" />
-          </div>
-
-          <div class="slot-grid" *ngIf="slots.length > 0">
-            <button type="button" *ngFor="let slot of slots" [disabled]="slot.status === 'BOOKED'" [class.slot-booked]="slot.status === 'BOOKED'" [class.slot-selected]="selectedSlot === slot.time" (click)="selectSlot(slot.time)" [attr.aria-label]="'Select time slot ' + slot.time.slice(0,5) + (slot.status === 'BOOKED' ? ', booked' : ', available')">
-              {{ slot.time.slice(0, 5) }}
-            </button>
-          </div>
-
-          <div class="form-group">
-            <label for="chiefComplaint">Chief complaint (optional)</label>
-            <input id="chiefComplaint" type="text" formControlName="chiefComplaint" placeholder="Reason for visit" />
-          </div>
-
-          <button type="button" (click)="bookWithSelectedSlot()" [disabled]="!canBookWithSlot()" aria-label="Confirm appointment booking with selected slot">Confirm Booking</button>
-        </section>
+               <div class="manual-book-mini card shadow-glass" *ngIf="role === 'ADMIN'">
+                   <h3>Administrative Booking</h3>
+                   <form [formGroup]="form" (ngSubmit)="book()" class="mini-form">
+                      <input type="number" formControlName="patientId" placeholder="Patient ID" />
+                      <input type="date" formControlName="appointmentDate" />
+                      <input type="time" formControlName="appointmentTime" />
+                      <button type="submit" [disabled]="form.invalid">Quick Book</button>
+                   </form>
+               </div>
+            </div>
+         </div>
       </div>
 
-      <ng-template #standardBooking>
-        <div class="form-section card">
-          <h3>Book New Appointment</h3>
-          <form [formGroup]="form" (ngSubmit)="book()">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="patientIdStd">Patient ID</label>
-                <input id="patientIdStd" type="number" placeholder="Enter patient ID" formControlName="patientId" />
-              </div>
-              <div class="form-group">
-                <label for="doctorIdStd">Doctor ID</label>
-                <input id="doctorIdStd" type="number" placeholder="Enter doctor ID" formControlName="doctorId" />
-              </div>
+      <!-- PATIENT VIEW -->
+      <div class="pt-workspace" *ngIf="role === 'PATIENT'">
+        <div class="booking-flow">
+          <section class="card shadow-glass search-area">
+            <h3>1 · Specialist Selection</h3>
+            <div class="search-box">
+               <input type="text" [value]="searchTerm" (input)="onSearchInput($event)" placeholder="Search doctors or specialty..." />
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label for="appointmentDateStd">Date</label>
-                <input id="appointmentDateStd" type="date" formControlName="appointmentDate" />
-              </div>
-              <div class="form-group">
-                <label for="appointmentTimeStd">Time</label>
-                <input id="appointmentTimeStd" type="time" formControlName="appointmentTime" />
-              </div>
+            <div class="filter-chips">
+               <button class="chip" [class.active]="activeSpecialty === ''" (click)="selectSpecialty('')">Universal</button>
+               <button class="chip" *ngFor="let s of specialties" [class.active]="activeSpecialty === s" (click)="selectSpecialty(s)">{{ s }}</button>
             </div>
 
-            <button type="submit" [disabled]="form.invalid">Book Appointment</button>
-          </form>
+            <div class="dr-list custom-scroll">
+               <div class="dr-row" *ngFor="let dr of doctors" [class.chosen]="selectedDoctor?.id === dr.id" (click)="selectDoctor(dr)">
+                  <div class="dr-main">
+                     <strong>{{ dr.fullName }}</strong>
+                     <span class="dr-sub">{{ dr.specialization }}</span>
+                  </div>
+                  <div class="avail">{{ dr.availability }}</div>
+               </div>
+            </div>
+          </section>
+
+          <section class="card shadow-glass time-area" [formGroup]="form">
+            <h3>2 · Temporal Preference</h3>
+            
+            <div class="date-pick">
+               <label>Consultation Date</label>
+               <input type="date" formControlName="appointmentDate" (change)="loadSlots()" />
+            </div>
+
+            <div class="slot-container" *ngIf="slots.length > 0">
+               <button type="button" class="slot-btn" *ngFor="let slot of slots" 
+                  [disabled]="slot.status === 'BOOKED'" 
+                  [class.booked]="slot.status === 'BOOKED'" 
+                  [class.selected]="selectedSlot === slot.time" 
+                  (click)="selectSlot(slot.time)">
+                  {{ slot.time.slice(0, 5) }}
+               </button>
+            </div>
+            <div class="no-slots" *ngIf="slots.length === 0 && form.controls.appointmentDate.value">No availability for selected date.</div>
+
+            <div class="complaint-box">
+               <label>Reason for Consultation</label>
+               <textarea formControlName="chiefComplaint" rows="2" placeholder="Briefly describe your symptoms..."></textarea>
+            </div>
+
+            <button class="primary-action" (click)="bookWithSelectedSlot()" [disabled]="!canBookWithSlot()">
+               Confirm & Schedule Appointment
+            </button>
+          </section>
         </div>
-      </ng-template>
 
-      <div class="appointments-section" aria-labelledby="appointments-heading" aria-describedby="appointments-help">
-        <h3 id="appointments-heading">{{ role === 'PATIENT' ? 'Upcoming Appointments' : 'Appointments' }}</h3>
-        <div *ngIf="appointments.length === 0" class="empty-state">
-          <p>No appointments found.</p>
-        </div>
-
-        <ul class="list" *ngIf="appointments.length > 0">
-          <li *ngFor="let item of appointments" [ngClass]="'status-' + (item.status | lowercase)">
-            <div class="appointment-header">
-              <strong>Appointment #{{ item.id }}</strong>
-              <span class="status-badge">{{ item.status }}</span>
+        <section class="upcoming-history card shadow-glass">
+            <h3>My Health Schedule</h3>
+            <div class="pt-apt-grid">
+               <div class="apt-tile" *ngFor="let apt of appointments" [class.confirmed]="apt.status === 'SCHEDULED'">
+                  <div class="tile-date">{{ apt.appointmentDate }} @ {{ apt.appointmentTime }}</div>
+                  <div class="tile-meta">Doctor Reference #{{ apt.doctorId }}</div>
+                  <div class="tile-status">{{ apt.status }}</div>
+               </div>
+               <div class="empty-state" *ngIf="appointments.length === 0">No upcoming visits scheduled.</div>
             </div>
-            <div class="appointment-details">
-              <div class="detail"><span class="label">Patient ID</span><span class="value">{{ item.patientId }}</span></div>
-              <div class="detail"><span class="label">Doctor ID</span><span class="value">{{ item.doctorId }}</span></div>
-              <div class="detail"><span class="label">Date & Time</span><span class="value">{{ item.appointmentDate }} at {{ item.appointmentTime }}</span></div>
-            </div>
-          </li>
-        </ul>
-        <p id="appointments-help" class="sr-only">Use this section to review appointment status and schedule details.</p>
+        </section>
       </div>
     </div>
   `,
   styles: [`
-    .topbar { margin-bottom: 0.6rem; }
-    .toolbar-subtitle { color: var(--text-soft); margin: 0.35rem 0 0; font-size: 0.92rem; }
-    .form-section, .appointments-section { margin-top: 1.4rem; }
-    .booking-layout { margin-top: 1.1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
-    .card {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 0.9rem;
-      background: linear-gradient(180deg, rgba(26,39,64,0.65), rgba(15,23,38,0.95));
-    }
-    .card h3 { margin-bottom: 0.9rem; }
-    .chip-row { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
-    .chip {
-      border: 1px solid var(--border);
-      background: rgba(11, 18, 32, 0.6);
-      color: var(--text-soft);
-      border-radius: 999px;
-      padding: 0.3rem 0.68rem;
-      font-size: 0.77rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-weight: 700;
-    }
-    .chip.active { border-color: rgba(0,212,170,0.5); color: var(--primary); background: rgba(0,212,170,0.12); }
-    .doctor-list { display: flex; flex-direction: column; gap: 0.55rem; }
-    .doctor-card {
-      text-align: left;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.7rem;
-      background: rgba(11, 18, 32, 0.6);
-    }
-    .doctor-card.selected { border-color: rgba(0,212,170,0.6); box-shadow: 0 0 0 2px rgba(0,212,170,0.18); }
-    .doctor-name { font-weight: 700; }
-    .doctor-meta { color: var(--text-soft); font-size: 0.82rem; margin-top: 0.2rem; }
-    .slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.45rem; margin: 0.8rem 0; }
-    .slot-grid button { border: 1px solid var(--border); border-radius: 9px; padding: 0.38rem 0.3rem; }
-    .slot-grid button.slot-booked { background: rgba(255,90,114,0.12); color: #ff9ca9; border-color: rgba(255,90,114,0.5); }
-    .slot-grid button.slot-selected { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #03131b; border-color: transparent; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
-    .form-group { margin-bottom: 0.8rem; display: flex; flex-direction: column; }
-    .form-group label { margin-bottom: 0.35rem; font-weight: 600; font-size: 0.86rem; color: var(--text-soft); }
-    .empty-state { text-align: center; padding: 1.2rem; color: var(--text-soft); border-radius: 12px; border: 1px dashed var(--border); }
-    .appointment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; }
-    .status-badge { font-size: 0.72rem; padding: 0.24rem 0.68rem; border-radius: 999px; font-weight: 700; background: rgba(0,212,170,0.14); color: var(--primary); border: 1px solid rgba(0,212,170,0.45); }
-    .appointment-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
-    .detail { display: flex; flex-direction: column; }
-    .detail .label { color: var(--text-muted); font-size: 0.78rem; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    .detail .value { color: var(--text); font-weight: 600; }
-    .muted { color: var(--text-soft); font-size: 0.9rem; }
-    @media (max-width: 900px) { .booking-layout { grid-template-columns: 1fr; } }
-    @media (max-width: 768px) {
-      .form-row { grid-template-columns: 1fr; }
-      .slot-grid { grid-template-columns: repeat(3, 1fr); }
-      .chip-row { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.25rem; }
-      .chip-row .chip { flex: 0 0 auto; }
-      .appointment-header { flex-direction: column; align-items: flex-start; }
-    }
-    @media (max-width: 480px) {
-      .slot-grid { grid-template-columns: repeat(2, 1fr); }
-      .card { padding: 0.75rem; }
-      .topbar { gap: 0.6rem; }
-    }
+    .clinical-container { padding-bottom: 3rem; }
+    .header-band { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem; border: 1px solid var(--border); }
+    .subtitle { margin-top: 0.4rem; color: var(--text-soft); }
+    .global-actions { display: flex; items-align: center; gap: 1.5rem; }
+    .status-indicator { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+    .pulse { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 8px var(--primary); animation: glow 1.5s infinite; }
+    @keyframes glow { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .logout-pill { background: rgba(255, 90, 114, 0.1); color: #ff9ca9; border: 1px solid rgba(255, 90, 114, 0.3); padding: 0.4rem 0.8rem; border-radius: 99px; cursor: pointer; }
+
+    .shadow-glass { background: rgba(26, 39, 64, 0.55); backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 20px; padding: 1.5rem; }
+    .card h3 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.5rem; }
+
+    /* Doctor Workspace */
+    .workflow-grid { display: grid; grid-template-columns: 380px 1fr; gap: 1.5rem; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .refresh-pill { font-size: 0.7rem; background: transparent; border: 1px solid var(--border); color: var(--text-soft); padding: 0.2rem 0.6rem; border-radius: 6px; cursor: pointer; }
+    
+    .daily-timeline { max-height: 700px; overflow-y: auto; padding-right: 0.5rem; }
+    .agenda-item { display: flex; gap: 1rem; margin-bottom: 1.2rem; }
+    .agenda-time { font-family: monospace; font-weight: 700; color: var(--primary); padding-top: 0.5rem; }
+    .agenda-card { flex: 1; background: rgba(11, 18, 32, 0.4); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; cursor: pointer; transition: 0.2s; }
+    .agenda-card:hover { border-color: var(--primary); transform: translateX(4px); }
+    .agenda-item.active-slot .agenda-card { border-color: var(--primary); background: rgba(0, 212, 170, 0.05); }
+    .patient-line { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
+    .status-dot.waiting { background: #ff9ca9; box-shadow: 0 0 5px #ff9ca9; }
+    .complaint-preview { font-size: 0.82rem; color: var(--text-soft); font-style: italic; margin-bottom: 0.8rem; }
+    .actions-row { display: flex; justify-content: space-between; align-items: center; }
+    .mini-btn { font-size: 0.75rem; font-weight: 800; border: none; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; }
+    .mini-btn.primary { background: var(--primary); color: #000; }
+    .type-badge { font-size: 0.65rem; color: var(--text-muted); border: 1px solid var(--border); padding: 0.1rem 0.4rem; border-radius: 4px; }
+
+    .workflow-panel { display: flex; flex-direction: column; gap: 1.5rem; }
+    .empty-panel { text-align: center; padding: 4rem; display: flex; flex-direction: column; align-items: center; }
+    .placeholder-icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.3; }
+    
+    .visit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+    .p-id { font-family: monospace; color: var(--primary); font-weight: 700; }
+    .v-status { background: rgba(109, 124, 255, 0.1); border: 1px solid var(--accent); color: var(--accent); padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 800; }
+
+    .clinical-preview { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-bottom: 2.5rem; }
+    .vital-snip label, .reason-snip label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; display: block; }
+    .snip-box { padding: 1.5rem; border: 1px solid var(--border); border-radius: 12px; background: rgba(0,0,0,0.2); text-align: center; font-weight: 800; }
+    .snip-box.ready { color: #80e8a6; border-color: rgba(34, 197, 94, 0.3); }
+
+    .workflow-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .action-card { padding: 1.5rem; background: rgba(11, 18, 32, 0.6); border: 1px solid var(--border); border-radius: 16px; display: flex; gap: 1.2rem; cursor: pointer; transition: 0.2s; }
+    .action-card:hover { border-color: var(--primary); background: rgba(0, 212, 170, 0.05); transform: translateY(-3px); }
+    .action-card.muted { opacity: 0.5; cursor: not-allowed; }
+    .action-card .icon { font-size: 2rem; }
+    .action-card .txt strong { display: block; margin-bottom: 0.2rem; }
+    .action-card .txt .small { font-size: 0.75rem; color: var(--text-soft); }
+
+    /* Patient Workspace */
+    .booking-flow { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .search-box input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 1rem; border-radius: 12px; color: #fff; margin-bottom: 1rem; }
+    .filter-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .chip { font-size: 0.75rem; font-weight: 700; background: transparent; border: 1px solid var(--border); color: var(--text-soft); padding: 0.3rem 0.8rem; border-radius: 99px; cursor: pointer; }
+    .chip.active { background: var(--primary); color: #000; border-color: var(--primary); box-shadow: 0 0 10px rgba(0, 212, 170, 0.3); }
+    .dr-list { max-height: 400px; overflow-y: auto; }
+    .dr-row { padding: 1.2rem; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 0.8rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+    .dr-row:hover { border-color: var(--primary); }
+    .dr-row.chosen { background: rgba(0, 212, 170, 0.1); border-color: var(--primary); }
+    .dr-main strong { display: block; font-size: 1rem; margin-bottom: 0.2rem; }
+    .dr-sub { font-size: 0.8rem; color: var(--text-soft); }
+    .avail { font-size: 0.7rem; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+
+    .time-area { display: flex; flex-direction: column; gap: 1.5rem; }
+    .date-pick label, .complaint-box label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.5rem; }
+    .date-pick input, .complaint-box textarea { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 0.8rem; border-radius: 10px; color: #fff; }
+    .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+    .slot-btn { font-size: 0.8rem; font-weight: 700; background: transparent; border: 1px solid var(--border); color: #fff; padding: 0.6rem; border-radius: 8px; cursor: pointer; }
+    .slot-btn.booked { opacity: 0.2; cursor: not-allowed; border-style: dotted; }
+    .slot-btn.selected { background: var(--primary); color: #000; border-color: var(--primary); }
+    .primary-action { background: var(--primary); color: #000; font-weight: 800; border: none; padding: 1.2rem; border-radius: 12px; cursor: pointer; transition: 0.2s; font-size: 1rem; }
+    .primary-action:hover:not(:disabled) { box-shadow: 0 0 20px rgba(0, 212, 170, 0.4); transform: translateY(-2px); }
+    .primary-action:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+
+    .pt-apt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.2rem; margin-top: 1.5rem; }
+    .apt-tile { background: rgba(11, 18, 32, 0.4); border: 1px solid var(--border); padding: 1.2rem; border-radius: 16px; position: relative; }
+    .apt-tile.confirmed { border-left: 4px solid var(--primary); }
+    .tile-date { font-weight: 800; font-size: 1.1rem; margin-bottom: 0.4rem; }
+    .tile-meta { font-size: 0.85rem; color: var(--text-soft); }
+    .tile-status { font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: var(--primary); margin-top: 0.8rem; }
+
+    .custom-scroll::-webkit-scrollbar { width: 5px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+    @media (max-width: 1000px) { .workflow-grid, .booking-flow { grid-template-columns: 1fr; } }
   `]
 })
-export class AppointmentDashboardComponent implements OnInit {
+export class AppointmentDashboardComponent implements OnInit, OnDestroy {
   appointments: Appointment[] = [];
   doctors: DoctorOption[] = [];
   specialties: string[] = [];
   slots: TimeSlot[] = [];
+  
   loadingAppointments = false;
   loadingDoctors = false;
   loadingSlots = false;
+  
   selectedDoctor: DoctorOption | null = null;
   selectedSlot = '';
   searchTerm = '';
   activeSpecialty = '';
   error = '';
-
   role: string | null = null;
+  
+  activeAppointmentId: number | null = null;
+  private sub = new Subscription();
+  private searchTimer: any | null = null;
 
-  private searchTimer: number | null = null;
+  get selectedForAction(): Appointment | undefined {
+    return this.appointments.find(a => a.id === this.activeAppointmentId);
+  }
 
   readonly form = this.fb.nonNullable.group({
     patientId: [0, [Validators.required, Validators.min(1)]],
     doctorId: [0, [Validators.required, Validators.min(1)]],
-    appointmentDate: ['', Validators.required],
+    appointmentDate: [new Date().toISOString().slice(0,10), Validators.required],
     appointmentTime: ['', Validators.required],
     chiefComplaint: ['']
   });
@@ -226,70 +317,89 @@ export class AppointmentDashboardComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private appointmentApi: AppointmentApiService,
-    private authService: AuthService,
+    private auth: AuthService,
+    private context: PatientContextService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.role = this.authService.getRole();
+    this.role = this.auth.getRole();
+    this.loadInitialData();
+  }
 
+  ngOnDestroy(): void {
+    this.sub.unsubscribe();
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+  }
+
+  private loadInitialData(): void {
     if (this.role === 'PATIENT') {
+      const pId = Number(this.auth.getUserId());
+      if (pId) this.form.controls.patientId.setValue(pId);
       this.loadSpecialties();
       this.searchDoctors();
-
-      this.form.controls.patientId.valueChanges
-        .pipe(debounceTime(250), distinctUntilChanged())
-        .subscribe(() => this.refresh());
-
-      return;
     }
-
     this.refresh();
+  }
+
+  refresh(): void {
+    this.loadingAppointments = true;
+    const pId = this.form.controls.patientId.value;
+
+    if (this.role === 'PATIENT' && pId > 0) {
+      this.appointmentApi.listUpcomingByPatientId(pId).subscribe({
+        next: items => {
+          this.appointments = items;
+          this.loadingAppointments = false;
+        },
+        error: () => this.loadingAppointments = false
+      });
+    } else {
+      this.appointmentApi.list().subscribe({
+        next: items => {
+          this.appointments = items;
+          this.loadingAppointments = false;
+          if (items.length > 0 && !this.activeAppointmentId) {
+            this.activeAppointmentId = items[0].id || null;
+          }
+        },
+        error: () => this.loadingAppointments = false
+      });
+    }
   }
 
   onSearchInput(event: Event): void {
     const target = event.target as HTMLInputElement;
     this.searchTerm = target.value;
-
-    if (this.searchTimer !== null) {
-      window.clearTimeout(this.searchTimer);
-    }
-
-    this.searchTimer = window.setTimeout(() => this.searchDoctors(), 300);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.searchDoctors(), 300);
   }
 
-  selectSpecialty(specialty: string): void {
-    this.activeSpecialty = specialty;
+  selectSpecialty(s: string): void {
+    this.activeSpecialty = s;
     this.searchDoctors();
   }
 
-  selectDoctor(doctor: DoctorOption): void {
-    this.selectedDoctor = doctor;
-    this.form.controls.doctorId.setValue(doctor.id);
+  selectDoctor(dr: DoctorOption): void {
+    this.selectedDoctor = dr;
+    this.form.controls.doctorId.setValue(dr.id);
     this.loadSlots();
   }
 
   loadSlots(): void {
-    const doctorId = this.form.controls.doctorId.value;
+    const drId = this.form.controls.doctorId.value;
     const date = this.form.controls.appointmentDate.value;
-    if (!doctorId || !date) {
-      this.slots = [];
-      return;
-    }
+    if (!drId || !date) return;
 
     this.loadingSlots = true;
-
-    this.appointmentApi.getTimeSlots(doctorId, date).subscribe({
-      next: (items) => {
-        this.loadingSlots = false;
+    this.appointmentApi.getTimeSlots(drId, date).subscribe({
+      next: items => {
         this.slots = items;
+        this.loadingSlots = false;
         this.selectedSlot = '';
         this.form.controls.appointmentTime.setValue('');
       },
-      error: () => {
-        this.loadingSlots = false;
-        this.error = 'Unable to load time slots';
-      }
+      error: () => this.loadingSlots = false
     });
   }
 
@@ -298,11 +408,22 @@ export class AppointmentDashboardComponent implements OnInit {
     this.form.controls.appointmentTime.setValue(time);
   }
 
+  beginSession(apt: Appointment): void {
+    // Lock clinical context to this patient
+    this.context.setPatient({
+       id: apt.patientId,
+       name: `Patient #${apt.patientId}`, // In real app, name would be in Appointment DTO
+       role: 'PATIENT'
+    });
+    // Navigate to EMR History for starting the visit
+    this.router.navigate(['/records']);
+  }
+
   canBookWithSlot(): boolean {
-    return this.form.controls.patientId.valid
-      && this.form.controls.doctorId.valid
-      && this.form.controls.appointmentDate.valid
-      && this.form.controls.appointmentTime.valid;
+    return this.form.controls.patientId.valid && 
+           this.form.controls.doctorId.valid && 
+           this.form.controls.appointmentDate.valid && 
+           this.form.controls.appointmentTime.valid;
   }
 
   bookWithSelectedSlot(): void {
@@ -312,95 +433,46 @@ export class AppointmentDashboardComponent implements OnInit {
 
   book(): void {
     if (this.form.invalid) return;
-
-    this.error = '';
     this.appointmentApi.create(this.form.getRawValue()).subscribe({
       next: () => {
-        this.form.controls.appointmentTime.setValue('');
-        this.form.controls.chiefComplaint.setValue('');
+        this.successMessage('Appointment reserved successfully.');
+        this.form.reset({ 
+           patientId: Number(this.auth.getUserId()), 
+           appointmentDate: new Date().toISOString().slice(0,10) 
+        });
         this.selectedSlot = '';
+        this.selectedDoctor = null;
         this.refresh();
-        this.loadSlots();
       },
-      error: (err) => (this.error = err?.error?.error ?? 'Unable to book appointment')
+      error: () => (this.error = 'Booking failed. Slot may no longer be available.')
     });
   }
 
-  refresh(): void {
-    const patientId = this.form.controls.patientId.value;
-
-    if (this.role === 'PATIENT') {
-      if (!patientId || patientId < 1) {
-        this.appointments = [];
-        return;
-      }
-
-      this.loadingAppointments = true;
-      this.appointmentApi.listUpcomingByPatientId(patientId).subscribe({
-        next: (items) => {
-          this.appointments = items;
-          this.loadingAppointments = false;
-        },
-        error: () => {
-          this.loadingAppointments = false;
-          this.error = 'Unable to load appointments';
-        }
-      });
-      return;
-    }
-
-    if (this.role === 'DOCTOR') {
-      this.loadingAppointments = true;
-      this.appointmentApi.list().subscribe({
-        next: (items) => {
-          this.appointments = items;
-          this.loadingAppointments = false;
-        },
-        error: () => {
-          this.loadingAppointments = false;
-          this.error = 'Unable to load appointments';
-        }
-      });
-      return;
-    }
-
-    this.loadingAppointments = true;
-    this.appointmentApi.list().subscribe({
-      next: (items) => {
-        this.appointments = items;
-        this.loadingAppointments = false;
-      },
-      error: () => {
-        this.loadingAppointments = false;
-        this.error = 'Unable to load appointments';
-      }
-    });
+  private successMessage(msg: string): void {
+    // In a real app we'd use ToastService, but keeping localized for now
+    this.error = msg; 
+    setTimeout(() => this.error = '', 3000);
   }
 
   private loadSpecialties(): void {
     this.appointmentApi.listSpecialties().subscribe({
-      next: (items) => (this.specialties = items),
-      error: () => (this.specialties = [])
+      next: items => this.specialties = items
     });
   }
 
   private searchDoctors(): void {
     this.loadingDoctors = true;
     this.appointmentApi.searchDoctors(this.searchTerm, this.activeSpecialty).subscribe({
-      next: (items) => {
+      next: items => {
         this.doctors = items;
         this.loadingDoctors = false;
       },
-      error: () => {
-        this.doctors = [];
-        this.loadingDoctors = false;
-        this.error = 'Unable to load doctor list';
-      }
+      error: () => this.loadingDoctors = false
     });
   }
 
   logout(): void {
-    this.authService.logout();
+    this.auth.logout();
     this.router.navigate(['/auth/login']);
   }
 }
