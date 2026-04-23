@@ -154,6 +154,24 @@ services:
     networks:
       - hms-net
 
+  queue-service:
+    build:
+      context: ./queue-service
+    container_name: queue-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=queue_user
+      - HMS_DB_PASSWORD=queue_pass
+    ports:
+      - "8089:8089"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - hms-net
+
 networks:
   hms-net:
     driver: bridge

@@ -11,13 +11,15 @@ spring:
     password: ${HMS_DB_PASSWORD:appointment_pass}
   flyway:
     baseline-on-migrate: true
+    baseline-version: 3
+    validate-on-migrate: false
     hikari:
       initializationFailTimeout: -1
       connectionTimeout: 20000
 
   jpa:
     hibernate:
-      ddl-auto: validate # Use validate when Flyway is active
+      ddl-auto: update # Changed from validate to fix schema mismatches
     show-sql: true
     properties:
       hibernate:

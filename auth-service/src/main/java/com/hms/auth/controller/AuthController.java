@@ -40,6 +40,15 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request.getUsername(), request.getPassword()));
     }
 
+    @PostMapping("/verify")
+    public ResponseEntity<?> verify(@RequestParam Long userId, @RequestParam String code) {
+        boolean success = authService.verifyCode(userId, code);
+        if (success) {
+            return ResponseEntity.ok(Map.of("message", "Verification successful"));
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid or expired code"));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
         return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));

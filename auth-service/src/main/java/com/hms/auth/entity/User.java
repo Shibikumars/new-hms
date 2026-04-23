@@ -15,6 +15,9 @@ public class User {
 
     private String password;
     private String role;
+    
+    private Boolean isVerified = false;
+    private String verificationCode;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -27,4 +30,10 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public Boolean getIsVerified() { return isVerified; }
+    public void setIsVerified(Boolean verified) { isVerified = verified; }
+
+    public String getVerificationCode() { return verificationCode; }
+    public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
 }

@@ -25,6 +25,11 @@ spring:
         boot:
           allow_jdbc_metadata_access: false
 
+razorpay:
+  key:
+    id: ${RAZORPAY_KEY_ID:rzp_test_SgpkiPWIltBByv}
+    secret: ${RAZORPAY_KEY_SECRET:gJTkVgRw0ZmyUV7UESi2i4MM}
+
 eureka:
   instance:
     prefer-ip-address: true

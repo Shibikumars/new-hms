@@ -76,7 +76,7 @@ class AuthControllerTest {
     @DisplayName("Should login successfully with valid credentials")
     void testLoginSuccess() throws Exception {
         String token = "jwt.token.here";
-        AuthResponse response = new AuthResponse(token, "refresh.token", "PATIENT", 36000L);
+        AuthResponse response = new AuthResponse(token, "refresh.token", "PATIENT", 36000L, false);
 
         when(authService.login("testuser", "password123"))
             .thenReturn(response);
@@ -259,7 +259,7 @@ class AuthControllerTest {
      @Test
      @DisplayName("Should return correct HTTP status for successful login")
      void testLoginHttpStatus() throws Exception {
-         AuthResponse response = new AuthResponse("jwt.token.here", "refresh.token", "PATIENT", 36000L);
+         AuthResponse response = new AuthResponse("jwt.token.here", "refresh.token", "PATIENT", 36000L, false);
          when(authService.login("testuser", "password123")).thenReturn(response);
 
          mockMvc.perform(post("/auth/login")

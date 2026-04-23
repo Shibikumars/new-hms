@@ -1,0 +1,5 @@
+ALTER TABLE lab_reports 
+ADD COLUMN numeric_result DOUBLE,
+ADD COLUMN unit VARCHAR(50),
+ADD COLUMN reference_range VARCHAR(100),
+ADD COLUMN is_critical BOOLEAN DEFAULT FALSE;

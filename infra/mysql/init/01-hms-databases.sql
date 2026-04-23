@@ -8,6 +8,7 @@ CREATE DATABASE IF NOT EXISTS pharmacy_db;
 CREATE DATABASE IF NOT EXISTS billing_db;
 CREATE DATABASE IF NOT EXISTS notification_db;
 CREATE DATABASE IF NOT EXISTS reporting_db;
+CREATE DATABASE IF NOT EXISTS hms_queue;
 
 -- Specialized Users
 CREATE USER IF NOT EXISTS 'auth_user'@'%' IDENTIFIED BY 'auth_pass';
@@ -39,5 +40,8 @@ GRANT ALL PRIVILEGES ON notification_db.* TO 'notification_user'@'%';
 
 CREATE USER IF NOT EXISTS 'reporting_user'@'%' IDENTIFIED BY 'reporting_pass';
 GRANT ALL PRIVILEGES ON reporting_db.* TO 'reporting_user'@'%';
+
+CREATE USER IF NOT EXISTS 'queue_user'@'%' IDENTIFIED BY 'queue_pass';
+GRANT ALL PRIVILEGES ON hms_queue.* TO 'queue_user'@'%';
 
 FLUSH PRIVILEGES;

@@ -7,6 +7,9 @@ export interface LabTest {
   id?: number;
   testName: string;
   description?: string;
+  loincCode?: string;
+  referenceRange?: string;
+  unit?: string;
   price?: number;
 }
 
@@ -15,35 +18,30 @@ export interface LabOrder {
   patientId: number;
   doctorId: number;
   testId: number;
-  testName?: string;
-  orderDate?: string;
   status?: string;
+  orderDate?: string;
 }
 
 export interface LabReport {
   id?: number;
   labOrderId: number;
   testId: number;
-  doctorId: number;
   patientId: number;
-  result: string;
+  result?: string;
+  numericResult?: number;
+  unit?: string;
+  referenceRange?: string;
+  isCritical?: boolean;
   status?: string;
-  reportDate?: string;
+  reportDate: string;
   verificationStatus?: string;
   verifiedBy?: string;
-  verifiedAt?: string;
-  artifactUrl?: string;
-  artifactChecksum?: string;
-  artifactGeneratedAt?: string;
 }
 
 export interface LabReportArtifact {
   reportId: number;
-  status: string;
-  verificationStatus: string;
   artifactUrl: string;
-  artifactChecksum: string;
-  artifactGeneratedAt: string;
+  generatedAt: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -51,30 +49,22 @@ export class LabApiService {
   constructor(private http: HttpClient) {}
 
   getTestsCatalog(): Observable<LabTest[]> {
-    return this.http.get<LabTest[]>(`${environment.apiBaseUrl}/labs/tests-catalog`);
+    return this.http.get<LabTest[]>(`${environment.apiBaseUrl}/lab/tests`);
   }
 
   placeOrder(payload: LabOrder): Observable<LabOrder> {
-    return this.http.post<LabOrder>(`${environment.apiBaseUrl}/labs/orders`, payload);
-  }
-
-  enterResults(orderId: number, result: string): Observable<LabReport> {
-    return this.http.put<LabReport>(`${environment.apiBaseUrl}/labs/orders/${orderId}/results`, { result, status: 'READY' });
+    return this.http.post<LabOrder>(`${environment.apiBaseUrl}/lab/orders`, payload);
   }
 
   getPatientResults(patientId: number): Observable<LabReport[]> {
-    return this.http.get<LabReport[]>(`${environment.apiBaseUrl}/lab-results/patient/${patientId}`);
+    return this.http.get<LabReport[]>(`${environment.apiBaseUrl}/lab/reports/patient/${patientId}`);
   }
 
-  getTrend(patientId: number, test: string): Observable<LabReport[]> {
-    return this.http.get<LabReport[]>(`${environment.apiBaseUrl}/lab-results/patient/${patientId}/trend?test=${encodeURIComponent(test)}`);
-  }
-
-  verifyReport(reportId: number, verifiedBy?: string): Observable<LabReport> {
-    return this.http.put<LabReport>(`${environment.apiBaseUrl}/lab-results/${reportId}/verify`, { verifiedBy });
+  verifyReport(reportId: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/lab/reports/${reportId}/verify`, {});
   }
 
   getReportArtifact(reportId: number): Observable<LabReportArtifact> {
-    return this.http.get<LabReportArtifact>(`${environment.apiBaseUrl}/lab-results/${reportId}/pdf`);
+    return this.http.get<LabReportArtifact>(`${environment.apiBaseUrl}/lab/reports/${reportId}/artifact`);
   }
 }

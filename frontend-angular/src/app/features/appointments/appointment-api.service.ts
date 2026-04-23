@@ -10,7 +10,12 @@ export interface Appointment {
   appointmentDate: string;
   appointmentTime: string;
   status?: string;
+  type?: string;
   chiefComplaint?: string;
+  paymentStatus?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  feeAmount?: number;
 }
 
 export interface DoctorOption {
@@ -20,6 +25,14 @@ export interface DoctorOption {
   availability: string;
   email?: string;
   phone?: string;
+  qualifications?: string;
+  yearsOfExperience?: number;
+  subSpecialties?: string;
+  consultationFee?: number;
+  languagesSpoken?: string;
+  profilePhotoUrl?: string;
+  about?: string;
+  rating?: number;
 }
 
 export interface TimeSlot {

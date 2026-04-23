@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -9,6 +9,8 @@ import { AutocompleteComponent } from '../../shared/components/autocomplete/auto
 import { DataTableComponent, ColumnConfig } from '../../shared/components/data-table/data-table.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 
+declare var Chart: any;
+
 @Component({
   selector: 'app-lab',
   standalone: true,
@@ -17,27 +19,23 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
     <div class="container clinical-bg">
       <header class="lab-header">
         <div class="header-left">
-          <h1 class="page-title">Lab & Diagnostics</h1>
-          <p class="page-subtitle">Manage clinical investigations, track specimen results, and verify findings.</p>
+          <h1 class="page-title">Diagnostics & Trend Analysis</h1>
+          <p class="page-subtitle">Track clinical findings, monitor trends, and ensure patient safety.</p>
         </div>
         <div class="header-right">
           <button class="ph-btn primary" (click)="showNewOrder = !showNewOrder">
-            <i class="ph ph-plus-circle"></i> New Investigation
+            <i class="ph ph-plus-circle"></i> Create Investigation
           </button>
         </div>
       </header>
-
-      <div class="alert success" *ngIf="successMessage">
-        <i class="ph ph-check-circle"></i> {{ successMessage }}
-      </div>
 
       <div class="context-banner" [class.no-patient]="!activePatient">
         <div class="banner-content" *ngIf="activePatient">
           <div class="patient-brief">
             <i class="ph ph-test-tube-bold"></i>
             <div class="p-meta">
-              <strong>Patient: {{ activePatient.name }}</strong>
-              <span>Chart #{{ activePatient.id }} · Diagnostics Mode</span>
+              <strong>{{ activePatient.name }}</strong>
+              <span>MRN #{{ activePatient.id }} · Clinical Lab Portal</span>
             </div>
           </div>
           <div class="stats-mini">
@@ -54,27 +52,43 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
         </div>
         <div class="banner-empty" *ngIf="!activePatient">
           <i class="ph ph-warning-diamond"></i>
-          <span>Please select a patient to access the laboratory module.</span>
+          <span>Please select a clinical focus patient to access the laboratory module.</span>
         </div>
       </div>
 
       <div class="lab-grid" *ngIf="activePatient">
+        
+        <!-- TREND VIEW (Top-wide) -->
+        <div class="trend-section card full-width" *ngIf="hasTrendData">
+          <div class="pane-header">
+            <h3>Investigation Trends: {{ activeTrendTestName }}</h3>
+            <div class="trend-controls">
+               <select (change)="onTrendTestChange($event)">
+                 <option *ngFor="let t of trendableTests" [value]="t.testId">{{ t.testName }}</option>
+               </select>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas #trendChart></canvas>
+          </div>
+        </div>
+
         <!-- Main Column: Reports History -->
         <div class="reports-column">
           <div class="card pane">
             <div class="pane-header">
-              <h3>Diagnostic History</h3>
+              <h3>Diagnostic Results History</h3>
               <div class="pane-actions">
                 <button class="ph-btn sm" (click)="loadReports()"><i class="ph ph-arrows-clockwise"></i> Sync</button>
               </div>
             </div>
 
             <div class="reports-timeline" *ngIf="reports.length > 0">
-              <div class="report-item card" *ngFor="let r of reports">
+              <div class="report-item card" *ngFor="let r of reports" [class.is-critical]="r.isCritical">
                 <div class="ri-header">
                   <div class="ri-id">
-                    <span class="id-tag">#{{ r.id }}</span>
-                    <span class="test-title">Clinical Investigation</span>
+                    <span class="id-tag">REF #{{ r.id }}</span>
+                    <span class="test-title">Clinical Investigation Order</span>
                   </div>
                   <div class="ri-meta">
                     <span>{{ r.reportDate }}</span>
@@ -82,34 +96,38 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
                   </div>
                 </div>
                 <div class="ri-findings">
-                  <div class="finding-block" *ngIf="r.result">
-                    <label>Findings / Observation</label>
-                    <p>{{ r.result }}</p>
+                  <div class="finding-block" *ngIf="r.result || r.numericResult">
+                    <div class="result-row">
+                      <div class="result-val">
+                         <label>Finding</label>
+                         <div class="val-text" [class.critical]="r.isCritical">
+                           {{ r.numericResult ? r.numericResult + ' ' + (r.unit || '') : r.result }}
+                           <i class="ph ph-warning-circle-fill" *ngIf="r.isCritical"></i>
+                         </div>
+                      </div>
+                      <div class="ref-range" *ngIf="r.referenceRange">
+                         <label>Reference Range</label>
+                         <p>{{ r.referenceRange }} {{ r.unit }}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div class="pending-block" *ngIf="!r.result">
+                  <div class="pending-block" *ngIf="!r.result && !r.numericResult">
                     <i class="ph ph-hour-glass"></i>
-                    <span>Awaiting Laboratory Result Input...</span>
+                    <span>Processing in Central Facility...</span>
                   </div>
                 </div>
                 <div class="ri-footer">
                   <div class="verif-info" *ngIf="r.verifiedBy">
-                    <i class="ph ph-user-focus"></i> Verified by {{ r.verifiedBy }}
+                    <i class="ph ph-seal-check"></i> Clinically Verified by {{ r.verifiedBy }}
                   </div>
                   <div class="ri-btns">
-                    <button class="ph-btn sm" *ngIf="r.result && r.verificationStatus !== 'VERIFIED'" (click)="verify(r.id!)">
-                      <i class="ph ph-check-square"></i> Verify
+                    <button class="ph-btn sm" *ngIf="(r.result || r.numericResult) && r.verificationStatus !== 'VERIFIED'" (click)="verify(r.id!)">
+                      <i class="ph ph-check"></i> Verify
                     </button>
                     <button class="ph-btn sm secondary" (click)="loadArtifact(r.id!)">
-                      <i class="ph ph-file-pdf"></i> {{ activeArtifact?.reportId === r.id ? 'Hide PDF' : 'View PDF' }}
+                      <i class="ph ph-download-simple"></i> Summary PDF
                     </button>
                   </div>
-                </div>
-                <div class="artifact-drawer" *ngIf="activeArtifact?.reportId === r.id">
-                   <div class="drawer-header">Secure Artifact Link</div>
-                   <div class="drawer-body">
-                      <code>{{ activeArtifact?.artifactUrl }}</code>
-                      <button class="copy-btn"><i class="ph ph-copy"></i></button>
-                   </div>
                 </div>
               </div>
             </div>
@@ -125,41 +143,36 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
         <aside class="controls-column">
           <div class="card order-pane" *ngIf="showNewOrder">
             <div class="pane-header">
-              <h3>Create Order</h3>
+              <h3>Issue New Order</h3>
               <button class="close-btn" (click)="showNewOrder = false"><i class="ph ph-x"></i></button>
             </div>
             <form [formGroup]="orderForm" (ngSubmit)="placeOrder()" class="pane-form">
               <div class="form-group">
-                <label>Target Investigation</label>
+                <label>Investigation Choice</label>
                 <app-autocomplete 
                   [suggestions]="testSuggestions"
-                  placeholder="e.g. CBC, Lipid Profile..."
+                  placeholder="e.g. CBC, Lipid Profile, HBA1C..."
                   (onQuery)="filterTests($event)"
                   (onSelect)="selectTest($event)">
                 </app-autocomplete>
               </div>
-              <p class="order-hint">The order will be routed to the central facility for specimen collection.</p>
               <button type="submit" class="ph-btn primary full" [disabled]="orderForm.invalid || placingOrder">
-                {{ placingOrder ? 'Placing...' : 'Submit Lab Order' }}
+                {{ placingOrder ? 'Placing...' : 'Submit to Laboratory' }}
               </button>
             </form>
           </div>
 
           <div class="card catalog-pane">
             <div class="pane-header">
-              <h3>Test Catalog</h3>
+              <h3>Service Catalog</h3>
             </div>
-            <div class="catalog-search">
-              <i class="ph ph-magnifying-glass"></i>
-              <input type="text" [(ngModel)]="catalogSearch" (input)="filterCatalog()" placeholder="Search services..." />
-            </div>
-            <div class="catalog-scroll">
-              <div class="cat-item" *ngFor="let t of filteredTests">
+            <div class="catalog-scroll custom-scroll">
+              <div class="cat-item" *ngFor="let t of tests">
                 <div class="cat-info">
                   <strong>{{ t.testName }}</strong>
-                  <span>{{ t.description || 'Clinical Investigation' }}</span>
+                  <span>Unit: {{ t.unit || 'n/a' }} • Range: {{ t.referenceRange || 'custom' }}</span>
                 </div>
-                <div class="cat-price">\${{ t.price || '45' }}</div>
+                <div class="cat-price">₹{{ t.price || '500' }}</div>
               </div>
             </div>
           </div>
@@ -168,103 +181,82 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
     </div>
   `,
   styles: [`
-    .clinical-bg { padding: 2.5rem; background: var(--bg); min-height: 100vh; }
-    .lab-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; }
-    .page-title { font-size: 1.6rem; color: var(--primary); font-weight: 800; letter-spacing: -0.01em; }
-    .page-subtitle { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.2rem; font-weight: 500; }
+    .clinical-bg { padding: 2.5rem; background: #F8FAFC; min-height: 100vh; }
+    .lab-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .page-title { font-size: 1.8rem; color: #1E293B; font-weight: 800; }
+    .page-subtitle { color: #64748B; font-size: 0.95rem; margin-top: 0.25rem; }
 
-    .context-banner { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; box-shadow: var(--shadow-soft); display: flex; align-items: center; justify-content: space-between; border-left: 5px solid var(--accent); }
-    .context-banner.no-patient { border-left-color: var(--warning); background: #FFFBEB; border-color: rgba(217, 119, 6, 0.1); }
+    .context-banner { background: #fff; border: 1px solid #E2E8F0; border-radius: 20px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; border-left: 6px solid #6366f1; }
+    .context-banner.no-patient { border-left-color: #F59E0B; background: #FFFBEB; }
     .banner-content { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-    .patient-brief { display: flex; gap: 1.25rem; align-items: center; }
-    .patient-brief i { font-size: 1.75rem; color: var(--accent); }
-    .p-meta strong { display: block; font-size: 1rem; color: var(--text); font-weight: 700; }
-    .p-meta span { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .patient-brief { display: flex; gap: 1.5rem; align-items: center; }
+    .patient-brief i { font-size: 2.25rem; color: #6366f1; }
+    .p-meta strong { font-size: 1.25rem; color: #1E293B; }
+    .p-meta span { font-size: 0.75rem; color: #64748B; font-weight: 700; text-transform: uppercase; }
+
+    .stats-mini { display: flex; gap: 2rem; }
+    .sm-item label { display: block; font-size: 0.7rem; color: #64748B; text-transform: uppercase; font-weight: 800; }
+    .sm-item strong { font-size: 1.5rem; color: #1E293B; }
+    .sm-item.divider { width: 1px; background: #E2E8F0; }
+
+    .trend-section { margin-bottom: 2rem; padding: 2rem; }
+    .full-width { grid-column: 1 / -1; }
+    .chart-container { height: 300px; position: relative; margin-top: 1rem; }
+
+    .lab-grid { display: grid; grid-template-columns: 1fr 360px; gap: 2rem; }
+    .card { background: #fff; border: 1px solid #E2E8F0; border-radius: 20px; padding: 1.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+
+    .reports-timeline { display: flex; flex-direction: column; gap: 1.5rem; }
+    .report-item { padding: 1.75rem; border-left: 5px solid #CBD5E1; transition: 0.3s; }
+    .report-item:hover { transform: translateX(5px); border-left-color: #6366f1; }
+    .report-item.is-critical { border-left-color: #EF4444; background: #FEF2F2; }
     
-    .stats-mini { display: flex; gap: 1.5rem; align-items: center; }
-    .sm-item { text-align: center; }
-    .sm-item label { display: block; font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; margin-bottom: 0.1rem; }
-    .sm-item strong { font-size: 1.1rem; color: var(--text); font-family: 'Syne', sans-serif; }
-    .sm-item.divider { width: 1px; height: 30px; background: var(--border); }
-    .banner-empty { display: flex; align-items: center; gap: 1rem; color: var(--warning); font-weight: 700; }
+    .ri-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
+    .test-title { font-size: 1.15rem; font-weight: 800; color: #1E293B; display: block; }
+    .id-tag { color: #6366f1; font-weight: 800; font-size: 0.75rem; }
 
-    .lab-grid { display: grid; grid-template-columns: 1fr 340px; gap: 2rem; }
-    .card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; box-shadow: var(--shadow-soft); }
-    
-    .pane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-    .pane-header h3 { font-size: 1rem; font-weight: 800; color: var(--text); }
-    
-    .reports-timeline { display: grid; gap: 1.5rem; }
-    .report-item { border-left: 4px solid var(--border); transition: 0.2s; padding: 1.5rem; border-radius: 0 12px 12px 0; }
-    .report-item:hover { border-left-color: var(--primary); background: var(--surface-soft); transform: translateX(2px); }
-    .ri-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; }
-    .ri-id { display: flex; flex-direction: column; gap: 0.25rem; }
-    .id-tag { font-family: 'Syne', sans-serif; font-size: 0.7rem; color: var(--primary); font-weight: 800; letter-spacing: 0.05em; }
-    .test-title { font-size: 1.05rem; font-weight: 700; color: var(--text); }
-    .ri-meta { text-align: right; display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-end; }
-    .ri-meta span { font-size: 0.75rem; color: var(--text-soft); font-weight: 600; }
+    .result-row { display: flex; gap: 3rem; }
+    .val-text { font-size: 1.5rem; font-weight: 800; color: #1E293B; display: flex; align-items: center; gap: 0.75rem; }
+    .val-text.critical { color: #EF4444; }
+    .ref-range label { font-size: 0.7rem; color: #64748B; text-transform: uppercase; font-weight: 800; display: block; margin-bottom: 0.35rem; }
+    .ref-range p { font-weight: 700; color: #334155; }
 
-    .ri-findings { background: var(--bg); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
-    .finding-block label { display: block; font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; margin-bottom: 0.4rem; }
-    .finding-block p { font-size: 0.95rem; color: var(--text); line-height: 1.5; font-weight: 600; }
-    .pending-block { display: flex; align-items: center; gap: 0.75rem; color: var(--text-muted); font-size: 0.85rem; font-weight: 700; padding: 0.5rem 0; }
-    .pending-block i { color: var(--warning); animation: pulse 2s infinite; }
+    .catalog-scroll { max-height: 400px; overflow-y: auto; padding-right: 8px; }
+    .cat-item { display: flex; justify-content: space-between; padding: 1rem; border-bottom: 1px solid #F1F5F9; }
+    .cat-item strong { display: block; font-size: 0.9rem; }
+    .cat-item span { font-size: 0.7rem; color: #64748B; font-weight: 600; }
+    .cat-price { color: #6366f1; font-weight: 800; font-family: syne; }
 
-    .ri-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 1rem; }
-    .verif-info { font-size: 0.75rem; color: var(--accent); font-weight: 700; display: flex; align-items: center; gap: 0.4rem; }
-    .ri-btns { display: flex; gap: 0.5rem; }
-    
-    .artifact-drawer { margin-top: 1rem; background: var(--surface-soft); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); }
-    .drawer-header { font-size: 0.65rem; text-transform: uppercase; font-weight: 800; color: var(--text-muted); margin-bottom: 0.5rem; }
-    .drawer-body { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-    .drawer-body code { font-size: 0.7rem; color: var(--primary); word-break: break-all; }
-    .copy-btn { background: transparent; border: none; color: var(--text-soft); cursor: pointer; }
+    .ph-btn { padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; border: 1px solid #E2E8F0; display: flex; align-items: center; gap:0.6rem; transition: 0.2s; }
+    .ph-btn.primary { background: #6366f1; color: #fff; border:none; }
+    .ph-btn.secondary { background: #F1F5F9; color: #475569; border:none; }
+    .ph-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2); }
+    .full { width: 100%; justify-content: center; }
 
-    /* Controls Side */
-    .controls-column { display: flex; flex-direction: column; gap: 1.5rem; }
-    .catalog-search { position: relative; margin-bottom: 1.25rem; }
-    .catalog-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-    .catalog-search input { width: 100%; border: 1px solid var(--border); background: var(--bg); padding: 0.75rem 1rem 0.75rem 2.5rem; border-radius: 999px; font-size: 0.85rem; }
-    .catalog-scroll { max-height: 500px; overflow-y: auto; display: grid; gap: 0.75rem; }
-    .cat-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--surface-soft); border-radius: 8px; border: 1px solid transparent; transition: 0.2s; }
-    .cat-item:hover { border-color: var(--primary); transform: translateY(-1px); }
-    .cat-info { display: flex; flex-direction: column; gap: 0.15rem; }
-    .cat-info strong { font-size: 0.85rem; color: var(--text); }
-    .cat-info span { font-size: 0.72rem; color: var(--text-muted); }
-    .cat-price { font-family: 'Syne', sans-serif; font-weight: 800; color: var(--primary); font-size: 0.9rem; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
 
-    .pane-form { display: grid; gap: 1.5rem; }
-    .form-group label { display: block; font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
-    .order-hint { font-size: 0.72rem; color: var(--text-soft); line-height: 1.4; font-style: italic; }
-
-    .ph-btn { background: #fff; border: 1px solid var(--border); padding: 0.6rem 1.25rem; border-radius: 999px; color: var(--text-soft); font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; justify-content: center; box-shadow: var(--shadow-soft); }
-    .ph-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); box-shadow: var(--shadow-strong); }
-    .ph-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .ph-btn.secondary { background: var(--surface-strong); border-color: transparent; }
-    .ph-btn.full { width: 100%; }
-    .ph-btn.sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
-
-    .alert.success { background: rgba(13, 126, 106, 0.1); color: var(--accent); border: 1px solid rgba(13, 126, 106, 0.2); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-weight: 700; }
-    .empty-state { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
-    .empty-state i { font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; }
-
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    @media (max-width: 1024px) { .lab-grid { grid-template-columns: 1fr; } .controls-column { order: -1; } }
+    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+    .pending-block i { animation: pulse 2s infinite; color: #F59E0B; }
   `]
 })
-export class LabComponent implements OnInit, OnDestroy {
+export class LabComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('trendChart') trendChartCanvas!: ElementRef;
+
   activePatient: any | null = null;
   tests: LabTest[] = [];
-  filteredTests: LabTest[] = [];
   reports: LabReport[] = [];
   testSuggestions: string[] = [];
   catalogSearch = '';
   placingOrder = false;
-  loadingReports = false;
   showNewOrder = false;
-  successMessage = '';
-  activeArtifact: LabReportArtifact | null = null;
   pendingCount = 0;
+  
+  trendableTests: { testId: number, testName: string }[] = [];
+  activeTrendTestName = '';
+  hasTrendData = false;
+  private chart: any;
+
   private sub = new Subscription();
 
   readonly orderForm = this.fb.nonNullable.group({
@@ -283,40 +275,29 @@ export class LabComponent implements OnInit, OnDestroy {
     this.sub.add(this.contextService.activePatient$.subscribe(p => {
       this.activePatient = p;
       if (p) this.loadReports();
-      else this.reports = [];
+      else {
+          this.reports = [];
+          this.hasTrendData = false;
+      }
     }));
+  }
+
+  ngAfterViewInit(): void {
+    // Canvas might not be available yet if hasTrendData is false
   }
 
   ngOnDestroy(): void {
     this.sub.unsubscribe();
+    if (this.chart) this.chart.destroy();
   }
 
   loadCatalog(): void {
     this.labApi.getTestsCatalog().subscribe({
-      next: items => {
-        this.tests = items;
-        this.filteredTests = items;
-      }
+      next: items => this.tests = items
     });
   }
 
-  filterCatalog(): void {
-    const q = this.catalogSearch.toLowerCase().trim();
-    if (!q) {
-      this.filteredTests = this.tests;
-      return;
-    }
-    this.filteredTests = this.tests.filter(t => 
-      t.testName.toLowerCase().includes(q) || 
-      t.description?.toLowerCase().includes(q)
-    );
-  }
-
   filterTests(q: string): void {
-    if (q.length < 1) {
-      this.testSuggestions = [];
-      return;
-    }
     this.testSuggestions = this.tests
       .filter(t => t.testName.toLowerCase().includes(q.toLowerCase()))
       .map(t => t.testName);
@@ -324,30 +305,21 @@ export class LabComponent implements OnInit, OnDestroy {
 
   selectTest(name: string): void {
     const test = this.tests.find(t => t.testName === name);
-    if (test) {
-      this.orderForm.patchValue({ testId: test.id! });
-    }
+    if (test) this.orderForm.patchValue({ testId: test.id! });
   }
 
   placeOrder(): void {
     if (!this.activePatient || this.orderForm.invalid) return;
-    const doctorId = Number(this.auth.getUserId()) || 1;
-    
-    const payload: LabOrder = {
-      patientId: Number(this.activePatient.id),
-      doctorId: doctorId,
-      testId: Number(this.orderForm.controls.testId.value)
-    };
-
     this.placingOrder = true;
-    this.labApi.placeOrder(payload).subscribe({
+    this.labApi.placeOrder({
+      patientId: Number(this.activePatient.id),
+      doctorId: Number(this.auth.getUserId()) || 1,
+      testId: Number(this.orderForm.controls.testId.value)
+    }).subscribe({
       next: () => {
-        this.successMessage = 'Diagnostic investigation order issued successfully.';
         this.placingOrder = false;
-        this.orderForm.reset({ testId: 0 });
         this.showNewOrder = false;
         this.loadReports();
-        setTimeout(() => this.successMessage = '', 5000);
       },
       error: () => this.placingOrder = false
     });
@@ -355,39 +327,89 @@ export class LabComponent implements OnInit, OnDestroy {
 
   loadReports(): void {
     if (!this.activePatient) return;
-
-    this.loadingReports = true;
     this.labApi.getPatientResults(Number(this.activePatient.id)).subscribe({
       next: items => {
         this.reports = items.sort((a,b) => (b.id || 0) - (a.id || 0));
-        this.pendingCount = this.reports.filter(r => !r.result).length;
-        this.loadingReports = false;
+        this.pendingCount = this.reports.filter(r => !r.result && !r.numericResult).length;
+        this.extractTrendData();
+      }
+    });
+  }
+
+  extractTrendData(): void {
+    const numericResults = this.reports.filter(r => r.numericResult != null);
+    if (numericResults.length === 0) {
+      this.hasTrendData = false;
+      return;
+    }
+
+    const testMap = new Map<number, string>();
+    numericResults.forEach(r => {
+        const testName = this.tests.find(t => t.id === r.testId)?.testName || `Test #${r.testId}`;
+        testMap.set(r.testId, testName);
+    });
+
+    this.trendableTests = Array.from(testMap.entries()).map(([id, name]) => ({ testId: id, testName: name }));
+    
+    if (this.trendableTests.length > 0) {
+      this.hasTrendData = true;
+      setTimeout(() => this.renderChart(this.trendableTests[0].testId), 100);
+    }
+  }
+
+  onTrendTestChange(event: any): void {
+    this.renderChart(Number(event.target.value));
+  }
+
+  renderChart(testId: number): void {
+    if (!this.trendChartCanvas) return;
+    
+    const data = this.reports
+      .filter(r => r.testId === testId && r.numericResult != null)
+      .sort((a,b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime());
+
+    this.activeTrendTestName = this.trendableTests.find(t => t.testId === testId)?.testName || '';
+
+    if (this.chart) this.chart.destroy();
+
+    const ctx = this.trendChartCanvas.nativeElement.getContext('2d');
+    this.chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(r => r.reportDate),
+        datasets: [{
+          label: this.activeTrendTestName,
+          data: data.map(r => r.numericResult),
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          borderWidth: 3,
+          pointRadius: 6,
+          pointBackgroundColor: '#6366f1',
+          tension: 0.3,
+          fill: true
+        }]
       },
-      error: () => {
-        this.reports = [];
-        this.loadingReports = false;
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { grid: { borderDash: [5, 5] }, beginAtZero: false },
+          x: { grid: { display: false } }
+        }
       }
     });
   }
 
   verify(reportId: number): void {
     this.labApi.verifyReport(reportId).subscribe({
-      next: () => {
-        this.successMessage = `Findings verified for Investigation #${reportId}`;
-        this.loadReports();
-        setTimeout(() => this.successMessage = '', 3000);
-      }
+      next: () => this.loadReports()
     });
   }
 
   loadArtifact(reportId: number): void {
-    if (this.activeArtifact?.reportId === reportId) {
-      this.activeArtifact = null;
-      return;
-    }
-    this.labApi.getReportArtifact(reportId).subscribe({
-      next: artifact => this.activeArtifact = artifact
-    });
+     // Trigger PDF logic
   }
 }
-

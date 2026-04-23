@@ -368,11 +368,13 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
 
   selectPatient(p: PatientProfile): void {
-    this.contextService.setPatient({
-      id: p.id,
-      name: `${p.firstName} ${p.lastName}`,
-      role: 'PATIENT'
-    });
+    if (p.id !== undefined) {
+      this.contextService.setPatient({
+        id: p.id,
+        name: `${p.firstName} ${p.lastName}`,
+        role: 'PATIENT'
+      });
+    }
     this.searchQuery = '';
     this.searchResults = [];
   }

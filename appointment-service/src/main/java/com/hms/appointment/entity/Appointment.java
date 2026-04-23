@@ -30,9 +30,15 @@ public class Appointment {
     @NotNull(message = "Appointment time is required")
     private LocalTime appointmentTime;
 
-    private String status;
-
+    private String status; // BOOKED, CANCELLED, COMPLETED, NO_SHOW, CHECKED_IN
+    private String type;   // OPD, FOLLOW_UP, EMERGENCY, TELEMEDICINE
     private String chiefComplaint;
+
+    // Payment Integration
+    private String paymentStatus; // PENDING, PAID, FAILED
+    private String razorpayOrderId;
+    private String razorpayPaymentId;
+    private Double feeAmount;
 
     public Appointment() {}
 
@@ -60,6 +66,16 @@ public class Appointment {
     public void setAppointmentTime(LocalTime appointmentTime) { this.appointmentTime = appointmentTime; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
     public String getChiefComplaint() { return chiefComplaint; }
     public void setChiefComplaint(String chiefComplaint) { this.chiefComplaint = chiefComplaint; }
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
+    public String getRazorpayOrderId() { return razorpayOrderId; }
+    public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
+    public String getRazorpayPaymentId() { return razorpayPaymentId; }
+    public void setRazorpayPaymentId(String razorpayPaymentId) { this.razorpayPaymentId = razorpayPaymentId; }
+    public Double getFeeAmount() { return feeAmount; }
+    public void setFeeAmount(Double feeAmount) { this.feeAmount = feeAmount; }
 }

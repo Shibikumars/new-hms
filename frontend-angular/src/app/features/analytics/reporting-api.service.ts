@@ -33,4 +33,12 @@ export class ReportingApiService {
   getDoctorsPerformance(): Observable<Array<Record<string, unknown>>> {
     return this.http.get<Array<Record<string, unknown>>>(`${environment.apiBaseUrl}/reporting/doctors/performance`);
   }
+
+  downloadPrescriptionPdf(id: number): Observable<Blob> {
+    return this.http.get(`${environment.apiBaseUrl}/reporting/prescriptions/${id}/pdf`, { responseType: 'blob' });
+  }
+
+  downloadDischargeSummaryPdf(appointmentId: number): Observable<Blob> {
+    return this.http.get(`${environment.apiBaseUrl}/reporting/discharge-summary/${appointmentId}/pdf`, { responseType: 'blob' });
+  }
 }

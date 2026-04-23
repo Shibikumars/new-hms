@@ -6,15 +6,17 @@ public class AuthResponse {
     private String refreshToken;
     private String role;
     private Long expiresIn;
+    private boolean verificationRequired;
 
     public AuthResponse() {
     }
 
-    public AuthResponse(String token, String refreshToken, String role, Long expiresIn) {
+    public AuthResponse(String token, String refreshToken, String role, Long expiresIn, boolean verificationRequired) {
         this.token = token;
         this.refreshToken = refreshToken;
         this.role = role;
         this.expiresIn = expiresIn;
+        this.verificationRequired = verificationRequired;
     }
 
     public String getToken() {
@@ -47,5 +49,13 @@ public class AuthResponse {
 
     public void setExpiresIn(Long expiresIn) {
         this.expiresIn = expiresIn;
+    }
+
+    public boolean isVerificationRequired() {
+        return verificationRequired;
+    }
+
+    public void setVerificationRequired(boolean verificationRequired) {
+        this.verificationRequired = verificationRequired;
     }
 }

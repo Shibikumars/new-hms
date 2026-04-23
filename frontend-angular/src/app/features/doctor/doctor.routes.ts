@@ -26,6 +26,10 @@ export default [
     loadComponent: () => import('../lab/lab.component').then(m => m.LabComponent)
   },
   {
+    path: 'queue',
+    loadComponent: () => import('../queue/queue.component').then(m => m.QueueComponent)
+  },
+  {
     path: '',
     pathMatch: 'full',
     redirectTo: 'dashboard'

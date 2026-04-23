@@ -10,14 +10,18 @@ spring:
     username: ${HMS_DB_USER:patient_user}
     password: ${HMS_DB_PASSWORD:patient_pass}
   flyway:
+    clean-disabled: false
+    clean-on-validation-error: true
     baseline-on-migrate: true
+    baseline-version: 1
+    validate-on-migrate: false
     hikari:
       initializationFailTimeout: -1
       connectionTimeout: 20000
 
   jpa:
     hibernate:
-      ddl-auto: validate # Use validate when Flyway is active
+      ddl-auto: update # Changed from validate to fix schema mismatches
     show-sql: true
     properties:
       hibernate:

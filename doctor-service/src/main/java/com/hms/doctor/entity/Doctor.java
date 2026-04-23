@@ -2,6 +2,8 @@ package com.hms.doctor.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "doctors")
@@ -22,8 +24,18 @@ public class Doctor {
 
     private String email;
 
+    // Rich Profile Fields
+    private String qualifications;
+    private Integer yearsOfExperience;
+    private String subSpecialties;
+    private Double consultationFee;
+    private String languagesSpoken;
+    private String profilePhotoUrl;
+    private String about;
+    private Double rating;
+
     @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
-    private java.util.List<DoctorSchedule> schedules = new java.util.ArrayList<>();
+    private List<DoctorSchedule> schedules = new ArrayList<>();
 
     public Doctor() {}
 
@@ -46,6 +58,24 @@ public class Doctor {
     public void setPhone(String phone) { this.phone = phone; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-    public java.util.List<DoctorSchedule> getSchedules() { return schedules; }
-    public void setSchedules(java.util.List<DoctorSchedule> schedules) { this.schedules = schedules; }
+    
+    public String getQualifications() { return qualifications; }
+    public void setQualifications(String qualifications) { this.qualifications = qualifications; }
+    public Integer getYearsOfExperience() { return yearsOfExperience; }
+    public void setYearsOfExperience(Integer yearsOfExperience) { this.yearsOfExperience = yearsOfExperience; }
+    public String getSubSpecialties() { return subSpecialties; }
+    public void setSubSpecialties(String subSpecialties) { this.subSpecialties = subSpecialties; }
+    public Double getConsultationFee() { return consultationFee; }
+    public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }
+    public String getLanguagesSpoken() { return languagesSpoken; }
+    public void setLanguagesSpoken(String languagesSpoken) { this.languagesSpoken = languagesSpoken; }
+    public String getProfilePhotoUrl() { return profilePhotoUrl; }
+    public void setProfilePhotoUrl(String profilePhotoUrl) { this.profilePhotoUrl = profilePhotoUrl; }
+    public String getAbout() { return about; }
+    public void setAbout(String about) { this.about = about; }
+    public Double getRating() { return rating; }
+    public void setRating(Double rating) { this.rating = rating; }
+
+    public List<DoctorSchedule> getSchedules() { return schedules; }
+    public void setSchedules(List<DoctorSchedule> schedules) { this.schedules = schedules; }
 }

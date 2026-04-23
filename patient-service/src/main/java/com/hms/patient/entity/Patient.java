@@ -49,13 +49,15 @@ public class Patient {
     @Column(unique = true)
     private String mrn;
 
+    private Long userId; // Link to auth-service user ID
+
     private Long mergedId; // ID of the patient record this one was merged into
 
     public Patient() {}
 
     public Patient(Long id, String firstName, String lastName, LocalDate dob, String gender,
                    String bloodGroup, String phone, String email, String address,
-                   String emergencyContact, String insuranceProvider, String insurancePolicyNumber) {
+                   String emergencyContact, String insuranceProvider, String insurancePolicyNumber, Long userId) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -68,6 +70,7 @@ public class Patient {
         this.emergencyContact = emergencyContact;
         this.insuranceProvider = insuranceProvider;
         this.insurancePolicyNumber = insurancePolicyNumber;
+        this.userId = userId;
     }
 
     // Backward-compatible constructor used by legacy tests
@@ -107,6 +110,8 @@ public class Patient {
     public void setInsurancePolicyNumber(String insurancePolicyNumber) { this.insurancePolicyNumber = insurancePolicyNumber; }
     public String getMrn() { return mrn; }
     public void setMrn(String mrn) { this.mrn = mrn; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
     public Long getMergedId() { return mergedId; }
     public void setMergedId(Long mergedId) { this.mergedId = mergedId; }
 
