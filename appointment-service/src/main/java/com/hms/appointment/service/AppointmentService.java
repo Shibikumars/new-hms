@@ -9,6 +9,7 @@ import com.hms.appointment.exception.ResourceNotFoundException;
 import com.hms.appointment.exception.SlotAlreadyBookedException;
 import com.hms.appointment.feign.DoctorClient;
 import com.hms.appointment.feign.PatientClient;
+import com.hms.appointment.feign.BillingClient;
 import com.hms.appointment.repository.AppointmentRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,8 +35,10 @@ public class AppointmentService {
     @Autowired
     private DoctorClient doctorClient;
 
-    public Appointment saveAppointment(Appointment appointment) {
+    @Autowired
+    private BillingClient billingClient;
 
+    public Appointment saveAppointment(Appointment appointment) {
         // 1. Validate patient exists
         try {
             patientClient.getPatientById(appointment.getPatientId());
@@ -51,7 +54,11 @@ public class AppointmentService {
             throw new ResourceNotFoundException("Doctor not found with id: " + appointment.getDoctorId());
         }
 
-        // 3. Check doctor availability window against structured schedules
+        // 3. Set Fee and Type (Defaults)
+        if (appointment.getFeeAmount() == null) appointment.setFeeAmount(500.0);
+        if (appointment.getType() == null) appointment.setType("OPD");
+
+        // 4. Check doctor availability window
         if (doctor.getSchedules() != null && !doctor.getSchedules().isEmpty()) {
             boolean available = false;
             String dayOfWeek = appointment.getAppointmentDate().getDayOfWeek().name();
@@ -67,32 +74,28 @@ public class AppointmentService {
             }
 
             if (!available) {
-                throw new DoctorUnavailableException(
-                    "Doctor not available at " + time + " on " + dayOfWeek
-                );
+                throw new DoctorUnavailableException("Doctor not available at " + time + " on " + dayOfWeek);
             }
         }
 
-        // 4. Check duplicate slot
-        boolean slotTaken = appointmentRepository
-            .existsByDoctorIdAndAppointmentDateAndAppointmentTime(
+        // 5. Check duplicate slot
+        boolean slotTaken = appointmentRepository.existsByDoctorIdAndAppointmentDateAndAppointmentTime(
                 appointment.getDoctorId(),
                 appointment.getAppointmentDate(),
                 appointment.getAppointmentTime()
-            );
+        );
         if (slotTaken) {
-            throw new SlotAlreadyBookedException(
-                "This slot is already booked for doctor id: " + appointment.getDoctorId()
-            );
+            throw new SlotAlreadyBookedException("This slot is already booked for doctor id: " + appointment.getDoctorId());
         }
 
-        appointment.setStatus("BOOKED");
+        // 6. Defaults for status and payment
+        if (appointment.getStatus() == null) appointment.setStatus("BOOKED");
+        if (appointment.getPaymentStatus() == null) appointment.setPaymentStatus("PENDING");
+
         try {
             return appointmentRepository.save(appointment);
         } catch (DataIntegrityViolationException ex) {
-            throw new SlotAlreadyBookedException(
-                "This slot is already booked for doctor id: " + appointment.getDoctorId()
-            );
+            throw new SlotAlreadyBookedException("This slot is already booked for doctor id: " + appointment.getDoctorId());
         }
     }
 
@@ -101,8 +104,24 @@ public class AppointmentService {
             .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id: " + id));
 
         String s = status.toUpperCase();
-        if (!s.equals("BOOKED") && !s.equals("CANCELLED") && !s.equals("COMPLETED")) {
-            throw new IllegalArgumentException("Invalid status. Use BOOKED, CANCELLED, COMPLETED");
+        java.util.Set<String> validStatuses = java.util.Set.of("BOOKED", "CANCELLED", "COMPLETED", "NO_SHOW", "CHECKED_IN", "IN_PROGRESS");
+        if (!validStatuses.contains(s)) {
+            throw new IllegalArgumentException("Invalid status. Use: " + validStatuses);
+        }
+
+        // Logic check: If completed, create an invoice in billing-service
+        if ("COMPLETED".equals(s) && !"COMPLETED".equals(appointment.getStatus())) {
+            try {
+                java.util.Map<String, Object> invoice = new java.util.HashMap<>();
+                invoice.put("patientId", appointment.getPatientId());
+                invoice.put("doctorId", appointment.getDoctorId());
+                invoice.put("totalAmount", appointment.getFeeAmount() != null ? appointment.getFeeAmount() : 500.0);
+                invoice.put("status", "UNPAID");
+                invoice.put("sourceSummary", "Session: " + appointment.getChiefComplaint());
+                billingClient.createInvoice(invoice);
+            } catch (Exception e) {
+                System.out.println("WARN: Billing trigger failed for appointment " + id + ": " + e.getMessage());
+            }
         }
 
         appointment.setStatus(s);

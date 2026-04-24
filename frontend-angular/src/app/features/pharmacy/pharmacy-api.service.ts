@@ -11,18 +11,24 @@ export interface Medication {
   stockQuantity?: number;
 }
 
+export interface PrescriptionItem {
+  id?: number;
+  medicationName: string;
+  dose: string;
+  frequency: string;
+  duration: string;
+  route?: string;
+  instructions?: string;
+}
+
 export interface Prescription {
   id?: number;
   patientId: number;
   doctorId: number;
-  medicationName: string;
-  dose?: string;
-  frequency?: string;
-  duration?: string;
-  route?: string;
-  instructions?: string;
+  items: PrescriptionItem[];
   issuedDate?: string;
   status?: string;
+  note?: string;
 }
 
 @Injectable({ providedIn: 'root' })

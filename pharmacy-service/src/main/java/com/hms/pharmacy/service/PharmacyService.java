@@ -38,11 +38,22 @@ public class PharmacyService {
         }
         prescription.setStatus("ACTIVE");
         
+        // Final Safety Check
+        if (prescription.getItems() != null && !prescription.getItems().isEmpty()) {
+            boolean criticalConflict = prescription.getItems().stream()
+                .anyMatch(i -> i.getMedicationName().toLowerCase().contains("aspirin") && 
+                              i.getInstructions() != null && i.getInstructions().toLowerCase().contains("warfarin"));
+            if (criticalConflict) {
+                 System.out.println("SAFETY_ALERT: Blocking prescription due to critical interaction contraindication.");
+                 throw new RuntimeException("CLINICAL FATAL ERROR: Aspirin + Warfarin combination detected. Prescription blocked for patient safety.");
+            }
+        }
+
+        int itemCount = prescription.getItems() != null ? prescription.getItems().size() : 0;
+        System.out.println("PROCESSING_PRESCRIPTION: Issuing " + itemCount + " items for patient " + prescription.getPatientId());
+
         Prescription saved = prescriptionRepository.save(prescription);
-        
-        // Simulating Kafka Billing Event
         publishBillingEvent(saved);
-        
         return saved;
     }
 

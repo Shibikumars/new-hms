@@ -34,6 +34,10 @@ public class Prescription {
 
     private String status;
 
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "prescription_id")
+    private java.util.List<PrescriptionItem> items = new java.util.ArrayList<>();
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -66,4 +70,7 @@ public class Prescription {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public java.util.List<PrescriptionItem> getItems() { return items; }
+    public void setItems(java.util.List<PrescriptionItem> items) { this.items = items; }
 }

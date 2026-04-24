@@ -67,18 +67,27 @@ declare var Razorpay: any;
 
           <ng-container *ngIf="role !== 'PATIENT'">
             <div class="section-header">
-              <h3>Patient Agenda</h3>
+              <h3>Clinical Agenda (Timeline)</h3>
               <button class="refresh-pill" (click)="refresh()"><i class="ph ph-arrows-clockwise"></i></button>
             </div>
-            <div class="item-list custom-scroll">
-              <div class="agenda-item" *ngFor="let apt of appointments" [class.active]="activeAppointmentId === apt.id" (click)="activeAppointmentId = apt.id">
-                <div class="time-block">{{ apt.appointmentTime.slice(0,5) }}</div>
-                <div class="apt-content">
-                  <strong>{{ apt.patientName || 'Patient #' + apt.patientId }}</strong>
-                  <span class="status-tag" [attr.data-status]="apt.status">{{ apt.status }}</span>
-                  <p class="complaint" *ngIf="apt.chiefComplaint">"{{ apt.chiefComplaint }}"</p>
-                </div>
-              </div>
+            <div class="timeline-container custom-scroll">
+               <div class="time-slot-row" *ngFor="let hour of ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']">
+                  <div class="hour-label">{{ hour }}</div>
+                  <div class="slot-content">
+                     <ng-container *ngFor="let apt of appointments">
+                        <div class="timeline-apt-card" 
+                           *ngIf="apt.appointmentTime.startsWith(hour.slice(0, 2))"
+                           [class.active]="activeAppointmentId === apt.id"
+                           (click)="activeAppointmentId = apt.id">
+                           <div class="apt-brief">
+                              <strong>{{ apt.patientName || 'Patient #' + apt.patientId }}</strong>
+                              <span class="status-tag" [attr.data-status]="apt.status">{{ apt.status }}</span>
+                           </div>
+                           <div class="apt-time-label">{{ apt.appointmentTime.slice(0,5) }}</div>
+                        </div>
+                     </ng-container>
+                  </div>
+               </div>
             </div>
           </ng-container>
         </aside>
@@ -230,6 +239,14 @@ declare var Razorpay: any;
               <div class="apt-mini-meta">
                 Doc #{{ apt.doctorId }} • {{ apt.type }} Encounter
               </div>
+              <div class="apt-controls" *ngIf="apt.status === 'BOOKED' || apt.status === 'PAID'">
+                  <div class="wait-indicator" *ngIf="role === 'PATIENT'">
+                     <i class="ph ph-clock-countdown"></i>
+                     <span>Est. Wait: <strong>25 mins</strong> · Pos: <strong>#4</strong></span>
+                  </div>
+                  <button class="ph-btn sm primary" *ngIf="role === 'DOCTOR' || role === 'ADMIN'" (click)="updateStatus(apt.id!, 'CHECKED_IN')">Check In</button>
+                  <button class="ph-btn sm secondary" (click)="cancelAppointment(apt.id!)">Cancel</button>
+                </div>
               <div class="apt-mini-btns">
                  <button class="btn-tiny" (click)="downloadSummary(apt.id!)" *ngIf="apt.status === 'COMPLETED'">
                    <i class="ph ph-receipt"></i> Details
@@ -300,6 +317,32 @@ declare var Razorpay: any;
 
     .empty-state { padding: 8rem 4rem; text-align: center; }
     .empty-state i { font-size: 5rem; color: #CBD5E1; margin-bottom: 2rem; display: block; }
+
+    /* Timeline Styles */
+    .timeline-container { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+    .time-slot-row { display: grid; grid-template-columns: 60px 1fr; gap: 1rem; border-bottom: 1px dashed #F1F5F9; padding: 0.75rem 0; }
+    .hour-label { font-size: 0.75rem; font-weight: 800; color: #94A3B8; margin-top: 0.5rem; }
+    .slot-content { display: flex; flex-direction: column; gap: 0.5rem; }
+    .timeline-apt-card { background: #fff; border: 1px solid #E2E8F0; border-left: 4px solid #6366f1; padding: 1rem; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+    .timeline-apt-card.active { background: rgba(99, 102, 241, 0.05); border-color: #6366f1; }
+    .apt-brief { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+    .apt-brief strong { font-size: 0.9rem; color: #1E293B; }
+    .apt-time-label { font-size: 0.75rem; color: #64748B; font-weight: 700; }
+    .status-tag { font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 6px; text-transform: uppercase; }
+    .status-tag[data-status="BOOKED"] { background: #DBEAFE; color: #1D4ED8; }
+    .status-tag[data-status="COMPLETED"] { background: #DCFCE7; color: #15803D; }
+    .status-tag[data-status="CHECKED_IN"] { background: #FEF9C3; color: #A16207; }
+
+    /* Action Bar Styles */
+    .doctor-action-bar { display: flex; align-items: center; gap: 1rem; background: #fff; padding: 0.5rem 1rem; border-radius: 99px; border: 1px solid #E2E8F0; }
+    .status-label { font-size: 0.75rem; font-weight: 800; color: #64748B; }
+    .toggle-pill { width: 120px; height: 32px; border-radius: 16px; background: #F1F5F9; border: none; cursor: pointer; position: relative; display: flex; align-items: center; justify-content: flex-end; padding: 0 1rem; font-size: 0.7rem; font-weight: 800; color: #94A3B8; transition: 0.3s; }
+    .toggle-pill.active { background: #10B981; color: #fff; justify-content: flex-start; }
+    .pill-knob { width: 24px; height: 24px; background: #fff; border-radius: 50%; position: absolute; left: 4px; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .toggle-pill.active .pill-knob { left: calc(100% - 28px); }
+    
+    .wait-indicator { display: flex; align-items: center; gap: 0.5rem; color: #6366f1; font-size: 0.8rem; margin-right: 1.5rem; }
+    .wait-indicator strong { color: #1E293B; }
   `]
 })
 export class AppointmentDashboardComponent implements OnInit, OnDestroy {
@@ -316,6 +359,7 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
   todayDate = new Date().toISOString().slice(0, 10);
 
   activeAppointmentId: number | null = null;
+  clinicOpen = true;
   bookingView: 'SELECT' | 'CONFIRMED' = 'SELECT';
 
   confirmedAptDoctor = '';
@@ -323,6 +367,8 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
   confirmedAptTime = '';
   confirmedAptFee = 0;
   lastCreatedAptId: number | null = null;
+  loading = false;
+  errorMessage = '';
 
   private sub = new Subscription();
   private searchTimer: any | null = null;
@@ -369,15 +415,29 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
 
   refresh(): void {
     const pId = this.form.controls.patientId.value;
+    this.loading = true;
+    this.errorMessage = '';
     if (this.role === 'PATIENT' && pId > 0) {
       this.appointmentApi.listUpcomingByPatientId(pId).subscribe({
-        next: items => this.appointments = items
+        next: items => {
+          this.appointments = items;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = 'Failed to load upcoming appointments.';
+        }
       });
     } else {
       this.appointmentApi.list().subscribe({
         next: items => {
           this.appointments = items;
           if (items.length > 0 && !this.activeAppointmentId) this.activeAppointmentId = items[0].id || null;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.loading = false;
+          this.errorMessage = 'Failed to load clinical agenda.';
         }
       });
     }
@@ -518,7 +578,19 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadSpecialties() { this.appointmentApi.listSpecialties().subscribe(s => this.specialties = s); }
-  private searchDoctors() { this.appointmentApi.searchDoctors(this.searchTerm, this.activeSpecialty).subscribe(d => this.doctors = d); }
+  private searchDoctors() { 
+    this.loading = true;
+    this.appointmentApi.searchDoctors(this.searchTerm, this.activeSpecialty).subscribe({
+      next: d => {
+        this.doctors = d;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'Failed to load specialists.';
+      }
+    }); 
+  }
   logout() { this.auth.logout(); this.router.navigate(['/auth/login']); }
   
   get selectedForAction(): Appointment | undefined {

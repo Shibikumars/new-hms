@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReportingApiService, DashboardSummary } from './reporting-api.service';
+
+declare var Chart: any;
 
 @Component({
   selector: 'app-analytics',
@@ -51,7 +53,7 @@ import { ReportingApiService, DashboardSummary } from './reporting-api.service';
           <div class="kpi-icon revenue"><i class="ph ph-currency-dollar"></i></div>
           <div class="kpi-data">
             <label>Daily Revenue</label>
-            <strong>\${{ summary.todayRevenue | number }}</strong>
+            <strong>₹{{ summary.todayRevenue | number }}</strong>
             <span class="trend up"><i class="ph ph-trend-up"></i> 12%</span>
           </div>
         </div>
@@ -82,6 +84,17 @@ import { ReportingApiService, DashboardSummary } from './reporting-api.service';
               </div>
             </div>
           </section>
+
+          <div class="chart-row mt-8">
+            <section class="card pane chart-pane">
+               <h3>Encounter Volume (7d)</h3>
+               <div class="chart-box"><canvas #aptChart></canvas></div>
+            </section>
+            <section class="card pane chart-pane">
+               <h3>Revenue Velocity (7d)</h3>
+               <div class="chart-box"><canvas #revChart></canvas></div>
+            </section>
+          </div>
 
           <section class="card pane mt-8">
             <div class="pane-header">
@@ -182,7 +195,10 @@ import { ReportingApiService, DashboardSummary } from './reporting-api.service';
     .dept-val { color: var(--primary); }
     .load-bar-wrap { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; }
     .load-bar { height: 100%; background: var(--primary); border-radius: 99px; transition: 1s cubic-bezier(0.19, 1, 0.22, 1); }
-    .load-bar.critical { background: var(--danger); box-shadow: 0 0 8px rgba(220, 38, 38, 0.3); }
+    .load-bar.critical { background: #EF4444; }
+
+    .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .chart-box { height: 220px; margin-top: 1rem; }
 
     /* Trends Box */
     .trends-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
@@ -216,7 +232,10 @@ import { ReportingApiService, DashboardSummary } from './reporting-api.service';
     }
   `]
 })
-export class AnalyticsComponent implements OnInit {
+export class AnalyticsComponent implements OnInit, AfterViewInit {
+  @ViewChild('aptChart') aptChartRef!: ElementRef;
+  @ViewChild('revChart') revChartRef!: ElementRef;
+
   summary: DashboardSummary | null = null;
   departmentLoadEntries: Array<[string, number]> = [];
   doctorPerformance: Array<Record<string, unknown>> = [];
@@ -229,11 +248,21 @@ export class AnalyticsComponent implements OnInit {
   constructor(private reportingApi: ReportingApiService) {}
 
   ngOnInit(): void {
+    this.refresh();
+  }
+
+  ngAfterViewInit(): void {
+    // We will render charts after data is loaded and views are ready
+  }
+
+  refresh(): void {
     this.loadingSummary = true;
     this.reportingApi.getSummary().subscribe({
       next: data => {
         this.summary = data;
         this.loadingSummary = false;
+        // Trigger chart rendering after summary loads (as summary contains total info)
+        setTimeout(() => this.initCharts(), 500);
       },
       error: () => this.loadingSummary = false
     });
@@ -254,6 +283,44 @@ export class AnalyticsComponent implements OnInit {
         this.loadingDoctorPerformance = false;
       },
       error: () => this.loadingDoctorPerformance = false
+    });
+  }
+
+  private initCharts(): void {
+    if (!this.aptChartRef || !this.revChartRef) return;
+
+    this.reportingApi.getAppointmentsVolume().subscribe(data => {
+      new Chart(this.aptChartRef.nativeElement, {
+        type: 'line',
+        data: {
+          labels: Object.keys(data),
+          datasets: [{
+            label: 'Encounters',
+            data: Object.values(data),
+            borderColor: '#6366f1',
+            tension: 0.4,
+            fill: true,
+            backgroundColor: 'rgba(99, 102, 241, 0.1)'
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    });
+
+    this.reportingApi.getRevenue().subscribe(data => {
+      new Chart(this.revChartRef.nativeElement, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(data),
+          datasets: [{
+            label: 'Revenue (₹)',
+            data: Object.values(data),
+            backgroundColor: '#10b981',
+            borderRadius: 6
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
     });
   }
 }

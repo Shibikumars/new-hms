@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormGroup } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { PatientProfileService } from '../patient/patient-profile.service';
+import { ToastService } from '../../core/toast.service';
 import { switchMap } from 'rxjs';
 
 @Component({
@@ -271,6 +272,7 @@ export class RegisterComponent {
     private fb: FormBuilder,
     private authService: AuthService,
     private patientProfileService: PatientProfileService,
+    private toast: ToastService,
     private router: Router
   ) {}
 
@@ -338,7 +340,10 @@ export class RegisterComponent {
         return Promise.resolve(null);
       })
     ).subscribe({
-      next: () => this.router.navigate(['/auth/login']),
+      next: () => {
+        this.toast.success('Registration Successful', 'You can now sign in to your workspace.');
+        this.router.navigate(['/auth/login']);
+      },
       error: (err) => (this.error = err?.error?.error ?? 'Registration failed')
     });
   }

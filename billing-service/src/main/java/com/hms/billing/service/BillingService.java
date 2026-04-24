@@ -64,6 +64,10 @@ public class BillingService {
         return invoiceRepository.findByPatientIdOrderByInvoiceDateDesc(patientId);
     }
 
+    public List<Invoice> getAllInvoices() {
+        return invoiceRepository.findAll();
+    }
+
     public Invoice getById(Long invoiceId) {
         return invoiceRepository.findById(invoiceId).orElseThrow();
     }

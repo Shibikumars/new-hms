@@ -178,6 +178,7 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 if (path.startsWith("/lab/orders/patient/")) return true;
                 if (path.startsWith("/lab/reports/patient/")) return true;
                 if (path.startsWith("/lab-results/patient/")) return true;
+                if (path.startsWith("/lab/tests") && method == HttpMethod.GET) return true;
                 if (path.startsWith("/notifications/me") && method == HttpMethod.GET) return true;
                 if (path.startsWith("/notifications/preferences") && (method == HttpMethod.GET || method == HttpMethod.PUT)) return true;
                 if (path.startsWith("/notifications/") && path.endsWith("/read") && method == HttpMethod.PUT) return true;

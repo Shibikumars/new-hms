@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg: #F8FAFC;
-  --bg-gradient-a: #F1F5F9;
-  --bg-gradient-b: #E2E8F0;
+  --bg: #F1F5F9;
+  --bg-gradient-a: #FFFFFF;
+  --bg-gradient-b: #F1F5F9;
   --surface: #FFFFFF;
   --surface-soft: #F8FAFC;
   --surface-strong: #F1F5F9;
   --border: #E2E8F0;
   --border-strong: #CBD5E1;
 
-  --primary: #1A3C6E;
-  --primary-strong: #122B50;
-  --primary-glow: rgba(26, 60, 110, 0.28);
+  --primary: #4F46E5; /* Indigo/Blue from screenshots */
+  --primary-strong: #4338CA;
+  --primary-glow: rgba(79, 70, 229, 0.15);
 
   --accent: #0D7E6A;
   --accent-strong: #0A6353;
@@ -21,16 +21,16 @@
   --text-soft: #334155;
   --text-muted: #64748B;
 
-  --error: #DC2626;
-  --warning: #D97706;
-  --success: #16A34A;
+  --error: #EF4444;
+  --warning: #F59E0B;
+  --success: #10B981;
 
-  --radius-lg: 18px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
 
-  --shadow-soft: 0 4px 20px rgba(15, 23, 42, 0.08);
-  --shadow-strong: 0 10px 40px rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+  --shadow-strong: 0 20px 50px -12px rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -65,14 +65,13 @@ body {
 }
 
 .container {
-  width: min(1180px, calc(100% - 2rem));
+  width: min(1280px, calc(100% - 2rem));
   margin: 1.5rem auto;
-  background: rgba(255, 255, 255, 0.9);
+  background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
-  padding: clamp(1.25rem, 2vw, 2rem);
-  backdrop-filter: blur(6px);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
 }
 
 h1,

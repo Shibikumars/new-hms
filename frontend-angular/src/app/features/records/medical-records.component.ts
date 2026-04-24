@@ -5,6 +5,9 @@ import { Subscription, interval } from 'rxjs';
 import { AllergyRecord, MedicalRecordsApiService, ProblemRecord, VisitNote, VitalRecord } from '../medical-records/medical-records-api.service';
 import { PatientContextService } from '../../core/patient-context.service';
 import { AuthService } from '../../core/auth.service';
+import { PharmacyApiService, Prescription, PrescriptionItem, Medication } from '../pharmacy/pharmacy-api.service';
+import { LabApiService, LabOrder, LabTest, LabReport } from '../lab/lab-api.service';
+import { ToastService } from '../../core/toast.service';
 import { AutocompleteComponent } from '../../shared/components/autocomplete/autocomplete.component';
 import { DataTableComponent, ColumnConfig } from '../../shared/components/data-table/data-table.component';
 import { DatePickerComponent } from '../../shared/components/date-picker/date-picker.component';
@@ -13,7 +16,7 @@ import { MRNDisplayComponent } from '../../shared/components/mrn-display/mrn-dis
 
 declare var Chart: any;
 
-type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems';
+type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'pharmacy' | 'lab';
 
 @Component({
   selector: 'app-medical-records',
@@ -104,6 +107,12 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems';
           <button (click)="activeTab = 'problems'" [class.active]="activeTab === 'problems'">
             <i class="ph ph-list-checks"></i> Problem List
           </button>
+          <button (click)="activeTab = 'pharmacy'" [class.active]="activeTab === 'pharmacy'">
+            <i class="ph ph-prescription"></i> E-Prescribe
+          </button>
+          <button (click)="activeTab = 'lab'" [class.active]="activeTab === 'lab'">
+            <i class="ph ph-test-tube"></i> Order Labs
+          </button>
         </aside>
 
         <main class="emr-main">
@@ -187,9 +196,61 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems';
                 <app-data-table [data]="allergies" [columns]="allergyColumns"></app-data-table>
               </div>
             </div>
+          <!-- Pharmacy Tab -->
+          <div *ngIf="activeTab === 'pharmacy'" class="tab-pane">
+            <div class="pane-header">
+               <h3>Electronic Prescription Pad</h3>
+               <span class="badge success">New Order</span>
+            </div>
+            
+            <div class="prescription-workspace">
+               <div class="med-search">
+                  <app-autocomplete [suggestions]="medSuggestions" placeholder="Find Drug (Generic/Brand)" (onQuery)="searchMeds($event)" (onSelect)="addMedToPrescription($event)"></app-autocomplete>
+               </div>
+               
+               <div class="items-list card shadow-glass mt-1">
+                  <div class="item-header">
+                     <span>Medication</span>
+                     <span>Dosage</span>
+                     <span>Freq</span>
+                     <span>Dur</span>
+                     <span></span>
+                  </div>
+                  <div class="presc-item" *ngFor="let item of currentPrescItems; let i = index">
+                     <strong>{{ item.medicationName }}</strong>
+                     <input type="text" [(ngModel)]="item.dose" placeholder="500mg" />
+                     <input type="text" [(ngModel)]="item.frequency" placeholder="1-0-1" />
+                     <input type="text" [(ngModel)]="item.duration" placeholder="5 Days" />
+                     <button class="btn-icon delete" (click)="currentPrescItems.splice(i, 1)"><i class="ph ph-trash"></i></button>
+                  </div>
+                  <div class="empty-presc" *ngIf="currentPrescItems.length === 0">No medications added. Search above to start prescribing.</div>
+               </div>
+               
+               <div class="presc-actions mt-2">
+                  <button class="ph-btn primary xl" (click)="issuePrescription()" [disabled]="currentPrescItems.length === 0">Sign & Route to Pharmacy</button>
+               </div>
+            </div>
           </div>
-        </main>
-      </div>
+
+          <!-- Lab Tab -->
+          <div *ngIf="activeTab === 'lab'" class="tab-pane">
+            <div class="pane-header">
+               <h3>Diagnostic Orders</h3>
+               <span class="badge info">STAT Enabled</span>
+            </div>
+            <div class="lab-workspace">
+               <div class="test-catalog-grid">
+                  <div class="test-card-simple" *ngFor="let test of labCatalog" (click)="placeLabOrder(test)">
+                     <div class="test-icon"><i class="ph ph-flask"></i></div>
+                     <div class="test-info">
+                        <strong>{{ test.testName }}</strong>
+                        <span>{{ test.loincCode || 'Diagnostic' }} • ₹{{ test.price }}</span>
+                     </div>
+                     <i class="ph ph-plus-circle"></i>
+                  </div>
+               </div>
+            </div>
+          </div>
     </div>
   `,
   styles: [`
@@ -231,6 +292,23 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems';
     .ph-btn.secondary { background: #F1F5F9; color: #475569; }
     .ph-btn.xl { width: 100%; justify-content: center; padding: 1.25rem; font-size: 1.1rem; }
 
+    /* Pharmacy & Lab Workspace Styles */
+    .mt-1 { margin-top: 1rem; }
+    .mt-2 { margin-top: 2rem; }
+    .item-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 50px; gap: 1rem; padding: 1rem; background: #F1F5F9; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; color: #64748B; border-radius: 12px 12px 0 0; }
+    .presc-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 50px; gap: 1rem; align-items: center; padding: 1rem; border-bottom: 1px solid #F1F5F9; }
+    .presc-item input { padding: 0.5rem; border-radius: 8px; border: 1px solid #E2E8F0; font-size: 0.85rem; font-weight: 600; width: 100%; }
+    .btn-icon.delete { color: #EF4444; background: transparent; border: none; cursor: pointer; font-size: 1.2rem; }
+    .empty-presc { padding: 3rem; text-align: center; color: #94A3B8; font-weight: 600; }
+    
+    .test-catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+    .test-card-simple { display: flex; align-items: center; gap: 1.25rem; padding: 1.5rem; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 20px; cursor: pointer; transition: 0.2s; }
+    .test-card-simple:hover { border-color: #6366f1; background: #fff; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1); transform: translateY(-3px); }
+    .test-icon { font-size: 2rem; color: #6366f1; }
+    .test-info { display: flex; flex-direction: column; }
+    .test-info strong { font-size: 1rem; color: #1E293B; }
+    .test-info span { font-size: 0.75rem; color: #64748B; font-weight: 700; }
+
     @keyframes slideInDown { from { transform: translateY(-50PX); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   `]
 })
@@ -250,6 +328,11 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
   sessionTime = '00:00';
   private sub = new Subscription();
   private chart: any;
+  
+  // Pharmacy/Lab Props
+  medSuggestions: string[] = [];
+  currentPrescItems: PrescriptionItem[] = [];
+  labCatalog: LabTest[] = [];
 
   readonly visitColumns: ColumnConfig[] = [
     { key: 'visitDate', label: 'Date' },
@@ -283,10 +366,18 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
     severity: ['MILD']
   });
 
-  constructor(private fb: FormBuilder, private medicalApi: MedicalRecordsApiService, 
-              private contextService: PatientContextService, public auth: AuthService) {}
+  constructor(
+    private fb: FormBuilder, 
+    private medicalApi: MedicalRecordsApiService, 
+    private pharmacyApi: PharmacyApiService,
+    private labApi: LabApiService,
+    private toast: ToastService,
+    private contextService: PatientContextService, 
+    public auth: AuthService
+  ) {}
 
   ngOnInit(): void {
+    this.loadLabCatalog();
     this.sub.add(this.contextService.activePatient$.subscribe(p => {
       this.activePatient = p;
       if (p) this.loadRecords();
@@ -369,6 +460,42 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
     });
   }
 
-  private toastSuccess(m: string) { this.successMessage = m; setTimeout(() => this.successMessage = '', 3000); }
-  addAllergy(): void { /* Implementation similar to lab log */ }
+  private toastSuccess(m: string) { this.successMessage = m; this.toast.success('Clinical Entry', m); }
+  
+  // Pharmacy Logic
+  searchMeds(q: string) { this.pharmacyApi.searchMedications(q).subscribe(ms => this.medSuggestions = ms.map(m => m.medicationName)); }
+  addMedToPrescription(name: string) {
+     this.currentPrescItems.push({ medicationName: name, dose: '500mg', frequency: '1-0-1', duration: '5 Days' });
+  }
+  issuePrescription() {
+     if (!this.activePatient || this.currentPrescItems.length === 0) return;
+     const payload: Prescription = {
+        patientId: Number(this.activePatient.id),
+        doctorId: Number(this.auth.getUserId()) || 1,
+        items: this.currentPrescItems,
+        status: 'ACTIVE'
+     };
+     this.pharmacyApi.issuePrescription(payload).subscribe(() => {
+        this.toast.success('e-Prescription', 'Order signed and routed to pharmacy queue.');
+        this.currentPrescItems = [];
+        this.activeTab = 'history';
+     });
+  }
+
+  // Lab Logic
+  loadLabCatalog() { this.labApi.getTestsCatalog().subscribe(c => this.labCatalog = c); }
+  placeLabOrder(test: LabTest) {
+     if (!this.activePatient) return;
+     const payload: LabOrder = {
+        patientId: Number(this.activePatient.id),
+        doctorId: Number(this.auth.getUserId()) || 1,
+        testId: test.id!,
+        status: 'ORDERED'
+     };
+     this.labApi.placeOrder(payload).subscribe(() => {
+        this.toast.success('Lab Order', `${test.testName} requisition created successfully.`);
+     });
+  }
+
+  addAllergy(): void { /* ... */ }
 }

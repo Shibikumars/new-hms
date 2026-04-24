@@ -21,6 +21,12 @@ public class BillingController {
         this.billingService = billingService;
     }
 
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<Invoice> getAllInvoices() {
+        return billingService.getAllInvoices();
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Invoice createInvoice(@Valid @RequestBody Invoice invoice) {

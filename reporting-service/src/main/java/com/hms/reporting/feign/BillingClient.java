@@ -12,4 +12,6 @@ public interface BillingClient {
 
     @GetMapping("/invoices/patient/{patientId}")
     List<Map<String, Object>> getInvoicesByPatient(@PathVariable("patientId") Long patientId);
+    @GetMapping("/invoices")
+    List<Map<String, Object>> getAllInvoices();
 }

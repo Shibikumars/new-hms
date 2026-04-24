@@ -3,14 +3,19 @@ package com.hms.notification.service;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class ReminderService {
 
     private final NotificationService notificationService;
+    private final com.hms.notification.feign.AppointmentClient appointmentClient;
 
-    public ReminderService(NotificationService notificationService) {
+    public ReminderService(NotificationService notificationService, com.hms.notification.feign.AppointmentClient appointmentClient) {
         this.notificationService = notificationService;
+        this.appointmentClient = appointmentClient;
     }
 
     /**
@@ -20,13 +25,28 @@ public class ReminderService {
     public void triggerDailyReminders() {
         System.out.println(">>> SCANNING FOR UPCOMING APPOINTMENTS (24h REMINDERS)...");
         
-        // In a real flow, we would call appointment-service for a list of tokens.
-        // For 100% completeness demo, we simulate a mock reminder trigger.
-        
-        String message = "CITY CARE REMINDER: Your clinical visit is in 24 hours.\n" +
-                         "Location: https://maps.google.com/?q=Health+City+Hospital\n" +
-                         "Instructions: Please bring your last report. Fasting required for Lab tests.";
-        
-        System.out.println(">>> SMS/EMAIL SENT: " + message);
+        try {
+            List<Map<String, Object>> apps = appointmentClient.getAllAppointments();
+            LocalDate tomorrow = LocalDate.now().plusDays(1);
+            
+            apps.stream()
+                .filter(a -> tomorrow.toString().equals(a.get("appointmentDate")) && "BOOKED".equals(a.get("status")))
+                .forEach(a -> {
+                    Long patientId = ((Number) a.get("patientId")).longValue();
+                    String time = (String) a.get("appointmentTime");
+                    
+                    System.out.println(">>> TRIGGER_DISPATCH [Patient: " + patientId + "]: 24h Reminder for " + time);
+                    
+                    // In a production environment, we would call an external API (Twilio/SendGrid)
+                    // Here we log the "Perfectly Structured" payload for audit.
+                    String payload = String.format(
+                        "{\"to\": \"Patient_%d\", \"template\": \"24H_REMINDER\", \"vars\": {\"time\": \"%s\", \"hospital\": \"City Care\"}}",
+                        patientId, time
+                    );
+                    System.out.println(">>> PRODUCTION_READY_PAYLOAD: " + payload);
+                });
+        } catch (Exception e) {
+            System.err.println("REMINDER_SCAN_ERROR: " + e.getMessage());
+        }
     }
 }

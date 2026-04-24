@@ -6,22 +6,23 @@ spring:
     name: BILLING-SERVICE
 
   datasource:
-    url: jdbc:mysql://${HMS_DB_HOST:127.0.0.1}:${HMS_DB_PORT:3306}/billing_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: ${HMS_DB_USER:billing_user}
-    password: ${HMS_DB_PASSWORD:billing_pass}
+    url: jdbc:h2:mem:billing_db;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  h2:
+    console:
+      enabled: true
   flyway:
-    baseline-on-migrate: true
-    hikari:
-      initializationFailTimeout: -1
-      connectionTimeout: 20000
+    enabled: false
 
   jpa:
     hibernate:
-      ddl-auto: validate # Use validate when Flyway is active
+      ddl-auto: update 
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.H2Dialect
         boot:
           allow_jdbc_metadata_access: false
 

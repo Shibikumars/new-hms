@@ -23,7 +23,8 @@ import { Subscription } from 'rxjs';
       <header class="dashboard-header">
         <div class="header-left">
           <h1 class="page-title">Doctor's Command</h1>
-          <p class="page-subtitle">Welcome back, Dr. {{ doctorName }}. You have {{ todayAppointments.length }} scheduled visits today.</p>
+          <p class="page-subtitle" *ngIf="!loading">Welcome back, Dr. {{ doctorName }}. You have {{ todayAppointments.length }} scheduled visits today.</p>
+          <p class="page-subtitle" *ngIf="loading">Synchronizing clinical data...</p>
         </div>
         <div class="header-right">
            <button class="ph-btn" (click)="loadAppointments()"><i class="ph ph-arrows-clockwise"></i> Sync</button>
@@ -245,6 +246,8 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   recentNotifications: NotificationItem[] = [];
   activePatient$ = this.contextService.activePatient$;
   latestVitals: VitalRecord | null = null;
+  loading = false;
+  errorMessage = '';
   
   private subs = new Subscription();
 
@@ -302,6 +305,8 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadAppointments(): void {
+    this.loading = true;
+    this.errorMessage = '';
     const today = new Date().toISOString().slice(0, 10);
     this.appointmentApi.list().subscribe({
       next: items => {
@@ -317,6 +322,12 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
           borderColor: 'transparent',
           extendedProps: { patientId: appt.patientId }
         }));
+        this.loading = false;
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = 'Clinical synchronization failed.';
+        console.error(err);
       }
     });
   }

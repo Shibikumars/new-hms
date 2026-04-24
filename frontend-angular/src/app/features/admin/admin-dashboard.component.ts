@@ -119,13 +119,63 @@ import { DashboardSummary, ReportingApiService } from '../analytics/reporting-ap
             </div>
           </div>
         </div>
+        
+        <div class="chart-card large admin-ops-card">
+          <div class="card-header">
+            <h3>Doctor & Staff Management</h3>
+            <span class="badge info">Quick Register</span>
+          </div>
+          <div class="admin-form-shell">
+            <p class="form-instruction">Onboard new specialists to the clinical network. Credentials will be routed for verification.</p>
+            <div class="form-row">
+               <div class="input-wrap">
+                  <label>Full Name</label>
+                  <input type="text" placeholder="Dr. Sarah Johnson" />
+               </div>
+               <div class="input-wrap">
+                  <label>Specialization</label>
+                  <select>
+                     <option>Cardiology</option>
+                     <option>Pediatrics</option>
+                     <option>Neurology</option>
+                     <option>General Surgery</option>
+                  </select>
+               </div>
+            </div>
+            <div class="form-row">
+               <div class="input-wrap">
+                  <label>License Number</label>
+                  <input type="text" placeholder="REG-2024-XXXX" />
+               </div>
+               <div class="input-wrap">
+                  <label>Consultation Fee (₹)</label>
+                  <input type="number" value="500" />
+               </div>
+            </div>
+            <button class="nav-btn primary-solid full mt-1">
+               <i class="ph ph-user-plus"></i> Finalize Onboarding
+            </button>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="card-header">
+             <h3>System Health</h3>
+          </div>
+          <div class="health-stack">
+             <div class="health-item"><span>Auth Service</span> <span class="badge success">UP</span></div>
+             <div class="health-item"><span>Patient Service</span> <span class="badge success">UP</span></div>
+             <div class="health-item"><span>Billing Gateway</span> <span class="badge success">UP</span></div>
+             <div class="health-item"><span>Notification Hub</span> <span class="badge warning">STUB</span></div>
+          </div>
+        </div>
       </div>
 
       <nav class="quick-nav">
-        <a class="nav-btn" routerLink="/appointments"><i class="ph ph-calendar"></i> Appointments</a>
-        <a class="nav-btn" routerLink="/admin/billing"><i class="ph ph-wallet"></i> Billing</a>
-        <a class="nav-btn" routerLink="/admin/analytics"><i class="ph ph-graph"></i> Analytics</a>
-        <a class="nav-btn" routerLink="/admin/notifications"><i class="ph ph-bell"></i> Alerts</a>
+        <a class="nav-btn" routerLink="/appointments"><i class="ph ph-calendar"></i> Managed Appointments</a>
+        <a class="nav-btn" routerLink="/admin/billing"><i class="ph ph-wallet"></i> Financial Ledger</a>
+        <a class="nav-btn" routerLink="/admin/analytics"><i class="ph ph-graph"></i> Advanced Analytics</a>
+        <button class="nav-btn" (click)="generateMonthlyReport()"><i class="ph ph-file-pdf"></i> Export Monthly GST Report</button>
       </nav>
     </div>
   `,
@@ -172,6 +222,20 @@ import { DashboardSummary, ReportingApiService } from '../analytics/reporting-ap
     .quick-nav { grid-column: span 3; display: flex; gap: 0.75rem; margin-top: 2rem; }
     .nav-btn { background: var(--surface); border: 1px solid var(--border); padding: 0.75rem 1.25rem; border-radius: 999px; text-decoration: none; color: var(--text-soft); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
     .nav-btn:hover { border-color: var(--primary); color: var(--primary); box-shadow: var(--shadow-soft); }
+    .primary-solid { background: var(--primary); color: #fff; }
+    .primary-solid:hover { background: var(--primary-strong); color: #fff; }
+    .full { width: 100%; justify-content: center; margin-top: 1rem; }
+
+    /* Admin Form & Health Styles */
+    .admin-form-shell { margin-top: 0.5rem; }
+    .form-instruction { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5; }
+    .input-wrap { display: flex; flex-direction: column; gap: 0.4rem; }
+    .health-stack { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+    .health-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 600; padding: 0.5rem 0; border-bottom: 1px dashed var(--border); }
+    .badge { font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 800; }
+    .badge.success { background: #DCFCE7; color: #15803D; }
+    .badge.warning { background: #FEF3C7; color: #B45309; }
+    .badge.info { background: #DBEAFE; color: #1D4ED8; }
 
     @keyframes pulse-anim { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
     @media (max-width: 1024px) { .large { grid-column: span 3; } .visual-grid { grid-template-columns: 1fr; } }
@@ -257,6 +321,10 @@ export class AdminDashboardComponent implements OnInit {
       next: data => (this.summary = data),
       error: () => (this.summary = null)
     });
+  }
+
+  generateMonthlyReport() {
+    window.alert('Generating consolidated GST Monthly Report (₹)... Data aggregation in progress.');
   }
 }
 

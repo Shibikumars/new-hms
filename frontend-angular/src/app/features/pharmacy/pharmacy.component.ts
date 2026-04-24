@@ -153,17 +153,21 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
             </div>
             
             <div class="med-history-list">
-              <div class="med-item" *ngFor="let item of history">
+              <div class="med-item" *ngFor="let p of history">
                 <div class="med-hdr">
-                  <strong>{{ item.medicationName }}</strong>
-                  <app-status-badge [status]="item.status || 'ACTIVE'"></app-status-badge>
+                  <strong>Rx #{{ p.id }} · {{ p.issuedDate }}</strong>
+                  <app-status-badge [status]="p.status || 'ACTIVE'"></app-status-badge>
                 </div>
-                <div class="med-body">
-                  <span>{{ item.dose }} · {{ item.frequency }}</span>
-                  <span>{{ item.issuedDate }}</span>
-                </div>
-                <div class="med-note" *ngIf="item.instructions">
-                  <i class="ph ph-note"></i> {{ item.instructions }}
+                <div class="med-items-sublist">
+                   <div class="sub-item" *ngFor="let item of p.items">
+                      <div class="sub-hdr">
+                         <strong>{{ item.medicationName }}</strong>
+                         <span>{{ item.dose }} · {{ item.frequency }}</span>
+                      </div>
+                      <div class="med-note" *ngIf="item.instructions">
+                         <i class="ph ph-note"></i> {{ item.instructions }}
+                      </div>
+                   </div>
                 </div>
               </div>
             </div>
@@ -356,17 +360,25 @@ export class PharmacyComponent implements OnInit, OnDestroy {
   issue(): void {
     if (!this.activePatient || this.form.invalid || this.allergyWarning) return;
 
+    const formVal = this.form.getRawValue();
     const payload: Prescription = {
       patientId: Number(this.activePatient.id),
       doctorId: Number(this.auth.getUserId()) || 1,
-      ...this.form.getRawValue(),
+      items: [{
+        medicationName: formVal.medicationName,
+        dose: formVal.dose,
+        frequency: formVal.frequency,
+        duration: formVal.duration,
+        route: formVal.route,
+        instructions: formVal.instructions
+      }],
       status: 'ACTIVE'
     };
 
     this.issuingPrescription = true;
     this.pharmacyApi.issuePrescription(payload).subscribe({
       next: () => {
-        this.successMessage = `Therapeutic order for ${payload.medicationName} authorized successfully.`;
+        this.successMessage = `Therapeutic order for ${formVal.medicationName} authorized successfully.`;
         this.issuingPrescription = false;
         this.selectedMedication = null;
         this.allergyWarning = null;
