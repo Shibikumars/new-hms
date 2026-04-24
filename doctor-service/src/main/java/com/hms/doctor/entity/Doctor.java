@@ -33,6 +33,7 @@ public class Doctor {
     private String profilePhotoUrl;
     private String about;
     private Double rating;
+    private Long userId;
 
     @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DoctorSchedule> schedules = new ArrayList<>();
@@ -75,6 +76,8 @@ public class Doctor {
     public void setAbout(String about) { this.about = about; }
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 
     public List<DoctorSchedule> getSchedules() { return schedules; }
     public void setSchedules(List<DoctorSchedule> schedules) { this.schedules = schedules; }

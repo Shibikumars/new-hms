@@ -45,6 +45,10 @@ public class DoctorController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getDoctorById(@PathVariable Long id) {
         Optional<Doctor> doctor = doctorService.getDoctorById(id);
+        if (doctor.isEmpty()) {
+            doctor = doctorService.getDoctorByUserId(id);
+        }
+        
         if (doctor.isPresent()) {
             return ResponseEntity.ok(doctor.get());
         }

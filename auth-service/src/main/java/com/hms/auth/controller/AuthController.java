@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +50,13 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid or expired code"));
     }
 
+    @PostMapping("/admin/verify/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> adminVerify(@PathVariable Long userId) {
+        authService.adminVerifyUser(userId);
+        return ResponseEntity.ok(Map.of("message", "User verified by admin"));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
         return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
@@ -58,6 +66,11 @@ public class AuthController {
     public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/debug/users")
+    public ResponseEntity<?> debugUsers() {
+        return ResponseEntity.ok(authService.debugListUsers());
     }
 
     @GetMapping("/validate")

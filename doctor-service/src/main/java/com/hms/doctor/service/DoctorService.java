@@ -63,6 +63,10 @@ public class DoctorService {
         return doctorRepository.findById(id);
     }
 
+    public Optional<Doctor> getDoctorByUserId(Long userId) {
+        return doctorRepository.findByUserId(userId);
+    }
+
     public Doctor updateDoctor(Long id, Doctor doctorDetails) {
         Doctor doctor = doctorRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id: " + id));

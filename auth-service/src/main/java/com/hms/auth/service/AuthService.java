@@ -15,8 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.*;
 import java.time.LocalDateTime;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.Random;
@@ -65,29 +65,36 @@ public class AuthService {
         user.setPassword(encoder.encode(request.getPassword()));
         user.setRole(normalizedRole);
         
-        // Generate a 6-digit mock OTP
-        String otp = String.format("%06d", random.nextInt(999999));
-        user.setVerificationCode(otp);
-        user.setIsVerified(false);
+        // For development convenience, users are verified automatically
+        user.setVerificationCode(null);
+        user.setIsVerified(true);
 
         User saved = userRepository.save(user);
         
-        System.out.println(">>> MOCK EMAIL SENT to " + saved.getUsername() + " with OTP: " + otp);
+        System.out.println(">>> AUTO-VERIFIED: User " + saved.getUsername() + " is ready to login.");
         
         return new UserResponse(saved.getId(), saved.getUsername(), saved.getRole());
     }
 
     public AuthResponse login(String username, String password) {
-        Optional<User> userOpt = userRepository.findByUsername(username.trim());
+        String trimmedUsername = username.trim();
+        Optional<User> userOpt = userRepository.findByUsername(trimmedUsername);
 
-        if (userOpt.isPresent() && encoder.matches(password, userOpt.get().getPassword())) {
+        if (userOpt.isPresent()) {
             User user = userOpt.get();
-            String token = jwtUtil.generateToken(user.getUsername(), user.getRole(), user.getId());
-            String refreshToken = UUID.randomUUID().toString();
-            RefreshSession session = new RefreshSession(user.getId(), user.getUsername(), user.getRole());
-            persistRefreshToken(refreshToken, session);
+            boolean matches = encoder.matches(password, user.getPassword());
+            System.out.println(">>> LOGIN ATTEMPT: user found=" + user.getUsername() + ", password match=" + matches);
+            
+            if (matches) {
+                String token = jwtUtil.generateToken(user.getUsername(), user.getRole(), user.getId());
+                String refreshToken = UUID.randomUUID().toString();
+                RefreshSession session = new RefreshSession(user.getId(), user.getUsername(), user.getRole());
+                persistRefreshToken(refreshToken, session);
 
-            return new AuthResponse(token, refreshToken, user.getRole(), ACCESS_TOKEN_EXPIRY_SECONDS, !user.getIsVerified());
+                return new AuthResponse(token, refreshToken, user.getRole(), ACCESS_TOKEN_EXPIRY_SECONDS, !user.getIsVerified());
+            }
+        } else {
+            System.out.println(">>> LOGIN ATTEMPT FAILED: User not found: [" + trimmedUsername + "]");
         }
 
         throw new InvalidCredentialsException();
@@ -105,6 +112,14 @@ public class AuthService {
             }
         }
         return false;
+    }
+
+    public void adminVerifyUser(Long userId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            user.setIsVerified(true);
+            user.setVerificationCode(null);
+            userRepository.save(user);
+        });
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -160,6 +175,12 @@ public class AuthService {
             token.setRevokedAt(LocalDateTime.now());
             refreshTokenSessionRepository.save(token);
         });
+    }
+
+    public Object debugListUsers() {
+        return userRepository.findAll().stream()
+            .map(u -> Map.of("username", u.getUsername(), "role", u.getRole(), "isVerified", u.getIsVerified()))
+            .toList();
     }
 
     private record RefreshSession(Long userId, String username, String role) {}

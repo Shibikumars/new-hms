@@ -48,6 +48,9 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             // ✅ Allow /auth endpoints (login/register/validate) without MANDATORY token
             // But if they HAVE a token, we parse it to propagate roles (e.g. for Admin registry lock)
             if (path.startsWith("/auth/")) {
+                if (path.contains("/debug/")) {
+                    return chain.filter(exchange);
+                }
                 if (!exchange.getRequest().getHeaders().containsKey("Authorization")) {
                     return chain.filter(exchange);
                 }

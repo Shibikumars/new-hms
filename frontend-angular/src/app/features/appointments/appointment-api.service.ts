@@ -56,6 +56,10 @@ export class AppointmentApiService {
     return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments/patient/${patientId}?upcoming=true`);
   }
 
+  listByDoctorId(doctorId: number): Observable<Appointment[]> {
+    return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments/doctor/${doctorId}`);
+  }
+
   searchDoctors(search = '', specialty = ''): Observable<DoctorOption[]> {
     const query = new URLSearchParams();
     if (search.trim()) query.set('search', search.trim());

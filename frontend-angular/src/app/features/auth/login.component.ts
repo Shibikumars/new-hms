@@ -183,8 +183,12 @@ export class LoginComponent {
     this.error = '';
     this.authService.login(this.form.getRawValue()).subscribe({
       next: (response) => {
-        const rolePath = this.getRolePath(response.role ?? this.authService.getRole());
-        this.router.navigate([rolePath]);
+        if (response.otpRequired) {
+          this.router.navigate(['/auth/verify'], { queryParams: { username: this.form.value.username } });
+        } else {
+          const rolePath = this.getRolePath(response.role ?? this.authService.getRole());
+          this.router.navigate([rolePath]);
+        }
       },
       error: () => (this.error = 'Invalid username or password')
     });

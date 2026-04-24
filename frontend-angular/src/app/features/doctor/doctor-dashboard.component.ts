@@ -47,8 +47,12 @@ import { Subscription } from 'rxjs';
             <div class="card-header">
               <h3><i class="ph ph-calendar"></i> Clinical Schedule</h3>
             </div>
-            <div class="calendar-wrapper">
+            <div class="calendar-wrapper" *ngIf="!loading">
               <full-calendar [options]="calendarOptions"></full-calendar>
+            </div>
+            <div class="calendar-loading" *ngIf="loading">
+              <div class="spinner"></div>
+              <p>Syncing Clinical Schedule...</p>
             </div>
           </div>
         </div>
@@ -169,6 +173,10 @@ import { Subscription } from 'rxjs';
     .page-title { font-size: 1.75rem; color: var(--primary); font-weight: 800; }
     .page-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
     
+    .calendar-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; gap: 1rem; color: var(--text-muted); }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     .ph-btn { background: var(--surface); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 8px; color: var(--text-soft); font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; }
     .ph-btn:hover { border-color: var(--primary); color: var(--primary); }
 
@@ -260,7 +268,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   recentNotifications: NotificationItem[] = [];
   activePatient$ = this.contextService.activePatient$;
   latestVitals: VitalRecord | null = null;
-  loading = false;
+  loading = true;
   errorMessage = '';
   
   private subs = new Subscription();
@@ -325,12 +333,20 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.errorMessage = '';
     const today = new Date().toISOString().slice(0, 10);
-    this.appointmentApi.list().subscribe({
+    const doctorId = this.auth.getUserId();
+
+    if (!doctorId) {
+      this.loading = false;
+      this.errorMessage = 'Clinical identity missing.';
+      return;
+    }
+
+    this.appointmentApi.listByDoctorId(doctorId).subscribe({
       next: items => {
         this.todayAppointments = items.filter(item => item.appointmentDate === today);
         
         // Map to Calendar Events
-        this.calendarOptions.events = items.map(appt => ({
+        const events = items.map(appt => ({
           id: String(appt.id),
           title: `Appt: #${appt.patientId}`,
           start: `${appt.appointmentDate}T${appt.appointmentTime}`,
@@ -339,6 +355,11 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
           borderColor: 'transparent',
           extendedProps: { patientId: appt.patientId }
         }));
+
+        this.calendarOptions = {
+          ...this.calendarOptions,
+          events: events
+        };
         this.loading = false;
       },
       error: (err) => {

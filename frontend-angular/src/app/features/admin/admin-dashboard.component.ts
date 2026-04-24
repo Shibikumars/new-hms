@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
 import { DashboardSummary, ReportingApiService } from '../analytics/reporting-api.service';
+import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -96,27 +97,43 @@ import { DashboardSummary, ReportingApiService } from '../analytics/reporting-ap
           </div>
         </div>
 
-        <div class="chart-card map-card large">
+        <div class="chart-card large user-management-card">
           <div class="card-header">
-            <h3>Real-time Bed Occupancy</h3>
-            <div class="map-legend">
-              <span class="legend-item"><span class="dot available"></span> Available</span>
-              <span class="legend-item"><span class="dot occupied"></span> Occupied</span>
+            <h3>User & Identity Management</h3>
+            <div class="live-status">
+              <span class="status-dot"></span>
+              {{ users.length }} System Users
             </div>
           </div>
-          <div class="map-body">
-            <div class="ward-grid">
-              <div class="ward" *ngFor="let ward of wards">
-                <div class="ward-title">{{ ward.name }}</div>
-                <div class="bed-grid">
-                  <div class="bed" 
-                       *ngFor="let bed of ward.beds" 
-                       [class.occupied]="bed.occupied"
-                       [title]="'Bed ' + bed.id">
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div class="user-table-wrap">
+            <table class="clinical-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let user of users">
+                  <td>{{ user.username }}</td>
+                  <td><span class="badge info">{{ user.role }}</span></td>
+                  <td>
+                    <span class="badge success" *ngIf="user.isVerified">Verified</span>
+                    <span class="badge warning" *ngIf="!user.isVerified">Pending</span>
+                  </td>
+                  <td>
+                    <button *ngIf="!user.isVerified" 
+                            (click)="verifyUser(user.userId || user.id)" 
+                            class="action-btn verify">
+                      Verify
+                    </button>
+                    <span *ngIf="user.isVerified">-</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
         
@@ -236,6 +253,15 @@ import { DashboardSummary, ReportingApiService } from '../analytics/reporting-ap
     .badge.success { background: #DCFCE7; color: #15803D; }
     .badge.warning { background: #FEF3C7; color: #B45309; }
     .badge.info { background: #DBEAFE; color: #1D4ED8; }
+    
+    /* Table Styles */
+    .user-table-wrap { overflow-x: auto; margin-top: 1rem; }
+    .clinical-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .clinical-table th { text-align: left; padding: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .clinical-table td { padding: 0.75rem; border-bottom: 1px solid var(--border-soft); color: var(--text-soft); }
+    .action-btn { padding: 0.4rem 0.8rem; border-radius: 6px; border: none; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
+    .action-btn.verify { background: var(--accent); color: #fff; }
+    .action-btn.verify:hover { background: #0A6656; }
 
     @keyframes pulse-anim { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
     @media (max-width: 1024px) { .large { grid-column: span 3; } .visual-grid { grid-template-columns: 1fr; } }
@@ -243,6 +269,7 @@ import { DashboardSummary, ReportingApiService } from '../analytics/reporting-ap
 })
 export class AdminDashboardComponent implements OnInit {
   summary: DashboardSummary | null = null;
+  users: any[] = [];
   
   // Real-time Bed Mock
   wards = [
@@ -314,12 +341,35 @@ export class AdminDashboardComponent implements OnInit {
     }
   };
 
-  constructor(private reportingApi: ReportingApiService) {}
+  constructor(private reportingApi: ReportingApiService, private authService: AuthService) {}
 
   ngOnInit(): void {
+    this.loadData();
+  }
+
+  loadData(): void {
     this.reportingApi.getSummary().subscribe({
       next: data => (this.summary = data),
       error: () => (this.summary = null)
+    });
+
+    this.authService.getDebugUsers().subscribe({
+      next: users => (this.users = users),
+      error: () => (this.users = [])
+    });
+  }
+
+  verifyUser(userId: number): void {
+    if (!userId) return;
+    this.authService.adminVerifyUser(userId).subscribe({
+      next: () => {
+        window.alert('User verified successfully!');
+        this.loadData();
+      },
+      error: (err) => {
+        console.error('Verification failed', err);
+        window.alert('Verification failed. See console.');
+      }
     });
   }
 

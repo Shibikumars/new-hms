@@ -8,6 +8,7 @@ export interface AuthResponse {
   refreshToken: string;
   role: string;
   expiresIn: number;
+  otpRequired: boolean;
 }
 
 type JwtPayload = {
@@ -130,5 +131,13 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return Boolean(this.getToken());
+  }
+
+  getDebugUsers(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiBaseUrl}/auth/debug/users`);
+  }
+
+  adminVerifyUser(userId: number): Observable<any> {
+    return this.http.post(`${environment.apiBaseUrl}/auth/admin/verify/${userId}`, {});
   }
 }
