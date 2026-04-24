@@ -6,6 +6,10 @@ export default [
     loadComponent: () => import('./doctor-dashboard.component').then(m => m.DoctorDashboardComponent)
   },
   {
+    path: 'complete-profile',
+    loadComponent: () => import('./complete-profile.component').then(m => m.CompleteProfileComponent)
+  },
+  {
     path: 'appointments',
     loadComponent: () => import('../appointments/appointment-dashboard.component').then(m => m.AppointmentDashboardComponent)
   },

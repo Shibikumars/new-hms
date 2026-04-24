@@ -24,7 +24,7 @@ public class DoctorController {
     public String test() { return "Doctor Service Working"; }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     public Doctor createDoctor(@Valid @RequestBody Doctor doctor) {
         return doctorService.saveDoctor(doctor);
     }

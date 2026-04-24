@@ -142,8 +142,7 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 return true; // Admin can do everything
 
             case "DOCTOR":
-                if (path.startsWith("/doctors") && method == HttpMethod.GET) return true;
-                if (path.startsWith("/doctors") && method == HttpMethod.PUT) return true;
+                if (path.startsWith("/doctors") && (method == HttpMethod.GET || method == HttpMethod.POST || method == HttpMethod.PUT)) return true;
                 if (path.startsWith("/patients") && method == HttpMethod.GET) return true;
                 if (path.startsWith("/appointments")) return true;
                 if (path.startsWith("/slots")) return true;

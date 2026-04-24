@@ -12,6 +12,7 @@ import { PatientContextService } from '../../core/patient-context.service';
 import { AuthService } from '../../core/auth.service';
 import { NotificationItem, NotificationsApiService } from '../notifications/notifications-api.service';
 import { MedicalRecordsApiService, VitalRecord } from '../medical-records/medical-records-api.service';
+import { DoctorProfileService } from './doctor-profile.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -19,6 +20,14 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule, FullCalendarModule],
   template: `
+    <div class="profile-alert" *ngIf="showProfilePrompt">
+      <div class="alert-content">
+        <i class="ph ph-warning-circle-fill"></i>
+        <span><strong>Profile Incomplete:</strong> Your clinical identity is not yet established. Patients cannot see you in search results until you provide your credentials.</span>
+      </div>
+      <button class="ph-btn sm" routerLink="/doctor/complete-profile">Complete Now</button>
+    </div>
+
     <div class="container clinical-bg">
       <header class="dashboard-header">
         <div class="header-left">
@@ -150,8 +159,13 @@ import { Subscription } from 'rxjs';
     </div>
   `,
   styles: [`
-    .clinical-bg { padding: 2rem; background: var(--bg); min-height: 100vh; }
-    .dashboard-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+    .clinical-bg { background: var(--bg); min-height: 100vh; padding-top: 1rem; }
+    
+    .profile-alert { background: #FFF7ED; border-bottom: 1px solid #FED7AA; padding: 1rem 2.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .alert-content { display: flex; align-items: center; gap: 1rem; color: #9A3412; font-size: 0.95rem; }
+    .alert-content i { font-size: 1.5rem; }
+    
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; }
     .page-title { font-size: 1.75rem; color: var(--primary); font-weight: 800; }
     .page-subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
     
@@ -271,11 +285,12 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private appointmentApi: AppointmentApiService,
-    private patientApi: PatientProfileService,
+    public auth: AuthService,
     private contextService: PatientContextService,
-    private auth: AuthService,
     private notificationApi: NotificationsApiService,
     private medicalApi: MedicalRecordsApiService,
+    private patientApi: PatientProfileService,
+    private doctorApi: DoctorProfileService,
     private router: Router
   ) { }
 
@@ -283,11 +298,13 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     this.doctorName = this.auth.getUsername() || 'Doctor';
     const userId = this.auth.getUserId();
 
+    if (userId) {
+      this.checkProfile(Number(userId));
+      this.loadRecentNotifications(Number(userId));
+    }
+
     this.loadAppointments();
     this.loadAllPatients();
-    if (userId) {
-      this.loadRecentNotifications(userId);
-    }
 
     this.subs.add(
       this.activePatient$.subscribe(patient => {
@@ -398,6 +415,17 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
         next: profile => this.selectPatient(profile)
       });
     }
+  }
+
+  showProfilePrompt = false;
+
+  checkProfile(userId: number): void {
+    this.doctorApi.getById(userId).subscribe({
+      next: (profile) => {
+        if (!profile || !profile.fullName) this.showProfilePrompt = true;
+      },
+      error: () => this.showProfilePrompt = true
+    });
   }
 
   clearPatient(): void {
