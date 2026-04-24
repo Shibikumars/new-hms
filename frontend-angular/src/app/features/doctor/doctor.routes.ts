@@ -7,7 +7,7 @@ export default [
   },
   {
     path: 'complete-profile',
-    loadComponent: () => import('./complete-profile.component').then(m => m.CompleteProfileComponent)
+    loadComponent: () => import('./complete-profile.component').then(m => m.CompleteDoctorProfileComponent)
   },
   {
     path: 'appointments',
