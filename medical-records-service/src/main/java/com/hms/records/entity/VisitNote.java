@@ -38,6 +38,8 @@ public class VisitNote {
     private String plan; // Treatment plan and next steps
 
     private String diagnosisCode;
+    private String chiefComplaint;
+    private String diagnosisDescription;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -59,4 +61,8 @@ public class VisitNote {
     public void setPlan(String plan) { this.plan = plan; }
     public String getDiagnosisCode() { return diagnosisCode; }
     public void setDiagnosisCode(String diagnosisCode) { this.diagnosisCode = diagnosisCode; }
+    public String getChiefComplaint() { return chiefComplaint; }
+    public void setChiefComplaint(String chiefComplaint) { this.chiefComplaint = chiefComplaint; }
+    public String getDiagnosisDescription() { return diagnosisDescription; }
+    public void setDiagnosisDescription(String diagnosisDescription) { this.diagnosisDescription = diagnosisDescription; }
 }
