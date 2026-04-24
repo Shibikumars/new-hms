@@ -271,6 +271,13 @@ export class LabComponent implements OnInit, OnDestroy, AfterViewInit {
   ) {}
 
   ngOnInit(): void {
+    const role = this.auth.getRole()?.toUpperCase();
+    if (role === 'PATIENT' && !this.contextService.getActivePatient()) {
+       const userId = Number(this.auth.getUserId());
+       const username = this.auth.getUsername() ?? 'Patient';
+       if (userId) this.contextService.setPatient({ id: userId, name: username, role: 'PATIENT' });
+    }
+
     this.loadCatalog();
     this.sub.add(this.contextService.activePatient$.subscribe(p => {
       this.activePatient = p;

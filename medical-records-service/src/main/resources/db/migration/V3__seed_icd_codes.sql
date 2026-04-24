@@ -1,0 +1,16 @@
+INSERT INTO icd_codes (code, description) VALUES
+('I10', 'Essential (primary) hypertension'),
+('E11.9', 'Type 2 diabetes mellitus without complications'),
+('J06.9', 'Acute upper respiratory infection, unspecified'),
+('M54.5', 'Low back pain'),
+('K21.9', 'Gastro-esophageal reflux disease without esophagitis'),
+('N39.0', 'Urinary tract infection, site not specified'),
+('F32.9', 'Major depressive disorder, single episode, unspecified'),
+('F41.1', 'Generalized anxiety disorder'),
+('E78.5', 'Hyperlipidemia, unspecified'),
+('J45.909', 'Unspecified asthma, uncomplicated'),
+('R05', 'Cough'),
+('R51', 'Headache'),
+('Z00.00', 'Encounter for general adult medical examination without abnormal findings'),
+('L20.9', 'Atopic dermatitis, unspecified'),
+('G43.909', 'Migraine, unspecified, not intractable, without status migrainosus');

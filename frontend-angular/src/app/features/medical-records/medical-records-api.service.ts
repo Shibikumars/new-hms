@@ -83,4 +83,8 @@ export class MedicalRecordsApiService {
   exportFhir(patientId: number): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/fhir/${patientId}`);
   }
+
+  downloadVisitPdf(visitId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/visits/${visitId}/pdf`, { responseType: 'blob' });
+  }
 }

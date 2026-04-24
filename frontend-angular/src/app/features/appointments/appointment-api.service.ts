@@ -42,7 +42,7 @@ export interface TimeSlot {
 
 @Injectable({ providedIn: 'root' })
 export class AppointmentApiService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   list(): Observable<Appointment[]> {
     return this.http.get<Appointment[]>(`${environment.apiBaseUrl}/appointments`);
@@ -74,5 +74,9 @@ export class AppointmentApiService {
 
   create(payload: Appointment): Observable<Appointment> {
     return this.http.post<Appointment>(`${environment.apiBaseUrl}/appointments`, payload);
+  }
+
+  updateStatus(id: number, status: string): Observable<Appointment> {
+    return this.http.put<Appointment>(`${environment.apiBaseUrl}/appointments/${id}/status?status=${status}`, {});
   }
 }

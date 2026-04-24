@@ -20,8 +20,8 @@ import java.util.Locale;
 @Component
 public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
-    @Value("${hms.security.jwt.secret:mysecretkey12345678901234567890AB}")
-    private String jwtSecret = "mysecretkey12345678901234567890AB";
+    @Value("${hms.security.jwt.secret}")
+    private String jwtSecret;
 
     public JwtFilter() {
         super(Config.class);
@@ -121,6 +121,8 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
     private String normalizeRole(String role) {
         if (role == null) return null;
         String r = role.trim().toUpperCase(Locale.ROOT);
+        // Handle Spring Security default ROLE_ prefix
+        if (r.startsWith("ROLE_")) r = r.substring(5);
         // Backwards compatibility: some existing users might have been stored as USER
         if ("USER".equals(r)) return "PATIENT";
         return r;
@@ -170,8 +172,9 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             case "PATIENT":
                 // Patients can:
                 if (path.startsWith("/doctors") && method == HttpMethod.GET) return true;
-                if (path.startsWith("/patients") && method == HttpMethod.GET) return true;
-                if (path.equals("/appointments") && method == HttpMethod.POST) return true;
+                if (path.startsWith("/patients") && (method == HttpMethod.GET || method == HttpMethod.POST)) return true;
+                if (path.startsWith("/appointments") && method == HttpMethod.POST) return true;
+                if (path.startsWith("/appointments") && method == HttpMethod.PUT) return true;
                 if (path.startsWith("/appointments/patient/")) return true;
                 if (path.startsWith("/appointments/timeslots")) return true;
                 if (path.startsWith("/slots/available/")) return true;
@@ -185,14 +188,18 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 if (path.startsWith("/invoices/patient/") && method == HttpMethod.GET) return true;
                 if (path.startsWith("/invoices/") && path.endsWith("/pay") && method == HttpMethod.POST) return true;
                 if (path.startsWith("/invoices/") && path.endsWith("/claim-status") && method == HttpMethod.GET) return true;
+                if (path.startsWith("/payments/patient/") && method == HttpMethod.GET) return true;
+                if (path.startsWith("/payments/invoice/") && path.endsWith("/pay")) return true;
+                if (path.startsWith("/payments/razorpay/order") && method == HttpMethod.POST) return true;
+                if (path.startsWith("/payments/razorpay/verify") && method == HttpMethod.POST) return true;
                 if (path.startsWith("/reporting/")) return true;
                 if (path.startsWith("/medications") && method == HttpMethod.GET) return true;
                 if (path.startsWith("/prescriptions/patient/")) return true;
-                if (path.startsWith("/invoices/patient/") && method == HttpMethod.GET) return true;
                 if (path.startsWith("/records/patient/")) return true;
                 if (path.startsWith("/records/icd10")) return true;
                 if (path.startsWith("/labs/tests-catalog")) return true;
                 if (path.startsWith("/labs/orders") && method == HttpMethod.POST) return true;
+                if (path.startsWith("/lab/orders") && method == HttpMethod.POST) return true;
                 if (path.startsWith("/lab-results/") && path.endsWith("/pdf")) return true;
                 if (path.startsWith("/doctors/specialties")) return true;
                 return false;

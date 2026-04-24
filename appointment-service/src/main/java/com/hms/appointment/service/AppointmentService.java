@@ -92,12 +92,30 @@ public class AppointmentService {
         if (appointment.getStatus() == null) appointment.setStatus("BOOKED");
         if (appointment.getPaymentStatus() == null) appointment.setPaymentStatus("PENDING");
 
-        try {
-            return appointmentRepository.save(appointment);
-        } catch (DataIntegrityViolationException ex) {
-            throw new SlotAlreadyBookedException("This slot is already booked for doctor id: " + appointment.getDoctorId());
+        Appointment saved = appointmentRepository.save(appointment);
+
+        // 7. If PAID (Razorpay flow), create a PAID invoice immediately
+        if ("PAID".equals(saved.getPaymentStatus())) {
+            try {
+                java.util.Map<String, Object> invoice = new java.util.HashMap<>();
+                invoice.put("patientId", saved.getPatientId());
+                invoice.put("doctorId", saved.getDoctorId());
+                invoice.put("totalAmount", saved.getFeeAmount());
+                invoice.put("status", "PAID");
+                invoice.put("paymentMethod", "RAZORPAY");
+                invoice.put("paymentReference", saved.getRazorpayPaymentId());
+                invoice.put("sourceSummary", "Pre-paid booking: " + saved.getChiefComplaint());
+                billingClient.createInvoice(invoice);
+            } catch (Exception e) {
+                System.out.println("WARN: Pre-paid billing trigger failed for appointment " + saved.getId() + ": " + e.getMessage());
+            }
         }
+
+        return saved;
+    } catch (DataIntegrityViolationException ex) {
+        throw new SlotAlreadyBookedException("This slot is already booked for doctor id: " + appointment.getDoctorId());
     }
+}
 
     public Appointment updateAppointmentStatus(Long id, String status) {
         Appointment appointment = appointmentRepository.findById(id)

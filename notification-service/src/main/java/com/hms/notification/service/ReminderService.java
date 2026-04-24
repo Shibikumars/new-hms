@@ -44,9 +44,19 @@ public class ReminderService {
                         patientId, time
                     );
                     System.out.println(">>> PRODUCTION_READY_PAYLOAD: " + payload);
+                    
+                    // Trigger SMS Dispatch (Stub for MSG91 / Twilio)
+                    sendSmsStub(patientId, "Reminder: Your appointment is scheduled for tomorrow at " + time + " at City Care Hospital.");
                 });
         } catch (Exception e) {
             System.err.println("REMINDER_SCAN_ERROR: " + e.getMessage());
         }
+    }
+
+    private void sendSmsStub(Long patientId, String message) {
+        // Here we would typically call an external SMS API via RestTemplate or WebClient
+        System.out.println(">>> [SMS_GATEWAY_STUB] Sending to Patient " + patientId + ": " + message);
+        // Log status 200 OK
+        System.out.println(">>> [SMS_GATEWAY_STUB] Status: 200 OK (Message Queued)");
     }
 }

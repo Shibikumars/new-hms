@@ -122,7 +122,33 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'ph
               <h3>Clinical Timeline</h3>
               <button class="ph-btn sm" (click)="loadRecords()">Refresh</button>
             </div>
-            <app-data-table [data]="visits" [columns]="visitColumns" [pageSize]="5"></app-data-table>
+            <div class="clinical-timeline-table card">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Diagnosis</th>
+                    <th>Findings</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let v of visits">
+                    <td>{{ v.visitDate }}</td>
+                    <td><span class="badge neutral">{{ v.diagnosisCode }}</span></td>
+                    <td>{{ v.assessment | slice:0:60 }}...</td>
+                    <td>
+                      <button class="ph-btn sm secondary" (click)="downloadSummary(v.id!)">
+                        <i class="ph ph-file-pdf"></i> PDF
+                      </button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="visits.length === 0">
+                    <td colspan="4" class="text-center">No visits found.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Vitals Tab (Step 5 Trending) -->
@@ -280,6 +306,13 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'ph
 
     .tab-pane { background: #fff; border: 1px solid #E2E8F0; border-radius: 24px; padding: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
 
+    .clinical-timeline-table { padding: 0; overflow: hidden; margin-top: 1rem; }
+    .clinical-timeline-table table { width: 100%; border-collapse: collapse; }
+    .clinical-timeline-table th { background: #F8FAFC; text-align: left; padding: 1rem; font-size: 0.75rem; text-transform: uppercase; color: #64748B; border-bottom: 1px solid #E2E8F0; }
+    .clinical-timeline-table td { padding: 1rem; border-bottom: 1px solid #E2E8F0; font-size: 0.85rem; color: #1E293B; }
+    .clinical-timeline-table tr:hover { background: #F8FAFC; }
+    .text-center { text-align: center; }
+
     .vitals-layout { display: grid; grid-template-columns: 320px 1fr; gap: 2.5rem; }
     .chart-container { height: 300px; margin-top: 1.5rem; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -377,6 +410,13 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    const role = this.auth.getRole()?.toUpperCase();
+    if (role === 'PATIENT' && !this.contextService.getActivePatient()) {
+       const userId = Number(this.auth.getUserId());
+       const username = this.auth.getUsername() ?? 'Patient';
+       if (userId) this.contextService.setPatient({ id: userId, name: username, role: 'PATIENT' });
+    }
+
     this.loadLabCatalog();
     this.sub.add(this.contextService.activePatient$.subscribe(p => {
       this.activePatient = p;
@@ -418,6 +458,19 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
         this.loadRecords();
         this.vitalForm.reset({ bloodPressure: '120/80', heartRate: 72, temperature: 98.6, spo2: 98 });
      });
+  }
+
+  downloadSummary(visitId: number): void {
+    this.medicalApi.downloadVisitPdf(visitId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `visit_summary_${visitId}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      }
+    });
   }
 
   renderChart(): void {

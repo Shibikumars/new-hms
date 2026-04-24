@@ -1,6 +1,7 @@
 package com.hms.billing.controller;
 
 import com.hms.billing.service.PaymentService;
+import com.hms.billing.service.BillingService;
 import com.razorpay.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +17,17 @@ public class PaymentController {
     @Autowired
     private PaymentService paymentService;
 
-    @PostMapping("/create-order")
+    @Autowired
+    private BillingService billingService;
+
+    @PostMapping("/razorpay/order")
     public ResponseEntity<?> createOrder(@RequestBody Map<String, Object> data) {
         try {
             int amount = (int) data.get("amount"); // Amount in paise
             String currency = (String) data.get("currency");
+            if (currency == null) currency = "INR";
             String receipt = (String) data.get("receipt");
+            if (receipt == null) receipt = "receipt_" + System.currentTimeMillis();
 
             Order order = paymentService.createOrder(amount, currency, receipt);
             
@@ -41,7 +47,7 @@ public class PaymentController {
         }
     }
 
-    @PostMapping("/verify")
+    @PostMapping("/razorpay/verify")
     public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> data) {
         String orderId = data.get("razorpay_order_id");
         String paymentId = data.get("razorpay_payment_id");

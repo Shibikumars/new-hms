@@ -40,6 +40,10 @@ public class MedicalRecordsService {
         return visitNoteRepository.findByPatientIdOrderByVisitDateDesc(patientId);
     }
 
+    public VisitNote getVisitById(Long id) {
+        return visitNoteRepository.findById(id).orElseThrow();
+    }
+
     public VitalRecord addVital(Long patientId, VitalRecord vitalRecord) {
         vitalRecord.setPatientId(patientId);
         return vitalRecordRepository.save(vitalRecord);

@@ -29,7 +29,7 @@ export class BillingApiService {
   constructor(private http: HttpClient) {}
 
   getInvoicesByPatient(patientId: number): Observable<Invoice[]> {
-    return this.http.get<Invoice[]>(`${environment.apiBaseUrl}/payments/patient/${patientId}`);
+    return this.http.get<Invoice[]>(`${environment.apiBaseUrl}/invoices/patient/${patientId}`);
   }
 
   createInvoice(payload: { patientId: number; totalAmount: number }): Observable<Invoice> {
@@ -37,7 +37,7 @@ export class BillingApiService {
   }
 
   payInvoice(invoiceId: number, paymentDetails: { paymentMethod: string; paymentReference: string }): Observable<void> {
-    return this.http.post<void>(`${environment.apiBaseUrl}/payments/invoice/${invoiceId}/pay`, paymentDetails);
+    return this.http.post<void>(`${environment.apiBaseUrl}/invoices/${invoiceId}/pay`, paymentDetails);
   }
 
   createRazorpayOrder(amount: number): Observable<RazorpayOrder> {

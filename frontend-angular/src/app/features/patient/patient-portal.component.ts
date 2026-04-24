@@ -8,6 +8,7 @@ import { NotificationItem, NotificationsApiService } from '../notifications/noti
 import { PharmacyApiService, Prescription } from '../pharmacy/pharmacy-api.service';
 import { LabApiService, LabReport } from '../lab/lab-api.service';
 import { MedicalRecordsApiService, VisitNote } from '../medical-records/medical-records-api.service';
+import { PatientProfileService } from './patient-profile.service';
 
 @Component({
   selector: 'app-patient-portal',
@@ -15,6 +16,15 @@ import { MedicalRecordsApiService, VisitNote } from '../medical-records/medical-
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
     <div class="container clinical-bg">
+      <!-- Incomplete Profile Banner -->
+      <div class="profile-alert-banner" *ngIf="showProfilePrompt">
+        <div class="banner-inner">
+          <i class="ph ph-warning-circle"></i>
+          <p><strong>Profile Incomplete:</strong> Please provide your demographic details to enable full clinical functionality.</p>
+          <button class="ph-btn primary sm" routerLink="/patient/complete-profile">Complete Now</button>
+        </div>
+      </div>
+
       <header class="dashboard-header">
         <div class="header-left">
           <h1 class="page-title">Patient Portal</h1>
@@ -103,7 +113,7 @@ import { MedicalRecordsApiService, VisitNote } from '../medical-records/medical-
               </div>
               <div class="visit-footer">
                 <span class="badge primary">Code: {{ recentVisit.diagnosisCode || 'V70.0' }}</span>
-                <button class="ph-btn sm" routerLink="/patient/records"><i class="ph ph-file-pdf"></i> Download PDF</button>
+                <button class="ph-btn sm" (click)="downloadSummary(recentVisit.id)"><i class="ph ph-file-pdf"></i> Download PDF</button>
               </div>
             </div>
             <ng-template #noVisit>
@@ -243,6 +253,11 @@ import { MedicalRecordsApiService, VisitNote } from '../medical-records/medical-
     .badge.neutral { background: var(--surface-strong); color: var(--text-muted); border: 1px solid var(--border); }
     .empty-state { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0; }
 
+    .profile-alert-banner { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; }
+    .banner-inner { display: flex; align-items: center; gap: 1rem; color: #92400e; font-size: 0.88rem; }
+    .banner-inner i { font-size: 1.25rem; }
+    .banner-inner p { flex: 1; margin: 0; }
+
     @keyframes shake { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-10deg); } 40% { transform: rotate(10deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(5deg); } }
     @media (max-width: 1024px) { .portal-grid { grid-template-columns: 1fr; } .metrics-row { grid-template-columns: 1fr; } }
   `]
@@ -253,6 +268,7 @@ export class PatientPortalComponent implements OnInit {
   recentLabs: LabReport[] = [];
   recentVisit: VisitNote | null = null;
   recentNotifications: NotificationItem[] = [];
+  showProfilePrompt = false;
 
   constructor(
     private appointmentApi: AppointmentApiService,
@@ -260,18 +276,29 @@ export class PatientPortalComponent implements OnInit {
     private notificationApi: NotificationsApiService,
     private pharmacyApi: PharmacyApiService,
     private labApi: LabApiService,
-    private medicalApi: MedicalRecordsApiService
+    private medicalApi: MedicalRecordsApiService,
+    private patientApi: PatientProfileService
   ) {}
 
   ngOnInit(): void {
     const userId = this.authService.getUserId();
     if (userId) {
+      this.checkProfile(userId);
       this.loadUpcoming(userId);
       this.loadRecentNotifications(userId);
       this.loadPrescriptions(userId);
       this.loadLabs(userId);
       this.loadVisitHistory(userId);
     }
+  }
+
+  checkProfile(userId: number): void {
+    this.patientApi.getById(userId).subscribe({
+      next: (profile: any) => {
+        if (!profile || !profile.firstName) this.showProfilePrompt = true;
+      },
+      error: () => this.showProfilePrompt = true
+    });
   }
 
   loadUpcoming(patientId: number): void {
@@ -311,6 +338,19 @@ export class PatientPortalComponent implements OnInit {
     this.notificationApi.getMyNotifications(userId, {}).subscribe({
       next: items => {
         this.recentNotifications = items.filter(i => !i.read).slice(0, 3);
+      }
+    });
+  }
+
+  downloadSummary(visitId: number): void {
+    this.medicalApi.downloadVisitPdf(visitId).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `visit_summary_${visitId}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
       }
     });
   }

@@ -7,6 +7,17 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import java.io.ByteArrayOutputStream;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.UnitValue;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/records")
@@ -76,5 +87,39 @@ public class MedicalRecordsController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     public Map<String, Object> exportFHIR(@PathVariable Long patientId) {
         return medicalRecordsService.exportToFHIR(patientId);
+    }
+
+    @GetMapping("/visits/{id}/pdf")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('PATIENT')")
+    public ResponseEntity<byte[]> generateVisitPdf(@PathVariable Long id) {
+        VisitNote visit = medicalRecordsService.getVisitById(id);
+        
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PdfWriter writer = new PdfWriter(out);
+        PdfDocument pdf = new PdfDocument(writer);
+        Document document = new Document(pdf);
+
+        document.add(new Paragraph("CITY CARE HOSPITAL - VISIT SUMMARY").setBold().setFontSize(18));
+        document.add(new Paragraph("Date: " + visit.getVisitDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy"))));
+        document.add(new Paragraph("Patient ID: MRN-" + visit.getPatientId()));
+        document.add(new Paragraph("\nCHIEF COMPLAINT:").setBold());
+        document.add(new Paragraph(visit.getChiefComplaint()));
+        
+        document.add(new Paragraph("\nCLINICAL NOTES:").setBold());
+        document.add(new Paragraph(visit.getNotes()));
+
+        if (visit.getDiagnosisCode() != null) {
+            document.add(new Paragraph("\nDIAGNOSIS (ICD-10):").setBold());
+            document.add(new Paragraph(visit.getDiagnosisCode() + " - " + visit.getDiagnosisDescription()));
+        }
+
+        document.close();
+
+        byte[] contents = out.toByteArray();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "visit_summary_" + id + ".pdf");
+        
+        return ResponseEntity.ok().headers(headers).body(contents);
     }
 }

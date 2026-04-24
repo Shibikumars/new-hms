@@ -69,16 +69,16 @@ import { AuthService } from '../../core/auth.service';
       border: 1px solid var(--border);
       border-radius: 22px;
       overflow: hidden;
-      background: rgba(9, 15, 28, 0.88);
+      background: var(--surface);
       box-shadow: var(--shadow-strong);
       min-height: 78vh;
     }
     .hero-panel {
       padding: clamp(1.6rem, 3vw, 3rem);
       background:
-        radial-gradient(circle at 18% 14%, rgba(0, 212, 170, 0.24), transparent 40%),
-        radial-gradient(circle at 78% 12%, rgba(109, 124, 255, 0.2), transparent 42%),
-        linear-gradient(160deg, #08111f 0%, #0b1729 45%, #12223a 100%);
+        radial-gradient(circle at 18% 14%, rgba(26, 60, 110, 0.05), transparent 40%),
+        radial-gradient(circle at 78% 12%, rgba(79, 70, 229, 0.05), transparent 42%),
+        linear-gradient(160deg, #FFFFFF 0%, #F8FAFC 45%, #F1F5F9 100%);
       border-right: 1px solid var(--border);
       display: grid;
       align-content: space-between;
@@ -90,7 +90,7 @@ import { AuthService } from '../../core/auth.service';
       font-weight: 800;
       letter-spacing: 0.06em;
       color: var(--primary);
-      border: 1px solid rgba(0, 212, 170, 0.45);
+      border: 1px solid var(--primary-glow);
       border-radius: 999px;
       padding: 0.32rem 0.78rem;
       font-size: 0.8rem;
@@ -99,7 +99,7 @@ import { AuthService } from '../../core/auth.service';
     .hero-panel h1 {
       font-size: clamp(1.7rem, 3vw, 2.7rem);
       line-height: 1.1;
-      color: var(--text);
+      color: var(--text-strong);
     }
     .hero-panel p {
       max-width: 40ch;
@@ -114,7 +114,7 @@ import { AuthService } from '../../core/auth.service';
       margin-top: 0.6rem;
     }
     .hero-stats div {
-      background: rgba(11, 18, 32, 0.55);
+      background: var(--surface-soft);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 0.72rem;
@@ -137,7 +137,7 @@ import { AuthService } from '../../core/auth.service';
       display: grid;
       align-content: center;
       gap: 1rem;
-      background: linear-gradient(180deg, rgba(19, 29, 47, 0.9), rgba(12, 20, 33, 0.96));
+      background: var(--surface);
     }
     .form-header { margin-bottom: 0.6rem; }
     .form-subtitle { color: var(--text-soft); margin-top: 0.4rem; }

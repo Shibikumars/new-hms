@@ -533,6 +533,18 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  cancelAppointment(id: number): void {
+    if (confirm('Are you sure you want to cancel this appointment?')) {
+      this.appointmentApi.updateStatus(id, 'CANCELLED').subscribe({
+        next: () => {
+          this.toast.success('Success', 'Appointment cancelled successfully.');
+          this.refresh();
+        },
+        error: () => this.toast.error('Error', 'Failed to cancel appointment.')
+      });
+    }
+  }
+
   addToCalendar(): void {
     const calendarContent = [
       'BEGIN:VCALENDAR',

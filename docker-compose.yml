@@ -163,7 +163,97 @@ services:
       - HMS_DB_USER=queue_user
       - HMS_DB_PASSWORD=queue_pass
     ports:
+      - "8092:8092"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - hms-net
+
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: notification-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=notification_user
+      - HMS_DB_PASSWORD=notification_pass
+    ports:
       - "8089:8089"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - hms-net
+
+  lab-service:
+    build:
+      context: ./lab-service
+    container_name: lab-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=lab_user
+      - HMS_DB_PASSWORD=lab_pass
+    ports:
+      - "8087:8087"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - hms-net
+
+  medical-records-service:
+    build:
+      context: ./medical-records-service
+    container_name: medical-records-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=records_user
+      - HMS_DB_PASSWORD=records_pass
+    ports:
+      - "8085:8085"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - hms-net
+
+  pharmacy-service:
+    build:
+      context: ./pharmacy-service
+    container_name: pharmacy-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=pharmacy_user
+      - HMS_DB_PASSWORD=pharmacy_pass
+    ports:
+      - "8086:8086"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - hms-net
+
+  reporting-service:
+    build:
+      context: ./reporting-service
+    container_name: reporting-service
+    environment:
+      - HMS_DB_HOST=mysql
+      - HMS_DB_USER=reporting_user
+      - HMS_DB_PASSWORD=reporting_pass
+    ports:
+      - "8090:8090"
     depends_on:
       mysql:
         condition: service_healthy

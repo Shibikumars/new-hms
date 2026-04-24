@@ -50,7 +50,7 @@ public class AppointmentController {
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('PATIENT')")
     public Appointment updateStatus(@PathVariable Long id, @RequestParam String status) {
         return appointmentService.updateAppointmentStatus(id, status);
     }
