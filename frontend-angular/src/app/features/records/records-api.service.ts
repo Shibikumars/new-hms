@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface VisitNote {
@@ -59,7 +60,8 @@ export class RecordsApiService {
   }
 
   searchIcd(term: string): Observable<string[]> {
-    return this.http.get<string[]>(`${environment.apiBaseUrl}/records/icd10?search=${encodeURIComponent(term)}`);
+    return this.http.get<any[]>(`${environment.apiBaseUrl}/records/icd/search?q=${encodeURIComponent(term)}`)
+      .pipe(map(items => items.map(i => `${i.description} (${i.code})`)));
   }
 
   getAllergies(patientId: number): Observable<AllergyRecord[]> {

@@ -77,6 +77,19 @@ public class PatientController {
         return ResponseEntity.ok(resp);
     }
 
+    @GetMapping("/by-user/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('PATIENT')")
+    public ResponseEntity<?> getPatientByUserId(@PathVariable Long userId) {
+        Optional<Patient> patient = patientService.getPatientByUserId(userId);
+        if (patient.isPresent()) {
+            return ResponseEntity.ok(patient.get());
+        }
+        Map<String, Object> err = new HashMap<>();
+        err.put("error", "No patient profile found for userId: " + userId);
+        err.put("status", 404);
+        return ResponseEntity.status(404).body((Object) err);
+    }
+
     @GetMapping("/{id}/summary")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
     public PatientSummaryDTO getPatientSummary(@PathVariable Long id) {

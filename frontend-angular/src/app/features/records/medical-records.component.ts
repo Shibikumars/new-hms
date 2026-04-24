@@ -550,5 +550,18 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
      });
   }
 
-  addAllergy(): void { /* ... */ }
+  addAllergy(): void {
+    if (!this.activePatient || this.allergyForm.invalid) return;
+    const payload: AllergyRecord = {
+      patientId: Number(this.activePatient.id),
+      ...this.allergyForm.getRawValue(),
+      status: 'ACTIVE',
+      notedDate: new Date().toISOString()
+    };
+    this.medicalApi.addAllergy(Number(this.activePatient.id), payload).subscribe(() => {
+      this.toastSuccess('Allergy logged successfully');
+      this.allergyForm.reset({ severity: 'MILD' });
+      this.medicalApi.getAllergies(Number(this.activePatient.id)).subscribe(items => this.allergies = items);
+    });
+  }
 }

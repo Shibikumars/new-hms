@@ -39,9 +39,14 @@ public class AppointmentService {
     private BillingClient billingClient;
 
     public Appointment saveAppointment(Appointment appointment) {
-        // 1. Validate patient exists
+        // 1. Validate patient exists — lookup by userId (from JWT) which maps to patient profile
         try {
-            patientClient.getPatientById(appointment.getPatientId());
+            // First try direct ID lookup, fall back to userId lookup
+            try {
+                patientClient.getPatientById(appointment.getPatientId());
+            } catch (Exception ex) {
+                patientClient.getPatientByUserId(appointment.getPatientId());
+            }
         } catch (Exception e) {
             throw new ResourceNotFoundException("Patient not found with id: " + appointment.getPatientId());
         }

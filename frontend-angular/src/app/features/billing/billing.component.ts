@@ -304,7 +304,7 @@ export class BillingComponent implements OnInit, OnDestroy {
 
   private openRazorpay(order: RazorpayOrder, inv: any): void {
     const options = {
-      key: 'rzp_test_stub_id',
+      key: 'rzp_test_SgpkiPWIltBByv',
       amount: order.amount,
       currency: order.currency,
       name: 'City Care Hospital',

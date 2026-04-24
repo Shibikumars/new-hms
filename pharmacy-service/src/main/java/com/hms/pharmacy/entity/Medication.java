@@ -32,4 +32,14 @@ public class Medication {
 
     public Integer getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
+
+    public Medication() {
+    }
+
+    public Medication(String medicationName, String genericName, String strength, Integer stockQuantity) {
+        this.medicationName = medicationName;
+        this.genericName = genericName;
+        this.strength = strength;
+        this.stockQuantity = stockQuantity;
+    }
 }

@@ -32,7 +32,7 @@ import { AuthService } from '../../core/auth.service';
             </div>
             <div class="form-group">
               <label>Date of Birth</label>
-              <input type="date" formControlName="dateOfBirth" />
+              <input type="date" formControlName="dob" />
             </div>
             <div class="form-group">
               <label>Gender Identity</label>
@@ -65,6 +65,10 @@ import { AuthService } from '../../core/auth.service';
             </div>
           </div>
 
+          <div class="error-banner" *ngIf="errorMessage">
+              <i class="ph ph-warning-circle"></i>
+              {{ errorMessage }}
+          </div>
           <div class="form-actions">
             <button type="submit" class="ph-btn primary xl-btn" [disabled]="form.invalid || loading">
               {{ loading ? 'Synchronizing...' : 'Finalize Health Profile' }}
@@ -127,16 +131,18 @@ import { AuthService } from '../../core/auth.service';
     .form-actions { margin-top: 2rem; }
     .xl-btn { width: 100%; padding: 1.25rem; font-size: 1.1rem; justify-content: center; }
     
+    .error-banner { background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); color: #DC2626; padding: 0.85rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; font-weight: 600; font-size: 0.9rem; }
     .animate-fade-up { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
 export class CompleteProfileComponent implements OnInit {
   loading = false;
+  errorMessage = '';
   form = this.fb.group({
     firstName: ['', Validators.required],
     lastName: ['', Validators.required],
-    dateOfBirth: ['', Validators.required],
+    dob: ['', Validators.required],
     gender: ['MALE', Validators.required],
     phone: ['', Validators.required],
     bloodGroup: ['O_POSITIVE', Validators.required],
@@ -169,7 +175,11 @@ export class CompleteProfileComponent implements OnInit {
       next: () => {
         this.router.navigate(['/patient/portal']);
       },
-      error: () => this.loading = false
+      error: (err) => {
+        this.loading = false;
+        const msg = err?.error?.message || 'Profile save failed. Please try again.';
+        this.errorMessage = msg;
+      }
     });
   }
 }

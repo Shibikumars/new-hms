@@ -9,6 +9,7 @@ import { PatientContextService } from '../../core/patient-context.service';
 import { BillingApiService, RazorpayOrder } from '../billing/billing-api.service';
 import { ToastService } from '../../core/toast.service';
 import { ReportingApiService } from '../analytics/reporting-api.service';
+import { PatientProfileService } from '../patient/patient-profile.service';
 
 declare var Razorpay: any;
 
@@ -390,7 +391,8 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
     private context: PatientContextService,
     private toast: ToastService,
     private reportingApi: ReportingApiService,
-    private router: Router
+    private router: Router,
+    private patientProfileService: PatientProfileService
   ) { }
 
   ngOnInit(): void {
@@ -405,12 +407,27 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
 
   private loadInitialData(): void {
     if (this.role === 'PATIENT') {
-      const pId = Number(this.auth.getUserId());
-      if (pId) this.form.controls.patientId.setValue(pId);
+      const userId = Number(this.auth.getUserId());
+      if (userId) {
+        // Resolve JWT userId -> actual patient profile ID
+        this.patientProfileService.getByUserId(userId).subscribe({
+          next: (profile) => {
+            const resolvedId = profile?.id || userId;
+            this.form.controls.patientId.setValue(resolvedId);
+            this.refresh();
+          },
+          error: () => {
+            // Fallback: use userId directly
+            this.form.controls.patientId.setValue(userId);
+            this.refresh();
+          }
+        });
+      }
       this.loadSpecialties();
       this.searchDoctors();
+    } else {
+      this.refresh();
     }
-    this.refresh();
   }
 
   refresh(): void {
@@ -495,7 +512,7 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
 
   private openRazorpay(order: RazorpayOrder, fee: number): void {
     const options = {
-      key: 'rzp_test_stub',
+      key: 'rzp_test_SgpkiPWIltBByv',
       amount: order.amount,
       currency: order.currency,
       name: 'City Care Hospital',
@@ -527,6 +544,10 @@ export class AppointmentDashboardComponent implements OnInit, OnDestroy {
             this.lastCreatedAptId = apt.id || 0;
             this.bookingView = 'CONFIRMED';
             this.refresh();
+          },
+          error: (err) => {
+            this.errorMessage = 'Failed to save appointment. ' + (err.error?.message || 'Profile may be incomplete.');
+            this.loading = false;
           }
         });
       }

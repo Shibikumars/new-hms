@@ -17,6 +17,7 @@ export interface DoctorProfile {
   profilePhotoUrl?: string;
   about?: string;
   rating?: number;
+  userId?: number;
 }
 
 @Injectable({ providedIn: 'root' })

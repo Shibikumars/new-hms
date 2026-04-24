@@ -33,6 +33,10 @@ export class PatientProfileService {
     return this.http.get<PatientProfile>(`${environment.apiBaseUrl}/patients/${patientId}`);
   }
 
+  getByUserId(userId: number): Observable<PatientProfile> {
+    return this.http.get<PatientProfile>(`${environment.apiBaseUrl}/patients/by-user/${userId}`);
+  }
+
   getAll(): Observable<PatientProfile[]> {
     return this.http.get<PatientProfile[]>(`${environment.apiBaseUrl}/patients`);
   }

@@ -66,6 +66,10 @@ public class PatientService {
         return patientRepository.findById(id);
     }
 
+    public Optional<Patient> getPatientByUserId(Long userId) {
+        return patientRepository.findByUserId(userId);
+    }
+
     public Patient updatePatient(Long id, Patient patientDetails) {
         Patient patient = patientRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id: " + id));

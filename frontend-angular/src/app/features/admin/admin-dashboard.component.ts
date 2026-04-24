@@ -5,11 +5,14 @@ import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartOptions, ChartType } from 'chart.js';
 import { DashboardSummary, ReportingApiService } from '../analytics/reporting-api.service';
 import { AuthService } from '../../core/auth.service';
+import { FormsModule } from '@angular/forms';
+import { DoctorProfileService } from '../doctor/doctor-profile.service';
+import { ToastService } from '../../core/toast.service';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, BaseChartDirective],
+  imports: [CommonModule, RouterLink, BaseChartDirective, FormsModule],
   template: `
     <div class="container clinical-bg">
       <header class="dashboard-header">
@@ -147,29 +150,30 @@ import { AuthService } from '../../core/auth.service';
             <div class="form-row">
                <div class="input-wrap">
                   <label>Full Name</label>
-                  <input type="text" placeholder="Dr. Sarah Johnson" />
+                  <input type="text" [(ngModel)]="onboardingData.fullName" placeholder="Dr. Sarah Johnson" />
                </div>
                <div class="input-wrap">
                   <label>Specialization</label>
-                  <select>
+                  <select [(ngModel)]="onboardingData.specialization">
                      <option>Cardiology</option>
                      <option>Pediatrics</option>
                      <option>Neurology</option>
                      <option>General Surgery</option>
+                     <option>General Medicine</option>
                   </select>
                </div>
             </div>
             <div class="form-row">
                <div class="input-wrap">
-                  <label>License Number</label>
-                  <input type="text" placeholder="REG-2024-XXXX" />
+                  <label>Email Address</label>
+                  <input type="email" [(ngModel)]="onboardingData.email" placeholder="sarah.j@hms.com" />
                </div>
                <div class="input-wrap">
                   <label>Consultation Fee (₹)</label>
-                  <input type="number" value="500" />
+                  <input type="number" [(ngModel)]="onboardingData.consultationFee" />
                </div>
             </div>
-            <button class="nav-btn primary-solid full mt-1">
+            <button class="nav-btn primary-solid full mt-1" (click)="onboardDoctor()">
                <i class="ph ph-user-plus"></i> Finalize Onboarding
             </button>
           </div>
@@ -270,6 +274,13 @@ import { AuthService } from '../../core/auth.service';
 export class AdminDashboardComponent implements OnInit {
   summary: DashboardSummary | null = null;
   users: any[] = [];
+  onboardingData = {
+    fullName: '',
+    email: '',
+    specialization: 'General Medicine',
+    phone: '',
+    consultationFee: 500
+  };
   
   // Real-time Bed Mock
   wards = [
@@ -341,7 +352,12 @@ export class AdminDashboardComponent implements OnInit {
     }
   };
 
-  constructor(private reportingApi: ReportingApiService, private authService: AuthService) {}
+  constructor(
+    private reportingApi: ReportingApiService, 
+    private authService: AuthService,
+    private doctorProfileService: DoctorProfileService,
+    private toast: ToastService
+  ) {}
 
   ngOnInit(): void {
     this.loadData();
@@ -363,18 +379,59 @@ export class AdminDashboardComponent implements OnInit {
     if (!userId) return;
     this.authService.adminVerifyUser(userId).subscribe({
       next: () => {
-        window.alert('User verified successfully!');
+        this.toast.success('User Verified', 'User has been successfully verified and activated.');
         this.loadData();
       },
       error: (err) => {
         console.error('Verification failed', err);
-        window.alert('Verification failed. See console.');
+        this.toast.error('Verification Failed', 'Could not verify user. Check console for details.');
+      }
+    });
+  }
+
+  onboardDoctor(): void {
+    if (!this.onboardingData.fullName || !this.onboardingData.email) {
+      this.toast.warning('Validation Error', 'Please provide at least a Full Name and Email Address.');
+      return;
+    }
+
+    this.authService.register({
+      username: this.onboardingData.email,
+      password: 'password',
+      role: 'DOCTOR'
+    }).subscribe({
+      next: (userRes: any) => {
+        const newDoctor = {
+          fullName: this.onboardingData.fullName,
+          email: this.onboardingData.email,
+          specialization: this.onboardingData.specialization,
+          phone: this.onboardingData.phone,
+          consultationFee: this.onboardingData.consultationFee,
+          userId: userRes.id
+        };
+
+        this.doctorProfileService.create(newDoctor).subscribe({
+          next: () => {
+            this.toast.success('Doctor Onboarded', `Dr. ${this.onboardingData.fullName} has been registered successfully.`);
+            this.onboardingData = { fullName: '', email: '', specialization: 'General Medicine', phone: '', consultationFee: 500 };
+            this.loadData();
+          },
+          error: (err) => {
+            console.error('Failed to create doctor profile:', err);
+            this.toast.warning('Partial Success', 'Account created but profile creation failed. See console.');
+            this.loadData();
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Failed to register user:', err);
+        this.toast.error('Registration Failed', 'Failed to register user. Email might already exist.');
       }
     });
   }
 
   generateMonthlyReport() {
-    window.alert('Generating consolidated GST Monthly Report (₹)... Data aggregation in progress.');
+    this.toast.info('Report Queued', 'Generating consolidated GST Monthly Report (₹)... Data aggregation in progress.');
   }
 }
 

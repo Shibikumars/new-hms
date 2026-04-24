@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface VitalRecord {
@@ -76,8 +77,9 @@ export class MedicalRecordsApiService {
     return this.http.post<VisitNote>(`${this.baseUrl}/visits`, visit);
   }
 
-  searchIcd(query: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/icd/search?q=${query}`);
+  searchIcd(query: string): Observable<string[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/icd/search?q=${encodeURIComponent(query)}`)
+      .pipe(map(items => items.map(i => `${i.description} (${i.code})`)));
   }
 
   exportFhir(patientId: number): Observable<any> {
@@ -86,5 +88,9 @@ export class MedicalRecordsApiService {
 
   downloadVisitPdf(visitId: number): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/visits/${visitId}/pdf`, { responseType: 'blob' });
+  }
+
+  addAllergy(patientId: number, payload: AllergyRecord): Observable<AllergyRecord> {
+    return this.http.post<AllergyRecord>(`${this.baseUrl}/patient/${patientId}/allergies`, payload);
   }
 }
