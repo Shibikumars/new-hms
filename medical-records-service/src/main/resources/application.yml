@@ -6,9 +6,9 @@ spring:
     name: MEDICAL-RECORDS-SERVICE
 
   datasource:
-    url: jdbc:mysql://localhost:3306/medicalrecords_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/medical_records_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: records_user
+    username: medical_records_user
     password: records_pass
   h2:
     console:
