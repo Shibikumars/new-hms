@@ -4,6 +4,7 @@ import com.hms.auth.dto.AuthResponse;
 import com.hms.auth.dto.RegisterRequest;
 import com.hms.auth.dto.UserResponse;
 import com.hms.auth.entity.User;
+import com.hms.auth.exception.InvalidRefreshTokenException;
 import com.hms.auth.repository.UserRepository;
 import com.hms.auth.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -362,5 +363,138 @@ class AuthServiceTest {
         authService.register(request, null);
 
         verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should block admin registration when no admin caller")
+    void testRegisterAdminBlockedWithoutCaller() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("newadmin");
+        request.setPassword("pass");
+        request.setRole("ADMIN");
+
+        when(userRepository.count()).thenReturn(1L);
+        when(userRepository.existsByUsernameIgnoreCase("newadmin")).thenReturn(false);
+
+        assertThrows(SecurityException.class, () -> authService.register(request, null));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should allow admin registration when caller is ADMIN")
+    void testRegisterAdminAllowedWithCaller() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("newadmin");
+        request.setPassword("pass");
+        request.setRole("ADMIN");
+
+        when(userRepository.count()).thenReturn(1L);
+        when(userRepository.existsByUsernameIgnoreCase("newadmin")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = authService.register(request, "ADMIN");
+
+        assertEquals("ADMIN", response.getRole());
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should verify code and update user")
+    void testVerifyCodeSuccess() {
+        User user = new User();
+        user.setId(10L);
+        user.setVerificationCode("1234");
+        user.setIsVerified(false);
+
+        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        boolean result = authService.verifyCode(10L, "1234");
+
+        assertTrue(result);
+        assertTrue(user.getIsVerified());
+        assertEquals(null, user.getVerificationCode());
+    }
+
+    @Test
+    @DisplayName("Should return false when verification fails")
+    void testVerifyCodeFailure() {
+        when(userRepository.findById(10L)).thenReturn(Optional.empty());
+
+        boolean result = authService.verifyCode(10L, "1234");
+
+        assertFalse(result);
+    }
+
+    @Test
+    @DisplayName("Should admin-verify user")
+    void testAdminVerifyUser() {
+        User user = new User();
+        user.setId(12L);
+        user.setIsVerified(false);
+        user.setVerificationCode("9999");
+
+        when(userRepository.findById(12L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        authService.adminVerifyUser(12L);
+
+        assertTrue(user.getIsVerified());
+        assertEquals(null, user.getVerificationCode());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("Should refresh token and revoke old refresh token")
+    void testRefreshTokenFlow() {
+        String username = "testuser";
+        String password = "password123";
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        User user = new User();
+        user.setId(1L);
+        user.setUsername(username);
+        user.setPassword(encoder.encode(password));
+        user.setRole("PATIENT");
+        user.setIsVerified(true);
+
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(username, "PATIENT", 1L)).thenReturn("token1", "token2");
+
+        AuthResponse login = authService.login(username, password);
+        AuthResponse refreshed = authService.refresh(login.getRefreshToken());
+
+        assertEquals("token2", refreshed.getToken());
+        assertNotNull(refreshed.getRefreshToken());
+        assertNotEquals(login.getRefreshToken(), refreshed.getRefreshToken());
+
+        assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh(login.getRefreshToken()));
+    }
+
+    @Test
+    @DisplayName("Should logout and invalidate refresh token")
+    void testLogoutInvalidatesToken() {
+        String username = "testuser";
+        String password = "password123";
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        User user = new User();
+        user.setId(1L);
+        user.setUsername(username);
+        user.setPassword(encoder.encode(password));
+        user.setRole("PATIENT");
+        user.setIsVerified(true);
+
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(username, "PATIENT", 1L)).thenReturn("token1");
+
+        AuthResponse login = authService.login(username, password);
+        authService.logout(login.getRefreshToken());
+
+        assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh(login.getRefreshToken()));
+    }
+
+    @Test
+    @DisplayName("Should throw when refresh token is invalid")
+    void testRefreshInvalidToken() {
+        assertThrows(InvalidRefreshTokenException.class, () -> authService.refresh("missing"));
     }
 }

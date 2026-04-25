@@ -52,6 +52,19 @@ class JwtFilterTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         jwtFilter = new JwtFilter();
+        try {
+            java.lang.reflect.Field secretField = JwtFilter.class.getDeclaredField("jwtSecret");
+            secretField.setAccessible(true);
+            secretField.set(jwtFilter, SECRET);
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException(ex);
+        }
+
+        when(exchange.getRequest()).thenReturn(request);
+        when(exchange.getResponse()).thenReturn(response);
+        when(request.getHeaders()).thenReturn(new org.springframework.http.HttpHeaders());
+        when(response.setComplete()).thenReturn(Mono.empty());
+        when(response.setStatusCode(any())).thenReturn(true);
     }
 
     // ==================== Token Generation Helper Methods ====================
@@ -169,6 +182,7 @@ class JwtFilterTest {
         when(exchange.getRequest()).thenReturn(request);
         when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080/auth/login"));
         when(request.getMethod()).thenReturn(HttpMethod.POST);
+        when(request.getHeaders()).thenReturn(new org.springframework.http.HttpHeaders());
         when(chain.filter(exchange)).thenReturn(Mono.empty());
 
         GatewayFilter filter = jwtFilter.apply(new JwtFilter.Config());
@@ -184,6 +198,7 @@ class JwtFilterTest {
         when(exchange.getRequest()).thenReturn(request);
         when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080/auth/register"));
         when(request.getMethod()).thenReturn(HttpMethod.POST);
+        when(request.getHeaders()).thenReturn(new org.springframework.http.HttpHeaders());
         when(chain.filter(exchange)).thenReturn(Mono.empty());
 
         GatewayFilter filter = jwtFilter.apply(new JwtFilter.Config());
@@ -203,6 +218,7 @@ class JwtFilterTest {
             when(exchange.getRequest()).thenReturn(request);
             when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080" + path));
             when(request.getMethod()).thenReturn(HttpMethod.POST);
+            when(request.getHeaders()).thenReturn(new org.springframework.http.HttpHeaders());
             when(chain.filter(exchange)).thenReturn(Mono.empty());
 
             GatewayFilter filter = jwtFilter.apply(new JwtFilter.Config());
@@ -766,7 +782,7 @@ class JwtFilterTest {
         headers.set("Authorization", "Bearer " + VALID_TOKEN_PATIENT);
         
         when(exchange.getRequest()).thenReturn(request);
-        when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080/lab/orders"));
+        when(request.getURI()).thenReturn(java.net.URI.create("http://localhost:8080/lab/reports"));
         when(request.getMethod()).thenReturn(HttpMethod.POST);
         when(request.getHeaders()).thenReturn(headers);
         when(exchange.getResponse()).thenReturn(response);

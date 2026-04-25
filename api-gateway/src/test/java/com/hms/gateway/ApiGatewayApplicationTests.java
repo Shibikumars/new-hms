@@ -9,7 +9,7 @@ import org.springframework.context.ApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "hms.security.jwt.secret=test_secret_123456789012345678901234")
 @DisplayName("API Gateway Application Tests")
 class ApiGatewayApplicationTests {
 
@@ -47,8 +47,17 @@ class ApiGatewayApplicationTests {
 	@DisplayName("Main method should execute without errors")
 	void testMainMethod() {
 		String[] args = {};
-		// Just ensure the main method can be invoked
-		assertDoesNotThrow(() -> ApiGatewayApplication.main(args));
+		String originalSecret = System.getProperty("HMS_JWT_SECRET");
+		try {
+			System.setProperty("HMS_JWT_SECRET", "test_secret_123456789012345678901234");
+			assertDoesNotThrow(() -> ApiGatewayApplication.main(args));
+		} finally {
+			if (originalSecret == null) {
+				System.clearProperty("HMS_JWT_SECRET");
+			} else {
+				System.setProperty("HMS_JWT_SECRET", originalSecret);
+			}
+		}
 	}
 
 }

@@ -11,7 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "hms.security.jwt.secret=test_secret_123456789012345678901234")
 @AutoConfigureMockMvc
 @DisplayName("SecurityConfig Tests")
 class SecurityConfigTest {

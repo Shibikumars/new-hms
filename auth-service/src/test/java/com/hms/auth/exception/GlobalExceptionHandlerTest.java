@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "hms.security.jwt.secret=test_secret_123456789012345678901234")
 @AutoConfigureMockMvc
 @Import(GlobalExceptionHandlerTest.TestController.class)
 @DisplayName("GlobalExceptionHandler Tests")
@@ -106,6 +106,47 @@ class GlobalExceptionHandlerTest {
                  .andExpect(status().isInternalServerError());
      }
 
+     @Test
+     @DisplayName("Should handle InvalidRefreshTokenException")
+     void testInvalidRefreshTokenException() throws Exception {
+         mockMvc.perform(get("/test/invalid-refresh"))
+                 .andExpect(status().isUnauthorized())
+                 .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
+                 .andExpect(jsonPath("$.status").value(401));
+     }
+
+     @Test
+     @DisplayName("Should map IllegalArgumentException to 409 when already exists")
+     void testIllegalArgumentConflict() throws Exception {
+         mockMvc.perform(get("/test/illegal-argument-conflict"))
+                 .andExpect(status().isConflict())
+                 .andExpect(jsonPath("$.status").value(409));
+     }
+
+     @Test
+     @DisplayName("Should map IllegalArgumentException to 400 otherwise")
+     void testIllegalArgumentBadRequest() throws Exception {
+         mockMvc.perform(get("/test/illegal-argument"))
+                 .andExpect(status().isBadRequest())
+                 .andExpect(jsonPath("$.status").value(400));
+     }
+
+     @Test
+     @DisplayName("Should handle NoResourceFoundException")
+     void testNoResourceFound() throws Exception {
+         mockMvc.perform(get("/test/no-resource"))
+                 .andExpect(status().isNotFound())
+                 .andExpect(jsonPath("$.status").value(404));
+     }
+
+     @Test
+     @DisplayName("Should handle AccessDeniedException")
+     void testAccessDenied() throws Exception {
+         mockMvc.perform(get("/test/access-denied"))
+                 .andExpect(status().isForbidden())
+                 .andExpect(jsonPath("$.status").value(403));
+     }
+
      @RestController
      static class TestController {
          @GetMapping("/test/duplicate-error")
@@ -127,5 +168,30 @@ class GlobalExceptionHandlerTest {
          public void throwInvalidCredentials() {
              throw new InvalidCredentialsException();
          }
+
+        @GetMapping("/test/invalid-refresh")
+        public void throwInvalidRefresh() {
+            throw new InvalidRefreshTokenException();
+        }
+
+        @GetMapping("/test/illegal-argument-conflict")
+        public void throwIllegalArgumentConflict() {
+            throw new IllegalArgumentException("Username already exists");
+        }
+
+        @GetMapping("/test/illegal-argument")
+        public void throwIllegalArgument() {
+            throw new IllegalArgumentException("Bad input");
+        }
+
+        @GetMapping("/test/no-resource")
+        public void throwNoResource() {
+            throw new org.springframework.web.servlet.resource.NoResourceFoundException("GET", "/test/no-resource", null);
+        }
+
+        @GetMapping("/test/access-denied")
+        public void throwAccessDenied() {
+            throw new org.springframework.security.access.AccessDeniedException("denied");
+        }
      }
 }

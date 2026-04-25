@@ -15,6 +15,13 @@ class JwtUtilTest {
     @BeforeEach
     void setUp() {
         jwtUtil = new JwtUtil();
+        try {
+            java.lang.reflect.Field secretField = JwtUtil.class.getDeclaredField("jwtSecret");
+            secretField.setAccessible(true);
+            secretField.set(jwtUtil, "test_secret_123456789012345678901234");
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     @Test
