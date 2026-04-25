@@ -10,6 +10,7 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password: 
+
   h2:
     console:
       enabled: true
@@ -38,6 +39,6 @@ eureka:
 hms:
   security:
     jwt:
-      secret: ${HMS_JWT_SECRET}
+      secret: ${HMS_JWT_SECRET:myDefaultSecretKeyForHMS2024!@#$%^&*()}
   auth:
     refresh-token-expiry-seconds: ${HMS_REFRESH_TOKEN_EXPIRY_SECONDS:604800}

@@ -68,11 +68,7 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/debug/users")
-    public ResponseEntity<?> debugUsers() {
-        return ResponseEntity.ok(authService.debugListUsers());
-    }
-
+    
     @GetMapping("/validate")
     public ResponseEntity<?> validate(
             @RequestHeader(value = "Authorization", required = false) String authHeader

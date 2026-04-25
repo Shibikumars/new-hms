@@ -10,11 +10,10 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password: 
+
   h2:
     console:
       enabled: true
-  flyway:
-    enabled: false
 
   jpa:
     hibernate:
@@ -25,6 +24,9 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
         boot:
           allow_jdbc_metadata_access: false
+
+  flyway:
+    enabled: false
 
 eureka:
   client:
