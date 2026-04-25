@@ -613,9 +613,21 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
        if (this.activeTab === 'vitals') this.renderChart();
     });
     
-    // Load prescriptions and lab reports with direct localStorage access
-    this.loadPrescriptionsDirect(pId);
-    this.loadLabReportsDirect(pId);
+    // Load prescriptions and lab reports
+    this.loadPrescriptions();
+    this.loadLabReports();
+  }
+
+  loadPrescriptions(): void {
+    if (!this.activePatient) return;
+    const pId = Number(this.activePatient.id);
+    this.pharmacyApi.getPatientPrescriptions(pId).subscribe(items => this.prescriptions = items);
+  }
+
+  loadLabReports(): void {
+    if (!this.activePatient) return;
+    const pId = Number(this.activePatient.id);
+    this.labApi.getPatientResults(pId).subscribe(items => this.labReports = items);
   }
 
   get allergySummary(): string {
@@ -703,33 +715,16 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
   // Tab change detection to ensure data loads
   onTabChange(tab: RecordsTab): void {
     this.activeTab = tab;
-    console.log('Tab changed to:', tab);
-    
-    // Force data refresh when switching to pharmacy or lab tabs
-    if (tab === 'pharmacy' || tab === 'lab') {
-      console.log('Loading data for tab:', tab);
-      if (this.activePatient) {
-        this.loadPrescriptionsDirect(Number(this.activePatient.id));
-        this.loadLabReportsDirect(Number(this.activePatient.id));
-      }
+    if (tab === 'pharmacy') {
+      this.loadPrescriptions();
+    } else if (tab === 'lab') {
+      this.loadLabReports();
     }
   }
 
   // Direct loading methods
-  loadPrescriptionsDirect(patientId: number): void {
-    const allPrescriptions = JSON.parse(localStorage.getItem('prescriptions') || '[]');
-    const patientPrescriptions = allPrescriptions.filter((p: any) => p.patientId === patientId);
-    this.prescriptions = patientPrescriptions.sort((a: any, b: any) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
-    console.log('Direct prescription load:', this.prescriptions);
-  }
-
-  loadLabReportsDirect(patientId: number): void {
-    const allReports = JSON.parse(localStorage.getItem('labReports') || '[]');
-    const patientReports = allReports.filter((r: any) => r.patientId === patientId);
-    this.labReports = patientReports.sort((a: any, b: any) => new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime());
-    console.log('Direct lab report load:', this.labReports);
-  }
-
+  
+  
   // Pharmacy Logic
   searchMeds(q: string) { 
     if (q.length < 2) {

@@ -13,7 +13,8 @@ import { AuthService } from '../../core/auth.service';
 import { NotificationItem, NotificationsApiService } from '../notifications/notifications-api.service';
 import { MedicalRecordsApiService, VitalRecord } from '../medical-records/medical-records-api.service';
 import { DoctorProfileService } from './doctor-profile.service';
-import { Subscription } from 'rxjs';
+import { Subscription, catchError } from 'rxjs';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-doctor-dashboard',
@@ -311,8 +312,9 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       this.loadRecentNotifications(Number(userId));
     }
 
-    this.loadAppointments();
     this.loadAllPatients();
+    // Load appointments after patients are loaded to show proper names
+    setTimeout(() => this.loadAppointments(), 100);
 
     this.subs.add(
       this.activePatient$.subscribe(patient => {
@@ -345,16 +347,25 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
       next: items => {
         this.todayAppointments = items.filter(item => item.appointmentDate === today);
         
-        // Map to Calendar Events
-        const events = items.map(appt => ({
-          id: String(appt.id),
-          title: `Appt: #${appt.patientId}`,
-          start: `${appt.appointmentDate}T${appt.appointmentTime}`,
-          end: `${appt.appointmentDate}T${this.addMinutes(appt.appointmentTime, 30)}`,
-          backgroundColor: appt.status === 'COMPLETED' ? '#0D7E6A' : '#1A3C6E',
-          borderColor: 'transparent',
-          extendedProps: { patientId: appt.patientId }
-        }));
+        // Map to Calendar Events with patient names
+        const events = items.map(appt => {
+          const patient = this.allPatients.find(p => p.id === appt.patientId);
+          const patientName = patient ? `${patient.firstName} ${patient.lastName}` : `Patient #${appt.patientId}`;
+          
+          return {
+            id: String(appt.id),
+            title: `Consultation: ${patientName}`,
+            start: `${appt.appointmentDate}T${appt.appointmentTime}`,
+            end: `${appt.appointmentDate}T${this.addMinutes(appt.appointmentTime, 30)}`,
+            backgroundColor: appt.status === 'COMPLETED' ? '#0D7E6A' : '#1A3C6E',
+            borderColor: 'transparent',
+            extendedProps: { 
+              patientId: appt.patientId,
+              patientName: patientName,
+              status: appt.status
+            }
+          };
+        });
 
         this.calendarOptions = {
           ...this.calendarOptions,
@@ -398,8 +409,34 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadAllPatients(): void {
-    this.patientApi.getAll().subscribe({
-      next: items => this.allPatients = items
+    // Always load from localStorage first for immediate visibility
+    const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    // Combine patient profiles with user accounts
+    const allPatients = patients.map((patient: any) => {
+      const user = users.find((u: any) => u.id === patient.userId);
+      return {
+        ...patient,
+        username: user?.username || '',
+        email: user?.username ? `${user.username}@hms.com` : '',
+        isActive: user?.isActive ?? true,
+        registrationDate: user?.createdAt || patient.createdAt
+      };
+    });
+    
+    this.allPatients = allPatients;
+    
+    // Try API as backup but don't replace localStorage data
+    this.patientApi.getAll().pipe(
+      catchError(() => of([]))
+    ).subscribe({
+      next: (apiPatients: PatientProfile[]) => {
+        // Only use API data if localStorage is empty
+        if (this.allPatients.length === 0 && apiPatients.length > 0) {
+          this.allPatients = apiPatients;
+        }
+      }
     });
   }
 

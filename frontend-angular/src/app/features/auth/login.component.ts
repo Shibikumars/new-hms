@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, Injector } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { PatientContextService } from '../../core/patient-context.service';
 
 @Component({
   selector: 'app-login',
@@ -55,7 +56,7 @@ import { AuthService } from '../../core/auth.service';
         <p id="login-help" class="sr-only">Enter your username and password, then submit the form to access your dashboard.</p>
 
         <div class="form-footer">
-          <p>Don’t have an account? <a routerLink="/auth/register">Create one now</a></p>
+          <p>Don't have an account? <a routerLink="/auth/register">Create one now</a></p>
         </div>
       </section>
     </div>
@@ -174,7 +175,9 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private injector: Injector,
+    private contextService: PatientContextService
   ) {}
 
   submit(): void {
@@ -186,13 +189,37 @@ export class LoginComponent {
         if (response.otpRequired) {
           this.router.navigate(['/auth/verify'], { queryParams: { username: this.form.value.username } });
         } else {
-          const rolePath = this.getRolePath(response.role ?? this.authService.getRole());
+          // Establish patient context if user is a patient
+          const role = response.role ?? this.authService.getRole();
+          if (role === 'PATIENT') {
+            this.establishPatientContext();
+          }
+          const rolePath = this.getRolePath(role);
           this.router.navigate([rolePath]);
         }
       },
       error: () => (this.error = 'Invalid username or password')
     });
   }
+
+  private establishPatientContext(): void {
+    const userId = Number(this.authService.getUserId());
+    if (!userId) return;
+
+    // Check if patient profile exists in localStorage
+    const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+    const patientProfile = patients.find((p: any) => p.userId === userId || p.id === userId);
+    
+    if (patientProfile) {
+      // Set patient context for immediate connectivity
+      this.contextService.setPatient({
+        id: patientProfile.id,
+        name: patientProfile.fullName || `${patientProfile.firstName} ${patientProfile.lastName}`,
+        role: 'PATIENT'
+      });
+    }
+  }
+
 
   private getRolePath(role: string | null): string {
     switch ((role ?? '').toUpperCase()) {

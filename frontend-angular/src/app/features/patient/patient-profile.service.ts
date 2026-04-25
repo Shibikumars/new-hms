@@ -26,23 +26,7 @@ export class PatientProfileService {
   constructor(private http: HttpClient) {}
 
   create(profile: PatientProfile): Observable<PatientProfile> {
-    // Store in localStorage for immediate functionality
-    const existingPatients = JSON.parse(localStorage.getItem('patients') || '[]');
-    const newPatient = {
-      ...profile,
-      id: Date.now(),
-      fullName: `${profile.firstName} ${profile.lastName}`,
-      createdAt: new Date().toISOString()
-    };
-    
-    existingPatients.push(newPatient);
-    localStorage.setItem('patients', JSON.stringify(existingPatients));
-    
-    console.log('Patient profile created successfully:', newPatient);
-    return new Observable(observer => {
-      observer.next(newPatient);
-      observer.complete();
-    });
+    return this.http.post<PatientProfile>(`${environment.apiBaseUrl}/patients/profiles`, profile);
   }
 
   getById(patientId: number): Observable<PatientProfile> {

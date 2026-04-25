@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
-import { Subscription, forkJoin } from 'rxjs';
-import { Medication, PharmacyApiService, Prescription } from './pharmacy-api.service';
-import { AllergyRecord, MedicalRecordsApiService } from '../medical-records/medical-records-api.service';
+import { FormBuilder, ReactiveFormsModule, Validators, FormGroup, FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { PharmacyApiService, Medication, Prescription, PrescriptionItem } from './pharmacy-api.service';
+import { MedicalRecordsApiService, AllergyRecord } from '../medical-records/medical-records-api.service';
 import { PatientContextService } from '../../core/patient-context.service';
 import { AuthService } from '../../core/auth.service';
+import { ToastService } from '../../core/toast.service';
 import { AutocompleteComponent } from '../../shared/components/autocomplete/autocomplete.component';
 import { DataTableComponent, ColumnConfig } from '../../shared/components/data-table/data-table.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
@@ -272,6 +273,7 @@ export class PharmacyComponent implements OnInit, OnDestroy {
   medSuggestions: string[] = [];
 
   issuingPrescription = false;
+  placingOrder = false;
   successMessage = '';
   private sub = new Subscription();
 
@@ -289,13 +291,11 @@ export class PharmacyComponent implements OnInit, OnDestroy {
     private pharmacyApi: PharmacyApiService,
     private medicalApi: MedicalRecordsApiService,
     private contextService: PatientContextService,
-    private auth: AuthService
+    private auth: AuthService,
+    private toast: ToastService
   ) { 
-    // Add form value change debugging
     this.form.valueChanges.subscribe(value => {
-      console.log('Form value changed:', value);
-      console.log('Form valid:', this.form.valid);
-      console.log('Form errors:', this.form.errors);
+      // Form validation updates
     });
   }
 
@@ -336,16 +336,19 @@ export class PharmacyComponent implements OnInit, OnDestroy {
     }));
   }
 
+  private loadClinicalData(patientId: number): void {
+    this.medicalApi.getAllergies(patientId).subscribe(items => this.patientAllergies = items);
+  }
+
   private loadMedications(): void {
-    console.log('Loading medications...');
     this.pharmacyApi.searchMedicationsLocal('').subscribe({
       next: items => {
-        console.log('Medications loaded:', items);
         this.medications = items;
         this.medSuggestions = items.map(m => m.medicationName);
       },
-      error: (err) => {
-        console.error('Error loading medications:', err);
+      error: () => {
+        this.medications = [];
+        this.medSuggestions = [];
       }
     });
   }
@@ -354,68 +357,41 @@ export class PharmacyComponent implements OnInit, OnDestroy {
     this.sub.unsubscribe();
   }
 
-  private loadClinicalData(patientId: number): void {
-    forkJoin({
-      history: this.pharmacyApi.getPatientPrescriptions(patientId),
-      allergies: this.medicalApi.getAllergies(patientId)
-    }).subscribe({
-      next: res => {
-        this.history = res.history.sort((a, b) => (b.id || 0) - (a.id || 0));
-        this.patientAllergies = res.allergies;
-      }
-    });
-  }
-
   onMedicationChange(event: any): void {
-    console.log('onMedicationChange called with:', event.target.value);
     const medicationName = event.target.value;
     
     if (medicationName) {
       const med = this.medications.find(m => m.medicationName === medicationName);
       if (med) {
-        console.log('Found medication:', med);
         this.selectedMedication = med;
         this.form.patchValue({
           medicationName: med.medicationName,
           dose: med.strength || ''
         });
         this.performSafetyCheck(med.medicationName);
-        console.log('Form after change:', this.form.value);
       }
     } else {
       this.selectedMedication = null;
-      this.allergyWarning = null;
-      this.form.patchValue({
-        medicationName: '',
-        dose: ''
-      });
+      this.form.patchValue({ dose: '' });
     }
   }
 
   searchMeds(q: string): void {
-    console.log('searchMeds called with:', q);
     if (q.length < 2) {
       this.medSuggestions = [];
       return;
     }
     this.pharmacyApi.searchMedicationsLocal(q).subscribe({
       next: items => {
-        console.log('Medications found:', items);
         this.medications = items;
         this.medSuggestions = items.map(m => m.medicationName);
-        console.log('Suggestions updated:', this.medSuggestions);
       }
     });
   }
 
   selectMed(name: string): void {
-    console.log('selectMed called with:', name);
-    console.log('Current medications:', this.medications);
-    console.log('Current form value:', this.form.value);
-    
     // If no medications loaded yet, create a default medication object
     if (this.medications.length === 0) {
-      console.log('No medications loaded, creating default');
       this.selectedMedication = {
         medicationName: name,
         strength: '500mg'
@@ -425,13 +401,11 @@ export class PharmacyComponent implements OnInit, OnDestroy {
         dose: '500mg'
       });
       this.performSafetyCheck(name);
-      console.log('Form after default patch:', this.form.value);
       return;
     }
     
     const med = this.medications.find(m => m.medicationName === name);
     if (med) {
-      console.log('Found medication:', med);
       this.selectedMedication = med;
       this.form.patchValue({
         medicationName: med.medicationName,
@@ -439,7 +413,6 @@ export class PharmacyComponent implements OnInit, OnDestroy {
       });
       this.performSafetyCheck(med.medicationName);
     } else {
-      console.log('Medication not found, creating default');
       // Create a default medication if not found in the loaded list
       this.selectedMedication = {
         medicationName: name,
@@ -451,7 +424,6 @@ export class PharmacyComponent implements OnInit, OnDestroy {
       });
       this.performSafetyCheck(name);
     }
-    console.log('Form after selectMed:', this.form.value);
   }
 
   private performSafetyCheck(medName: string): void {
@@ -465,48 +437,37 @@ export class PharmacyComponent implements OnInit, OnDestroy {
   }
 
   issue(): void {
-    console.log('issue() called');
-    console.log('Active patient:', this.activePatient);
-    console.log('Form valid:', !this.form.invalid);
-    console.log('Form value:', this.form.value);
-    console.log('Form errors:', this.form.errors);
-    console.log('Allergy warning:', this.allergyWarning);
-    
     if (!this.activePatient || this.form.invalid || this.allergyWarning) {
-      console.log('Form submission blocked - conditions not met');
       return;
     }
-
-    const formVal = this.form.getRawValue();
+    
+    this.placingOrder = true;
     const payload: Prescription = {
       patientId: Number(this.activePatient.id),
       doctorId: Number(this.auth.getUserId()) || 1,
       items: [{
-        medicationName: formVal.medicationName,
-        dose: formVal.dose,
-        frequency: formVal.frequency,
-        duration: formVal.duration,
-        route: formVal.route,
-        instructions: formVal.instructions
+        medicationName: this.form.value.medicationName || '',
+        dose: this.form.value.dose || '',
+        frequency: this.form.value.frequency || '',
+        duration: this.form.value.duration || '',
+        route: 'ORAL',
+        instructions: this.form.value.instructions || ''
       }],
       status: 'ACTIVE'
     };
-
-    this.issuingPrescription = true;
+    
     this.pharmacyApi.issuePrescription(payload).subscribe({
       next: () => {
-        this.successMessage = `Therapeutic order for ${formVal.medicationName} authorized successfully.`;
-        this.issuingPrescription = false;
+        this.placingOrder = false;
+        this.toast.success('e-Prescription', 'Order signed and routed to pharmacy queue.');
+        this.form.reset();
         this.selectedMedication = null;
         this.allergyWarning = null;
-        this.form.reset({ route: 'ORAL', frequency: 'QD (Once daily)', duration: '7 days' });
-        this.loadHistory();
-        
-        // Medical records will refresh automatically when patient context changes
-        
-        setTimeout(() => this.successMessage = '', 5000);
       },
-      error: () => this.issuingPrescription = false
+      error: () => {
+        this.placingOrder = false;
+        this.toast.error('Error', 'Failed to issue prescription.');
+      }
     });
   }
 

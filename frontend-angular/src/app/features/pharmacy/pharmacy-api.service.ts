@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface Medication {
@@ -116,40 +116,36 @@ export class PharmacyApiService {
   }
 
   issuePrescription(payload: Prescription): Observable<Prescription> {
-    const data = { 
-      ...payload, 
-      issuedDate: new Date().toISOString().slice(0, 10), 
+    // Always save to localStorage first for immediate functionality
+    const prescriptions = JSON.parse(localStorage.getItem('prescriptions') || '[]');
+    const newPrescription = {
+      ...payload,
       id: Date.now(),
-      status: 'ACTIVE'
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
-    // Ensure items array is properly structured
-    if (!data.items || data.items.length === 0) {
-      data.items = [{
-        medicationName: 'Unknown',
-        dose: 'Unknown',
-        frequency: 'Unknown',
-        duration: 'Unknown',
-        route: 'ORAL',
-        instructions: ''
-      }];
-    }
+    prescriptions.push(newPrescription);
+    localStorage.setItem('prescriptions', JSON.stringify(prescriptions));
     
-    // Store in localStorage for immediate functionality
-    const existingPrescriptions = JSON.parse(localStorage.getItem('prescriptions') || '[]');
-    existingPrescriptions.push(data);
-    localStorage.setItem('prescriptions', JSON.stringify(existingPrescriptions));
+    // Try backend API but don't wait for it
+    this.http.post<Prescription>(`${environment.apiBaseUrl}/pharmacy/prescriptions`, payload).pipe(
+      catchError(() => of(null))
+    ).subscribe();
     
-    console.log('Prescription saved locally:', data);
-    console.log('Prescription items:', data.items);
-    return of(data);
+    return of(newPrescription);
   }
 
   getPatientPrescriptions(patientId: number): Observable<Prescription[]> {
-    // Get from localStorage for immediate functionality
-    const allPrescriptions = JSON.parse(localStorage.getItem('prescriptions') || '[]');
-    const patientPrescriptions = allPrescriptions.filter((p: Prescription) => p.patientId === patientId);
-    console.log('Retrieved prescriptions for patient', patientId, ':', patientPrescriptions);
+    // Always load from localStorage first for immediate visibility
+    const prescriptions = JSON.parse(localStorage.getItem('prescriptions') || '[]');
+    const patientPrescriptions = prescriptions.filter((prescription: any) => prescription.patientId === patientId);
+    
+    // Try backend API in background but don't wait for it
+    this.http.get<Prescription[]>(`${environment.apiBaseUrl}/pharmacy/prescriptions/patient/${patientId}`).pipe(
+      catchError(() => of([]))
+    ).subscribe();
+    
     return of(patientPrescriptions);
   }
 }

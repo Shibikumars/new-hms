@@ -9,6 +9,7 @@ import { PharmacyApiService, Prescription } from '../pharmacy/pharmacy-api.servi
 import { LabApiService, LabReport } from '../lab/lab-api.service';
 import { MedicalRecordsApiService, VisitNote } from '../medical-records/medical-records-api.service';
 import { PatientProfileService } from './patient-profile.service';
+import { catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-patient-portal',
@@ -293,32 +294,75 @@ export class PatientPortalComponent implements OnInit {
   }
 
   checkProfile(userId: number): void {
-    this.patientApi.getById(userId).subscribe({
+    // Try API first, fallback to localStorage
+    this.patientApi.getById(userId).pipe(
+      catchError((err) => {
+        // Fallback to localStorage when API fails
+        const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+        const patientProfile = patients.find((p: any) => p.userId === userId);
+        
+        if (!patientProfile || !patientProfile.firstName) {
+          this.showProfilePrompt = true;
+        } else {
+          this.showProfilePrompt = false;
+        }
+        
+        return of(null);
+      })
+    ).subscribe({
       next: (profile: any) => {
-        if (!profile || !profile.firstName) this.showProfilePrompt = true;
-      },
-      error: () => this.showProfilePrompt = true
+        if (profile) {
+          this.showProfilePrompt = !profile.firstName;
+        }
+      }
     });
   }
 
   loadUpcoming(patientId: number): void {
-    this.appointmentApi.listUpcomingByPatientId(patientId).subscribe({
-      next: items => (this.appointments = items),
-      error: () => (this.appointments = [])
+    this.appointmentApi.listUpcomingByPatientId(patientId).pipe(
+      catchError(() => {
+        // Fallback to localStorage
+        const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+        const patientAppointments = appointments.filter((a: any) => a.patientId === patientId);
+        this.appointments = patientAppointments;
+        return of([]);
+      })
+    ).subscribe(items => {
+      if (items && items.length > 0) {
+        this.appointments = items;
+      }
     });
   }
 
   loadPrescriptions(patientId: number): void {
-    this.pharmacyApi.getPatientPrescriptions(patientId).subscribe({
-      next: items => (this.prescriptions = items.filter(p => p.status === 'ACTIVE' || p.status === 'ISSUED')),
-      error: () => (this.prescriptions = [])
+    this.pharmacyApi.getPatientPrescriptions(patientId).pipe(
+      catchError(() => {
+        // Fallback to localStorage
+        const prescriptions = JSON.parse(localStorage.getItem('prescriptions') || '[]');
+        const patientPrescriptions = prescriptions.filter((p: any) => p.patientId === patientId);
+        this.prescriptions = patientPrescriptions.filter((p: any) => p.status === 'ACTIVE' || p.status === 'ISSUED');
+        return of([]);
+      })
+    ).subscribe(items => {
+      if (items && items.length > 0) {
+        this.prescriptions = items.filter(p => p.status === 'ACTIVE' || p.status === 'ISSUED');
+      }
     });
   }
 
   loadLabs(patientId: number): void {
-    this.labApi.getPatientResults(patientId).subscribe({
-      next: items => (this.recentLabs = items.filter(i => i.status !== 'VERIFIED')),
-      error: () => (this.recentLabs = [])
+    this.labApi.getPatientResults(patientId).pipe(
+      catchError(() => {
+        // Fallback to localStorage
+        const labReports = JSON.parse(localStorage.getItem('labReports') || '[]');
+        const patientLabs = labReports.filter((r: any) => r.patientId === patientId);
+        this.recentLabs = patientLabs.filter((i: any) => i.status !== 'VERIFIED');
+        return of([]);
+      })
+    ).subscribe(items => {
+      if (items && items.length > 0) {
+        this.recentLabs = items.filter(i => i.status !== 'VERIFIED');
+      }
     });
   }
 
