@@ -149,12 +149,12 @@ declare var Chart: any;
             <form [formGroup]="orderForm" (ngSubmit)="placeOrder()" class="pane-form">
               <div class="form-group">
                 <label>Investigation Choice</label>
-                <app-autocomplete 
-                  [suggestions]="testSuggestions"
-                  placeholder="e.g. CBC, Lipid Profile, HBA1C..."
-                  (onQuery)="filterTests($event)"
-                  (onSelect)="selectTest($event)">
-                </app-autocomplete>
+                <select formControlName="testId" (change)="onTestChange($event)" class="custom-select">
+                  <option value="0">-- Select Test --</option>
+                  <option *ngFor="let test of tests" [value]="test.id">
+                    {{ test.testName }} - ₹{{ test.price || '500' }}
+                  </option>
+                </select>
               </div>
               <button type="submit" class="ph-btn primary full" [disabled]="orderForm.invalid || placingOrder">
                 {{ placingOrder ? 'Placing...' : 'Submit to Laboratory' }}
@@ -238,6 +238,13 @@ declare var Chart: any;
 
     @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
     .pending-block i { animation: pulse 2s infinite; color: #F59E0B; }
+  
+    .custom-select { 
+      width: 100%; padding: 0.8rem 1rem; border: 1px solid var(--border); 
+      border-radius: var(--radius-sm); background: var(--surface); 
+      font-size: 0.9rem; transition: 0.2s; 
+    }
+    .custom-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
   `]
 })
 export class LabComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -268,7 +275,14 @@ export class LabComponent implements OnInit, OnDestroy, AfterViewInit {
     private labApi: LabApiService,
     private contextService: PatientContextService,
     private auth: AuthService
-  ) {}
+  ) {
+    // Add form value change debugging
+    this.orderForm.valueChanges.subscribe(value => {
+      console.log('Lab form value changed:', value);
+      console.log('Lab form valid:', this.orderForm.valid);
+      console.log('Lab form errors:', this.orderForm.errors);
+    });
+  }
 
   ngOnInit(): void {
     const role = this.auth.getRole()?.toUpperCase();
@@ -278,7 +292,9 @@ export class LabComponent implements OnInit, OnDestroy, AfterViewInit {
        if (userId) this.contextService.setPatient({ id: userId, name: username, role: 'PATIENT' });
     }
 
+    // Load tests immediately on initialization
     this.loadCatalog();
+    
     this.sub.add(this.contextService.activePatient$.subscribe(p => {
       this.activePatient = p;
       if (p) this.loadReports();
@@ -299,24 +315,63 @@ export class LabComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   loadCatalog(): void {
-    this.labApi.getTestsCatalog().subscribe({
+    this.labApi.getTestsCatalogLocal().subscribe({
       next: items => this.tests = items
     });
   }
 
+  onTestChange(event: any): void {
+    console.log('onTestChange called with:', event.target.value);
+    const testId = Number(event.target.value);
+    
+    if (testId > 0) {
+      const test = this.tests.find(t => t.id === testId);
+      if (test) {
+        console.log('Found test:', test);
+        console.log('Form after change:', this.orderForm.value);
+        console.log('Form valid:', this.orderForm.valid);
+        console.log('Form errors:', this.orderForm.errors);
+      }
+    } else {
+      console.log('No test selected');
+    }
+  }
+
   filterTests(q: string): void {
+    console.log('filterTests called with:', q);
+    console.log('Available tests:', this.tests);
     this.testSuggestions = this.tests
       .filter(t => t.testName.toLowerCase().includes(q.toLowerCase()))
       .map(t => t.testName);
+    console.log('Test suggestions updated:', this.testSuggestions);
   }
 
   selectTest(name: string): void {
+    console.log('selectTest called with:', name);
     const test = this.tests.find(t => t.testName === name);
-    if (test) this.orderForm.patchValue({ testId: test.id! });
+    if (test) {
+      console.log('Found test:', test);
+      this.orderForm.patchValue({ testId: test.id! });
+      console.log('Form after patch:', this.orderForm.value);
+      console.log('Form valid:', this.orderForm.valid);
+      console.log('Form errors:', this.orderForm.errors);
+    } else {
+      console.log('Test not found for:', name);
+    }
   }
 
   placeOrder(): void {
-    if (!this.activePatient || this.orderForm.invalid) return;
+    console.log('placeOrder called');
+    console.log('Active patient:', this.activePatient);
+    console.log('Form valid:', !this.orderForm.invalid);
+    console.log('Form value:', this.orderForm.value);
+    console.log('Form errors:', this.orderForm.errors);
+    
+    if (!this.activePatient || this.orderForm.invalid) {
+      console.log('Order submission blocked');
+      return;
+    }
+    
     this.placingOrder = true;
     this.labApi.placeOrder({
       patientId: Number(this.activePatient.id),
@@ -324,11 +379,17 @@ export class LabComponent implements OnInit, OnDestroy, AfterViewInit {
       testId: Number(this.orderForm.controls.testId.value)
     }).subscribe({
       next: () => {
+        console.log('Order placed successfully');
         this.placingOrder = false;
         this.showNewOrder = false;
         this.loadReports();
+        
+        // Medical records will refresh automatically when patient context changes
       },
-      error: () => this.placingOrder = false
+      error: (err) => {
+        console.log('Order placement error:', err);
+        this.placingOrder = false;
+      }
     });
   }
 

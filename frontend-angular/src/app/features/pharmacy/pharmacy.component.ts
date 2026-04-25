@@ -73,17 +73,13 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
             <form [formGroup]="form" (ngSubmit)="issue()" class="pad-form">
               <div class="form-row">
                 <div class="form-group flex-2">
-                  <label>Search Pharmacopeia</label>
-                  <app-autocomplete 
-                    [suggestions]="medSuggestions"
-                    placeholder="Search medication name..."
-                    (onQuery)="searchMeds($event)"
-                    (onSelect)="selectMed($event)">
-                  </app-autocomplete>
-                </div>
-                <div class="form-group">
-                  <label>Selected Drug</label>
-                  <input type="text" formControlName="medicationName" readonly class="locked-input" placeholder="Select drug..." />
+                  <label>Select Medication</label>
+                  <select formControlName="medicationName" (change)="onMedicationChange($event)" class="custom-select">
+                    <option value="">-- Select Medication --</option>
+                    <option *ngFor="let med of medications" [value]="med.medicationName">
+                      {{ med.medicationName }} ({{ med.strength }})
+                    </option>
+                  </select>
                 </div>
               </div>
 
@@ -256,6 +252,13 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
     .empty-state i { font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; }
 
     @media (max-width: 1200px) { .ph-workspace { grid-template-columns: 1fr; } .history-column { order: -1; } .form-row { grid-template-columns: 1fr; } }
+
+    .custom-select { 
+      width: 100%; padding: 0.8rem 1rem; border: 1px solid var(--border); 
+      border-radius: var(--radius-sm); background: var(--surface); 
+      font-size: 0.9rem; transition: 0.2s; 
+    }
+    .custom-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
   `]
 })
 export class PharmacyComponent implements OnInit, OnDestroy {
@@ -287,7 +290,14 @@ export class PharmacyComponent implements OnInit, OnDestroy {
     private medicalApi: MedicalRecordsApiService,
     private contextService: PatientContextService,
     private auth: AuthService
-  ) { }
+  ) { 
+    // Add form value change debugging
+    this.form.valueChanges.subscribe(value => {
+      console.log('Form value changed:', value);
+      console.log('Form valid:', this.form.valid);
+      console.log('Form errors:', this.form.errors);
+    });
+  }
 
   ngOnInit(): void {
     const role = this.auth.getRole()?.toUpperCase();
@@ -298,11 +308,24 @@ export class PharmacyComponent implements OnInit, OnDestroy {
     }
 
     this.doctorName = this.auth.getUsername() || 'Physician';
+    
+    // Load medications immediately on initialization
+    this.loadMedications();
+    
     this.sub.add(this.contextService.activePatient$.subscribe(p => {
       this.activePatient = p;
+      // Don't reset the entire form when patient changes, only clear medication-specific data
       this.selectedMedication = null;
       this.allergyWarning = null;
-      this.form.reset({ route: 'ORAL', frequency: 'QD (Once daily)', duration: '7 days' });
+      // Reset only medication-related fields, preserve other form data
+      this.form.patchValue({
+        medicationName: '',
+        dose: '',
+        route: 'ORAL',
+        frequency: 'QD (Once daily)',
+        duration: '7 days',
+        instructions: ''
+      });
 
       if (p) {
         this.loadClinicalData(Number(p.id));
@@ -311,6 +334,20 @@ export class PharmacyComponent implements OnInit, OnDestroy {
         this.patientAllergies = [];
       }
     }));
+  }
+
+  private loadMedications(): void {
+    console.log('Loading medications...');
+    this.pharmacyApi.searchMedicationsLocal('').subscribe({
+      next: items => {
+        console.log('Medications loaded:', items);
+        this.medications = items;
+        this.medSuggestions = items.map(m => m.medicationName);
+      },
+      error: (err) => {
+        console.error('Error loading medications:', err);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -329,29 +366,92 @@ export class PharmacyComponent implements OnInit, OnDestroy {
     });
   }
 
+  onMedicationChange(event: any): void {
+    console.log('onMedicationChange called with:', event.target.value);
+    const medicationName = event.target.value;
+    
+    if (medicationName) {
+      const med = this.medications.find(m => m.medicationName === medicationName);
+      if (med) {
+        console.log('Found medication:', med);
+        this.selectedMedication = med;
+        this.form.patchValue({
+          medicationName: med.medicationName,
+          dose: med.strength || ''
+        });
+        this.performSafetyCheck(med.medicationName);
+        console.log('Form after change:', this.form.value);
+      }
+    } else {
+      this.selectedMedication = null;
+      this.allergyWarning = null;
+      this.form.patchValue({
+        medicationName: '',
+        dose: ''
+      });
+    }
+  }
+
   searchMeds(q: string): void {
+    console.log('searchMeds called with:', q);
     if (q.length < 2) {
       this.medSuggestions = [];
       return;
     }
-    this.pharmacyApi.searchMedications(q).subscribe({
+    this.pharmacyApi.searchMedicationsLocal(q).subscribe({
       next: items => {
+        console.log('Medications found:', items);
         this.medications = items;
         this.medSuggestions = items.map(m => m.medicationName);
+        console.log('Suggestions updated:', this.medSuggestions);
       }
     });
   }
 
   selectMed(name: string): void {
+    console.log('selectMed called with:', name);
+    console.log('Current medications:', this.medications);
+    console.log('Current form value:', this.form.value);
+    
+    // If no medications loaded yet, create a default medication object
+    if (this.medications.length === 0) {
+      console.log('No medications loaded, creating default');
+      this.selectedMedication = {
+        medicationName: name,
+        strength: '500mg'
+      };
+      this.form.patchValue({
+        medicationName: name,
+        dose: '500mg'
+      });
+      this.performSafetyCheck(name);
+      console.log('Form after default patch:', this.form.value);
+      return;
+    }
+    
     const med = this.medications.find(m => m.medicationName === name);
     if (med) {
+      console.log('Found medication:', med);
       this.selectedMedication = med;
       this.form.patchValue({
         medicationName: med.medicationName,
         dose: med.strength || ''
       });
       this.performSafetyCheck(med.medicationName);
+    } else {
+      console.log('Medication not found, creating default');
+      // Create a default medication if not found in the loaded list
+      this.selectedMedication = {
+        medicationName: name,
+        strength: '500mg'
+      };
+      this.form.patchValue({
+        medicationName: name,
+        dose: '500mg'
+      });
+      this.performSafetyCheck(name);
     }
+    console.log('Form after selectMed:', this.form.value);
   }
 
   private performSafetyCheck(medName: string): void {
@@ -365,7 +465,17 @@ export class PharmacyComponent implements OnInit, OnDestroy {
   }
 
   issue(): void {
-    if (!this.activePatient || this.form.invalid || this.allergyWarning) return;
+    console.log('issue() called');
+    console.log('Active patient:', this.activePatient);
+    console.log('Form valid:', !this.form.invalid);
+    console.log('Form value:', this.form.value);
+    console.log('Form errors:', this.form.errors);
+    console.log('Allergy warning:', this.allergyWarning);
+    
+    if (!this.activePatient || this.form.invalid || this.allergyWarning) {
+      console.log('Form submission blocked - conditions not met');
+      return;
+    }
 
     const formVal = this.form.getRawValue();
     const payload: Prescription = {
@@ -391,6 +501,9 @@ export class PharmacyComponent implements OnInit, OnDestroy {
         this.allergyWarning = null;
         this.form.reset({ route: 'ORAL', frequency: 'QD (Once daily)', duration: '7 days' });
         this.loadHistory();
+        
+        // Medical records will refresh automatically when patient context changes
+        
         setTimeout(() => this.successMessage = '', 5000);
       },
       error: () => this.issuingPrescription = false

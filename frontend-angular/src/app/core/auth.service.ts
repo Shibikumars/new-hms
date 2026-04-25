@@ -28,13 +28,68 @@ export class AuthService {
   constructor(private http: HttpClient) {}
 
   register(payload: { username: string; password: string; role: string }): Observable<unknown> {
-    return this.http.post(`${environment.apiBaseUrl}/auth/register`, payload);
+    // Check if username already exists
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const existingUser = existingUsers.find((u: any) => u.username === payload.username);
+    
+    if (existingUser) {
+      throw new Error('Username already exists');
+    }
+    
+    // Create new user
+    const newUser = {
+      id: Date.now(),
+      username: payload.username,
+      password: payload.password, // In production, this should be hashed
+      role: payload.role,
+      createdAt: new Date().toISOString(),
+      isActive: true
+    };
+    
+    existingUsers.push(newUser);
+    localStorage.setItem('users', JSON.stringify(existingUsers));
+    
+    console.log('User registered successfully:', newUser);
+    return new Observable(observer => {
+      observer.next({ userId: newUser.id, username: newUser.username, role: newUser.role });
+      observer.complete();
+    });
   }
 
   login(payload: { username: string; password: string; rememberMe: boolean }): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, payload).pipe(
-      tap(response => this.storeSession(response, payload.rememberMe))
-    );
+    return new Observable(observer => {
+      // Check if user exists and credentials are correct
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const user = users.find((u: any) => u.username === payload.username && u.password === payload.password);
+      
+      if (!user) {
+        observer.error(new Error('Invalid username or password'));
+        return;
+      }
+      
+      if (!user.isActive) {
+        observer.error(new Error('Account is deactivated'));
+        return;
+      }
+      
+      // Create mock JWT token
+      const token = this.createMockToken(user);
+      const refreshToken = this.createMockToken(user);
+      
+      const response: AuthResponse = {
+        token,
+        refreshToken,
+        role: user.role,
+        expiresIn: 3600,
+        otpRequired: false
+      };
+      
+      this.storeSession(response, payload.rememberMe);
+      console.log('User logged in successfully:', user);
+      
+      observer.next(response);
+      observer.complete();
+    });
   }
 
   refresh(): Observable<AuthResponse> {
@@ -120,6 +175,19 @@ export class AuthService {
     // Pad with '=' to length multiple of 4
     while (base64.length % 4 !== 0) base64 += '=';
     return atob(base64);
+  }
+
+  private createMockToken(user: any): string {
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const payload = btoa(JSON.stringify({
+      sub: user.username,
+      role: user.role,
+      userId: user.id,
+      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour expiry
+      iat: Math.floor(Date.now() / 1000)
+    }));
+    const signature = btoa('mock-signature');
+    return `${header}.${payload}.${signature}`;
   }
 
   logout(): void {

@@ -92,28 +92,25 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'ph
 
       <div class="emr-shell" *ngIf="activePatient">
         <aside class="emr-sidebar">
-          <button (click)="activeTab = 'history'" [class.active]="activeTab === 'history'">
-            <i class="ph ph-clock-counter-clockwise"></i> Visit History
-          </button>
-          <button (click)="activeTab = 'vitals'" [class.active]="activeTab === 'vitals'">
-            <i class="ph ph-heartbeat"></i> Vitals & Trends
-          </button>
-          <button (click)="activeTab = 'note'" [class.active]="activeTab === 'note'">
-            <i class="ph ph-note-pencil"></i> New SOAP Note
-          </button>
-          <button (click)="activeTab = 'allergies'" [class.active]="activeTab === 'allergies'">
-            <i class="ph ph-warning-circle"></i> Allergies
-          </button>
-          <button (click)="activeTab = 'problems'" [class.active]="activeTab === 'problems'">
-            <i class="ph ph-list-checks"></i> Problem List
-          </button>
-          <button (click)="activeTab = 'pharmacy'" [class.active]="activeTab === 'pharmacy'">
-            <i class="ph ph-prescription"></i> E-Prescribe
-          </button>
-          <button (click)="activeTab = 'lab'" [class.active]="activeTab === 'lab'">
-            <i class="ph ph-test-tube"></i> Order Labs
-          </button>
-        </aside>
+              <button [class.active]="activeTab === 'history'" (click)="onTabChange('history')">
+                <i class="ph ph-clock-clockwise"></i> Clinical Timeline
+              </button>
+              <button [class.active]="activeTab === 'vitals'" (click)="onTabChange('vitals')">
+                <i class="ph ph-activity"></i> Vitals
+              </button>
+              <button [class.active]="activeTab === 'note'" (click)="onTabChange('note')">
+                <i class="ph ph-note-pencil"></i> SOAP Note
+              </button>
+              <button [class.active]="activeTab === 'allergies'" (click)="onTabChange('allergies')">
+                <i class="ph ph-warning-octagon"></i> Allergies
+              </button>
+              <button [class.active]="activeTab === 'pharmacy'" (click)="onTabChange('pharmacy')">
+                <i class="ph ph-first-aid-kit"></i> E-Prescribe
+              </button>
+              <button [class.active]="activeTab === 'lab'" (click)="onTabChange('lab')">
+                <i class="ph ph-flask"></i> Lab Orders
+              </button>
+            </aside>
 
         <main class="emr-main">
           <!-- History Tab -->
@@ -127,24 +124,38 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'ph
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Diagnosis</th>
-                    <th>Findings</th>
-                    <th>Actions</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
+                  <!-- Visits -->
                   <tr *ngFor="let v of visits">
                     <td>{{ v.visitDate }}</td>
-                    <td><span class="badge neutral">{{ v.diagnosisCode }}</span></td>
+                    <td><span class="badge blue">Visit</span></td>
                     <td>{{ v.assessment | slice:0:60 }}...</td>
-                    <td>
-                      <button class="ph-btn sm secondary" (click)="downloadSummary(v.id!)">
-                        <i class="ph ph-file-pdf"></i> PDF
-                      </button>
-                    </td>
+                    <td><span class="badge neutral">Completed</span></td>
                   </tr>
-                  <tr *ngIf="visits.length === 0">
-                    <td colspan="4" class="text-center">No visits found.</td>
+                  
+                  <!-- Prescriptions -->
+                  <tr *ngFor="let p of prescriptions">
+                    <td>{{ p.issuedDate }}</td>
+                    <td><span class="badge green">Prescription</span></td>
+                    <td>{{ p.items[0]?.medicationName }} - {{ p.items[0]?.dose }} {{ p.items[0]?.frequency }}</td>
+                    <td><span class="badge success">Active</span></td>
+                  </tr>
+                  
+                  <!-- Lab Reports -->
+                  <tr *ngFor="let r of labReports">
+                    <td>{{ r.reportDate }}</td>
+                    <td><span class="badge orange">Lab Report</span></td>
+                    <td>{{ getTestName(r.testId) }} - {{ r.status }}</td>
+                    <td><span class="badge warning">{{ r.status }}</span></td>
+                  </tr>
+                  
+                  <tr *ngIf="visits.length === 0 && prescriptions.length === 0 && labReports.length === 0">
+                    <td colspan="4" class="text-center">No clinical records found.</td>
                   </tr>
                 </tbody>
               </table>
@@ -256,6 +267,37 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'ph
                   <button class="ph-btn primary xl" (click)="issuePrescription()" [disabled]="currentPrescItems.length === 0">Sign & Route to Pharmacy</button>
                </div>
             </div>
+            
+            <!-- Prescription History -->
+            <div class="prescription-history mt-4">
+               <div class="pane-header">
+                  <h4>Prescription History</h4>
+                  <button class="ph-btn sm" (click)="loadRecords()"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+               </div>
+               <div class="history-list card">
+                  <!-- Debug info -->
+                  <div style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; border-radius: 5px;">
+                     Debug: Prescriptions count = {{ prescriptions.length }}
+                     <br>
+                     Raw data: {{ prescriptions | json }}
+                  </div>
+                  <div class="history-item" *ngFor="let p of prescriptions" style="background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                     <div style="font-weight: bold; color: #333; margin-bottom: 10px;">
+                        Prescription Date: {{ p.issuedDate }}
+                     </div>
+                     <div style="color: #666; font-size: 14px;">
+                        <div *ngFor="let item of p.items">
+                           <strong>{{ item.medicationName }}</strong> - {{ item.dose }} - {{ item.frequency }} - {{ item.duration }}
+                           <div *ngIf="item.route">Route: {{ item.route }}</div>
+                           <div *ngIf="item.instructions">Instructions: {{ item.instructions }}</div>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="empty-history" *ngIf="prescriptions.length === 0" style="text-align: center; padding: 20px; color: #666;">
+                     No prescriptions found for this patient.
+                  </div>
+               </div>
+            </div>
           </div>
 
           <!-- Lab Tab -->
@@ -273,6 +315,38 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'ph
                         <span>{{ test.loincCode || 'Diagnostic' }} • ₹{{ test.price }}</span>
                      </div>
                      <i class="ph ph-plus-circle"></i>
+                  </div>
+               </div>
+            </div>
+            
+            <!-- Lab Order History -->
+            <div class="lab-history mt-4">
+               <div class="pane-header">
+                  <h4>Lab Order History</h4>
+                  <button class="ph-btn sm" (click)="loadRecords()"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+               </div>
+               <div class="history-list card">
+                  <!-- Debug info -->
+                  <div style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; border-radius: 5px;">
+                     Debug: Lab reports count = {{ labReports.length }}
+                     <br>
+                     Raw data: {{ labReports | json }}
+                  </div>
+                  <div class="history-item" *ngFor="let r of labReports" style="background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                     <div style="font-weight: bold; color: #333; margin-bottom: 10px;">
+                        Lab Report Date: {{ r.reportDate }}
+                     </div>
+                     <div style="color: #666; font-size: 14px;">
+                        <div><strong>Test:</strong> {{ getTestName(r.testId) }}</div>
+                        <div><strong>Test ID:</strong> {{ r.testId }}</div>
+                        <div><strong>Status:</strong> {{ r.status }}</div>
+                        <div *ngIf="r.verificationStatus"><strong>Verification:</strong> {{ r.verificationStatus }}</div>
+                        <div *ngIf="r.result"><strong>Result:</strong> {{ r.result }}</div>
+                        <div *ngIf="r.numericResult"><strong>Numeric Result:</strong> {{ r.numericResult }}</div>
+                     </div>
+                  </div>
+                  <div class="empty-history" *ngIf="labReports.length === 0" style="text-align: center; padding: 20px; color: #666;">
+                     No lab orders found for this patient.
                   </div>
                </div>
             </div>
@@ -325,6 +399,14 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'ph
     .ph-btn.secondary { background: #F1F5F9; color: #475569; }
     .ph-btn.xl { width: 100%; justify-content: center; padding: 1.25rem; font-size: 1.1rem; }
 
+    .ph-badge { padding: 0.2rem 0.6rem; font-size: 0.75rem; font-weight: 600; border-radius: 12px; }
+    .badge.neutral { background: #F1F5F9; color: #475569; }
+    .badge.success { background: #10B981; color: white; }
+    .badge.warning { background: #F59E0B; color: white; }
+    .badge.blue { background: #3B82F6; color: white; }
+    .badge.green { background: #10B981; color: white; }
+    .badge.orange { background: #F97316; color: white; }
+
     /* Pharmacy & Lab Workspace Styles */
     .mt-1 { margin-top: 1rem; }
     .mt-2 { margin-top: 2rem; }
@@ -343,6 +425,92 @@ type RecordsTab = 'history' | 'note' | 'vitals' | 'allergies' | 'problems' | 'ph
     .test-info span { font-size: 0.75rem; color: #64748B; font-weight: 700; }
 
     @keyframes slideInDown { from { transform: translateY(-50PX); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    /* History Section Styles */
+    .prescription-history, .lab-history { margin-top: 2rem; }
+    .history-list { padding: 1rem; }
+    .history-item { 
+      padding: 1.5rem; 
+      border-bottom: 1px solid #E2E8F0; 
+      margin-bottom: 1rem; 
+      border-radius: 12px; 
+      background: #F8FAFC; 
+    }
+    .history-item:last-child { border-bottom: none; margin-bottom: 0; }
+    .history-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 1rem; 
+    }
+    .history-header .date { 
+      font-weight: 700; 
+      color: #1E293B; 
+      font-size: 0.9rem; 
+    }
+    .history-content { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 0.5rem; 
+    }
+    .med-info { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 0.25rem; 
+    }
+    .med-info strong { 
+      color: #1E293B; 
+      font-size: 1rem; 
+    }
+    .dosage { 
+      color: #64748B; 
+      font-size: 0.85rem; 
+      font-weight: 600; 
+    }
+    .route-info, .verification-status { 
+      color: #64748B; 
+      font-size: 0.85rem; 
+      font-weight: 600; 
+    }
+    .instructions { 
+      color: #1E293B; 
+      font-size: 0.85rem; 
+      font-style: italic; 
+      padding: 0.5rem; 
+      background: #fff; 
+      border-radius: 8px; 
+      border-left: 3px solid #6366f1; 
+    }
+    .test-info { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 0.25rem; 
+    }
+    .test-info strong { 
+      color: #1E293B; 
+      font-size: 1rem; 
+    }
+    .test-details { 
+      color: #64748B; 
+      font-size: 0.85rem; 
+      font-weight: 600; 
+    }
+    .result-info { 
+      color: #1E293B; 
+      font-size: 0.85rem; 
+      font-weight: 700; 
+      padding: 0.5rem; 
+      background: #fff; 
+      border-radius: 8px; 
+      border-left: 3px solid #10B981; 
+    }
+    .empty-history { 
+      text-align: center; 
+      padding: 3rem; 
+      color: #64748B; 
+      font-weight: 600; 
+      font-style: italic; 
+    }
   `]
 })
 export class MedicalRecordsComponent implements OnInit, OnDestroy {
@@ -366,6 +534,8 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
   medSuggestions: string[] = [];
   currentPrescItems: PrescriptionItem[] = [];
   labCatalog: LabTest[] = [];
+  prescriptions: Prescription[] = [];
+  labReports: LabReport[] = [];
 
   readonly visitColumns: ColumnConfig[] = [
     { key: 'visitDate', label: 'Date' },
@@ -442,6 +612,10 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
        this.latestVitals = items[items.length - 1] || null;
        if (this.activeTab === 'vitals') this.renderChart();
     });
+    
+    // Load prescriptions and lab reports with direct localStorage access
+    this.loadPrescriptionsDirect(pId);
+    this.loadLabReportsDirect(pId);
   }
 
   get allergySummary(): string {
@@ -494,7 +668,13 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
      });
   }
 
-  searchIcd(q: string) { this.medicalApi.searchIcd(q).subscribe(s => this.icdSuggestions = s); }
+  searchIcd(q: string) { 
+    if (q.length < 2) {
+      this.icdSuggestions = [];
+      return;
+    }
+    this.medicalApi.searchIcdLocal(q).subscribe(s => this.icdSuggestions = s); 
+  }
   selectIcd(c: string) { this.visitForm.patchValue({ diagnosisCode: c }); }
   
   createVisit(): void {
@@ -514,9 +694,50 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
   }
 
   private toastSuccess(m: string) { this.successMessage = m; this.toast.success('Clinical Entry', m); }
+
+  getTestName(testId: number): string {
+    const test = this.labCatalog.find(t => t.id === testId);
+    return test ? test.testName : `Test ID: ${testId}`;
+  }
   
+  // Tab change detection to ensure data loads
+  onTabChange(tab: RecordsTab): void {
+    this.activeTab = tab;
+    console.log('Tab changed to:', tab);
+    
+    // Force data refresh when switching to pharmacy or lab tabs
+    if (tab === 'pharmacy' || tab === 'lab') {
+      console.log('Loading data for tab:', tab);
+      if (this.activePatient) {
+        this.loadPrescriptionsDirect(Number(this.activePatient.id));
+        this.loadLabReportsDirect(Number(this.activePatient.id));
+      }
+    }
+  }
+
+  // Direct loading methods
+  loadPrescriptionsDirect(patientId: number): void {
+    const allPrescriptions = JSON.parse(localStorage.getItem('prescriptions') || '[]');
+    const patientPrescriptions = allPrescriptions.filter((p: any) => p.patientId === patientId);
+    this.prescriptions = patientPrescriptions.sort((a: any, b: any) => new Date(b.issuedDate).getTime() - new Date(a.issuedDate).getTime());
+    console.log('Direct prescription load:', this.prescriptions);
+  }
+
+  loadLabReportsDirect(patientId: number): void {
+    const allReports = JSON.parse(localStorage.getItem('labReports') || '[]');
+    const patientReports = allReports.filter((r: any) => r.patientId === patientId);
+    this.labReports = patientReports.sort((a: any, b: any) => new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime());
+    console.log('Direct lab report load:', this.labReports);
+  }
+
   // Pharmacy Logic
-  searchMeds(q: string) { this.pharmacyApi.searchMedications(q).subscribe(ms => this.medSuggestions = ms.map(m => m.medicationName)); }
+  searchMeds(q: string) { 
+    if (q.length < 2) {
+      this.medSuggestions = [];
+      return;
+    }
+    this.pharmacyApi.searchMedicationsLocal(q).subscribe(ms => this.medSuggestions = ms.map(m => m.medicationName)); 
+  }
   addMedToPrescription(name: string) {
      this.currentPrescItems.push({ medicationName: name, dose: '500mg', frequency: '1-0-1', duration: '5 Days' });
   }
@@ -536,7 +757,7 @@ export class MedicalRecordsComponent implements OnInit, OnDestroy {
   }
 
   // Lab Logic
-  loadLabCatalog() { this.labApi.getTestsCatalog().subscribe(c => this.labCatalog = c); }
+  loadLabCatalog() { this.labApi.getTestsCatalogLocal().subscribe(c => this.labCatalog = c); }
   placeLabOrder(test: LabTest) {
      if (!this.activePatient) return;
      const payload: LabOrder = {

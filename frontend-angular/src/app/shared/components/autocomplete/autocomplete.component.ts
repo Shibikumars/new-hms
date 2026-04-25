@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
@@ -31,15 +31,21 @@ export interface AutocompleteItem {
         <i *ngIf="!loading && query" class="ph ph-x clear-btn icon-suffix" (click)="clear()"></i>
       </div>
 
-      <div class="dropdown-pane custom-scroll" *ngIf="showDropdown && (results.length > 0 || noResults)">
-        <ul *ngIf="results.length > 0; else emptyState">
-          <li *ngFor="let item of results" (mousedown)="selectItem(item)">
+      <div class="dropdown-pane custom-scroll" *ngIf="showDropdown && ((results.length > 0 || suggestions.length > 0) || noResults)">
+        <ul *ngIf="results.length > 0 || suggestions.length > 0; else emptyState">
+          <!-- Handle AutocompleteItem results -->
+          <li *ngFor="let item of results" (click)="selectItem(item)">
             <div class="item-label">{{ item.label }}</div>
             <div class="item-meta" *ngIf="item.subLabel">{{ item.subLabel }}</div>
           </li>
+          <!-- Handle string suggestions -->
+          <li *ngFor="let suggestion of suggestions" (click)="selectSuggestion(suggestion)">
+            <div class="item-label">{{ suggestion }}</div>
+          </li>
         </ul>
         <ng-template #emptyState>
-          <div class="empty-state">No matching results found.</div>
+          <div class="empty-state" *ngIf="query.length >= 2">No matching results found.</div>
+          <div class="empty-state" *ngIf="query.length < 2">Type at least 2 characters to search...</div>
         </ng-template>
       </div>
     </div>
@@ -90,14 +96,15 @@ export interface AutocompleteItem {
     @keyframes spin { 100% { transform: rotate(360deg); } }
   `]
 })
-export class AutocompleteComponent implements OnInit, OnDestroy {
+export class AutocompleteComponent implements OnInit, OnDestroy, OnChanges {
   @Input() placeholder = 'Search...';
   @Input() results: AutocompleteItem[] = [];
+  @Input() suggestions: string[] = []; // Add string suggestions input
   @Input() loading = false;
   @Input() disabled = false;
   
   @Output() search = new EventEmitter<string>();
-  @Output() selected = new EventEmitter<AutocompleteItem>();
+  @Output() selected = new EventEmitter<any>(); // Changed to emit any type
 
   query = '';
   showDropdown = false;
@@ -112,12 +119,15 @@ export class AutocompleteComponent implements OnInit, OnDestroy {
         debounceTime(300),
         distinctUntilChanged()
       ).subscribe(val => {
+        console.log('Search subscription triggered with:', val);
         if (val.length >= 2) {
+          console.log('Emitting search event from subscription:', val);
           this.search.emit(val);
-          this.noResults = this.results.length === 0 && !this.loading;
+          // Don't immediately set noResults, wait for results to update
         } else {
           this.results = [];
           this.noResults = false;
+          this.showDropdown = false;
         }
       })
     );
@@ -127,8 +137,22 @@ export class AutocompleteComponent implements OnInit, OnDestroy {
     this.sub.unsubscribe();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['results'] || changes['suggestions']) {
+      // Update noResults state when results or suggestions change
+      const hasResults = this.results.length > 0 || this.suggestions.length > 0;
+      this.noResults = this.query.length >= 2 && !hasResults && !this.loading;
+      this.showDropdown = this.query.length >= 2 && !this.loading;
+    }
+    if (changes['loading']) {
+      this.showDropdown = this.query.length >= 2 && !this.loading;
+    }
+  }
+
   onInput() {
+    console.log('onInput called with query:', this.query);
     this.showDropdown = true;
+    console.log('Emitting search event with:', this.query);
     this.searchSubject.next(this.query);
   }
 
@@ -139,8 +163,10 @@ export class AutocompleteComponent implements OnInit, OnDestroy {
   }
 
   onBlur() {
-    // using mousedown on list items circumvents blur firing before selectItem
-    this.showDropdown = false;
+    // Delay hiding dropdown to allow click events to fire
+    setTimeout(() => {
+      this.showDropdown = false;
+    }, 200);
   }
 
   clear() {
@@ -155,5 +181,13 @@ export class AutocompleteComponent implements OnInit, OnDestroy {
     this.query = item.label;
     this.showDropdown = false;
     this.selected.emit(item);
+  }
+
+  selectSuggestion(suggestion: string) {
+    console.log('selectSuggestion called with:', suggestion);
+    this.query = suggestion;
+    this.showDropdown = false;
+    console.log('Emitting selected event with:', suggestion);
+    this.selected.emit(suggestion);
   }
 }

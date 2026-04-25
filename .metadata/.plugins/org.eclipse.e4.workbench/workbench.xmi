@@ -2,7 +2,7 @@
 <application:Application xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:advanced="http://www.eclipse.org/ui/2010/UIModel/application/ui/advanced" xmlns:application="http://www.eclipse.org/ui/2010/UIModel/application" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/ui/basic" xmlns:menu="http://www.eclipse.org/ui/2010/UIModel/application/ui/menu" xmi:id="_JMED0UCVEfGi4Ntqr_Pp9g" elementId="org.eclipse.e4.legacy.ide.application" contributorURI="platform:/plugin/org.eclipse.platform" selectedElement="_JMED0kCVEfGi4Ntqr_Pp9g" bindingContexts="_JMFR9UCVEfGi4Ntqr_Pp9g">
   <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;workbench>&#xD;&#xA;&lt;mruList>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;GlobalExceptionHandlerTest.java&quot; tooltip=&quot;auth-service/src/test/java/com/hms/auth/exception/GlobalExceptionHandlerTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/auth-service/src/test/java/com/hms/auth/exception/GlobalExceptionHandlerTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;AuthServiceRefreshRepositoryTest.java&quot; tooltip=&quot;auth-service/src/test/java/com/hms/auth/service/AuthServiceRefreshRepositoryTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/auth-service/src/test/java/com/hms/auth/service/AuthServiceRefreshRepositoryTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;DataInitializerTest.java&quot; tooltip=&quot;auth-service/src/test/java/com/hms/auth/config/DataInitializerTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/auth-service/src/test/java/com/hms/auth/config/DataInitializerTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;RefreshTokenSessionTest.java&quot; tooltip=&quot;auth-service/src/test/java/com/hms/auth/entity/RefreshTokenSessionTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/auth-service/src/test/java/com/hms/auth/entity/RefreshTokenSessionTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;RateLimiterConfigTest.java&quot; tooltip=&quot;api-gateway/src/test/java/com/hms/gateway/config/RateLimiterConfigTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/api-gateway/src/test/java/com/hms/gateway/config/RateLimiterConfigTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;HomeControllerTest.java&quot; tooltip=&quot;api-gateway/src/test/java/com/hms/gateway/controller/HomeControllerTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/api-gateway/src/test/java/com/hms/gateway/controller/HomeControllerTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;MedicalRecordsControllerTest.java&quot; tooltip=&quot;medical-records-service/src/test/java/com/hms/records/controller/MedicalRecordsControllerTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/medical-records-service/src/test/java/com/hms/records/controller/MedicalRecordsControllerTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;ReminderServiceTest.java&quot; tooltip=&quot;notification-service/src/test/java/com/hms/notification/service/ReminderServiceTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/notification-service/src/test/java/com/hms/notification/service/ReminderServiceTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;EscalationAutomationSchedulerTest.java&quot; tooltip=&quot;notification-service/src/test/java/com/hms/notification/service/EscalationAutomationSchedulerTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/notification-service/src/test/java/com/hms/notification/service/EscalationAutomationSchedulerTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;ReportingServiceTest.java&quot; tooltip=&quot;reporting-service/src/test/java/com/hms/reporting/service/ReportingServiceTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/reporting-service/src/test/java/com/hms/reporting/service/ReportingServiceTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;QueueServiceTest.java&quot; tooltip=&quot;queue-service/src/test/java/com/hms/queue/service/QueueServiceTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/queue-service/src/test/java/com/hms/queue/service/QueueServiceTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;PharmacyServiceTest.java&quot; tooltip=&quot;pharmacy-service/src/test/java/com/hms/pharmacy/service/PharmacyServiceTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/pharmacy-service/src/test/java/com/hms/pharmacy/service/PharmacyServiceTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;NotificationControllerTest.java&quot; tooltip=&quot;notification-service/src/test/java/com/hms/notification/controller/NotificationControllerTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/notification-service/src/test/java/com/hms/notification/controller/NotificationControllerTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;NotificationServiceTest.java&quot; tooltip=&quot;notification-service/src/test/java/com/hms/notification/service/NotificationServiceTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/notification-service/src/test/java/com/hms/notification/service/NotificationServiceTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;MedicalRecordsServiceTest.java&quot; tooltip=&quot;medical-records-service/src/test/java/com/hms/records/service/MedicalRecordsServiceTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/medical-records-service/src/test/java/com/hms/records/service/MedicalRecordsServiceTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;PaymentControllerTest.java&quot; tooltip=&quot;billing-service/src/test/java/com/hms/billing/controller/PaymentControllerTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/billing-service/src/test/java/com/hms/billing/controller/PaymentControllerTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;BillingControllerTest.java&quot; tooltip=&quot;billing-service/src/test/java/com/hms/billing/controller/BillingControllerTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/billing-service/src/test/java/com/hms/billing/controller/BillingControllerTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;BillingServiceTest.java&quot; tooltip=&quot;billing-service/src/test/java/com/hms/billing/service/BillingServiceTest.java&quot;>&#xD;&#xA;&lt;persistable path=&quot;/billing-service/src/test/java/com/hms/billing/service/BillingServiceTest.java&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;/mruList>&#xD;&#xA;&lt;/workbench>"/>
   <tags>activeSchemeId:org.eclipse.ui.defaultAcceleratorConfiguration</tags>
-  <children xsi:type="basic:TrimmedWindow" xmi:id="_JMED0kCVEfGi4Ntqr_Pp9g" elementId="IDEWindow" contributorURI="platform:/plugin/org.eclipse.platform" selectedElement="_KwiHQUCVEfGi4Ntqr_Pp9g" label="%trimmedwindow.label.eclipseSDK" x="25" y="25" width="1024" height="737">
+  <children xsi:type="basic:TrimmedWindow" xmi:id="_JMED0kCVEfGi4Ntqr_Pp9g" elementId="IDEWindow" contributorURI="platform:/plugin/org.eclipse.platform" selectedElement="_KwiHQUCVEfGi4Ntqr_Pp9g" label="%trimmedwindow.label.eclipseSDK" x="0" y="0" width="1024" height="737">
     <persistedState key="coolBarVisible" value="true"/>
     <persistedState key="perspectiveBarVisible" value="true"/>
     <persistedState key="isRestored" value="true"/>
@@ -59,15 +59,9 @@
           <tags>persp.perspSC:org.eclipse.jdt.ui.JavaBrowsingPerspective</tags>
           <tags>persp.perspSC:org.eclipse.debug.ui.DebugPerspective</tags>
           <tags>persp.viewSC:ee.ut.cs.eclexsys.ui.ExerciseView</tags>
-          <tags>persp.editorOnboardingImageUri:platform:/plugin/org.eclipse.jdt.ui/$nl$/icons/full/onboarding_jperspective.svg</tags>
-          <tags>persp.editorOnboardingText:Open a file or drop files here to open them.</tags>
           <tags>persp.showIn:org.eclipse.jdt.ui.PackageExplorer</tags>
           <tags>persp.showIn:org.eclipse.team.ui.GenericHistoryView</tags>
           <tags>persp.showIn:org.eclipse.ui.navigator.ProjectExplorer</tags>
-          <tags>persp.editorOnboardingCommand:Find Actions$$$Ctrl+3</tags>
-          <tags>persp.editorOnboardingCommand:Show Key Assist$$$Ctrl+Shift+L</tags>
-          <tags>persp.editorOnboardingCommand:New$$$Ctrl+N</tags>
-          <tags>persp.editorOnboardingCommand:Open Type$$$Ctrl+Shift+T</tags>
           <tags>persp.viewSC:org.eclipse.mylyn.tasks.ui.views.tasks</tags>
           <tags>persp.newWizSC:org.eclipse.mylyn.tasks.ui.wizards.new.repository.task</tags>
           <tags>persp.viewSC:org.sonarlint.eclipse.ui.views.issues.IssuesView</tags>
@@ -81,15 +75,21 @@
           <tags>persp.newWizSC:org.springsource.ide.eclipse.gettingstarted.wizards.import.generic.newalias</tags>
           <tags>persp.actionSet:org.eclipse.eclemma.ui.CoverageActionSet</tags>
           <tags>persp.showIn:org.eclipse.eclemma.ui.CoverageView</tags>
-          <tags>persp.editorOnboardingCommand:Open Copilot Chat$$$Ctrl+Alt+I</tags>
           <tags>persp.viewSC:org.eclipse.jdt.bcoview.views.BytecodeOutlineView</tags>
           <tags>persp.newWizSC:org.eclipse.jdt.junit.wizards.NewTestCaseCreationWizard</tags>
           <tags>persp.actionSet:org.eclipse.jdt.junit.JUnitActionSet</tags>
           <tags>persp.viewSC:org.eclipse.ant.ui.views.AntView</tags>
+          <tags>persp.editorOnboardingImageUri:platform:/plugin/org.eclipse.jdt.ui/$nl$/icons/full/onboarding_jperspective.svg</tags>
+          <tags>persp.editorOnboardingText:Open a file or drop files here to open them.</tags>
+          <tags>persp.editorOnboardingCommand:Find Actions$$$Ctrl+3</tags>
+          <tags>persp.editorOnboardingCommand:Show Key Assist$$$Ctrl+Shift+L</tags>
+          <tags>persp.editorOnboardingCommand:New$$$Ctrl+N</tags>
+          <tags>persp.editorOnboardingCommand:Open Type$$$Ctrl+Shift+T</tags>
+          <tags>persp.editorOnboardingCommand:Open Copilot Chat$$$Ctrl+Alt+I</tags>
           <children xsi:type="basic:PartSashContainer" xmi:id="_LSPtMUCVEfGi4Ntqr_Pp9g" selectedElement="_LSPtPUCVEfGi4Ntqr_Pp9g" horizontal="true">
             <children xsi:type="basic:PartSashContainer" xmi:id="_LSPtMkCVEfGi4Ntqr_Pp9g" containerData="2500" selectedElement="_LSPtM0CVEfGi4Ntqr_Pp9g">
               <children xsi:type="basic:PartSashContainer" xmi:id="_LSPtM0CVEfGi4Ntqr_Pp9g" containerData="6000" selectedElement="_LSPtNECVEfGi4Ntqr_Pp9g">
-                <children xsi:type="basic:PartStack" xmi:id="_LSPtNECVEfGi4Ntqr_Pp9g" elementId="left" containerData="6600" selectedElement="_LSPtOECVEfGi4Ntqr_Pp9g">
+                <children xsi:type="basic:PartStack" xmi:id="_LSPtNECVEfGi4Ntqr_Pp9g" elementId="left" containerData="6600" selectedElement="_LSPtNUCVEfGi4Ntqr_Pp9g">
                   <tags>org.eclipse.e4.primaryNavigationStack</tags>
                   <children xsi:type="advanced:Placeholder" xmi:id="_LSPtNUCVEfGi4Ntqr_Pp9g" elementId="org.eclipse.jdt.ui.PackageExplorer" ref="_LRnbEECVEfGi4Ntqr_Pp9g" closeable="true">
                     <tags>View</tags>
@@ -122,7 +122,7 @@
                 </children>
               </children>
             </children>
-            <children xsi:type="basic:PartSashContainer" xmi:id="_LSPtPUCVEfGi4Ntqr_Pp9g" containerData="7500" selectedElement="_LSPtPkCVEfGi4Ntqr_Pp9g">
+            <children xsi:type="basic:PartSashContainer" xmi:id="_LSPtPUCVEfGi4Ntqr_Pp9g" containerData="7500" selectedElement="_LSQURkCVEfGi4Ntqr_Pp9g">
               <children xsi:type="basic:PartSashContainer" xmi:id="_LSPtPkCVEfGi4Ntqr_Pp9g" containerData="6153" selectedElement="_LSPtQECVEfGi4Ntqr_Pp9g" horizontal="true">
                 <children xsi:type="advanced:Placeholder" xmi:id="_LSPtP0CVEfGi4Ntqr_Pp9g" elementId="org.eclipse.ui.editorss" containerData="5000" ref="_LRLWMECVEfGi4Ntqr_Pp9g"/>
                 <children xsi:type="basic:PartStack" xmi:id="_LSPtQECVEfGi4Ntqr_Pp9g" elementId="right" containerData="2500" selectedElement="_LSPtRkCVEfGi4Ntqr_Pp9g">
@@ -175,7 +175,7 @@
                   </children>
                 </children>
               </children>
-              <children xsi:type="basic:PartStack" xmi:id="_LSQURkCVEfGi4Ntqr_Pp9g" elementId="bottom" containerData="3847" selectedElement="_LqmwkECaEfGi4Ntqr_Pp9g">
+              <children xsi:type="basic:PartStack" xmi:id="_LSQURkCVEfGi4Ntqr_Pp9g" elementId="bottom" containerData="3847" selectedElement="_LSQUS0CVEfGi4Ntqr_Pp9g">
                 <tags>org.eclipse.e4.secondaryDataStack</tags>
                 <tags>Java</tags>
                 <children xsi:type="advanced:Placeholder" xmi:id="_LSQUR0CVEfGi4Ntqr_Pp9g" elementId="org.eclipse.ui.views.ProblemView" ref="_LRs6oECVEfGi4Ntqr_Pp9g" closeable="true">
@@ -367,7 +367,7 @@
           <tags>org.eclipse.jdt.ui.CompilationUnitEditor</tags>
         </children>
         <children xsi:type="basic:Part" xmi:id="_-rohcEDVEfGi4Ntqr_Pp9g" elementId="org.eclipse.e4.ui.compatibility.editor" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityEditor" label="GlobalExceptionHandlerTest.java" iconURI="platform:/plugin/org.eclipse.jdt.ui/icons/full/obj16/jcu_obj.svg" closeable="true">
-          <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;editor id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;GlobalExceptionHandlerTest.java&quot; partName=&quot;GlobalExceptionHandlerTest.java&quot; title=&quot;GlobalExceptionHandlerTest.java&quot; tooltip=&quot;auth-service/src/test/java/com/hms/auth/exception/GlobalExceptionHandlerTest.java&quot;>&#xD;&#xA;&lt;input factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; path=&quot;/auth-service/src/test/java/com/hms/auth/exception/GlobalExceptionHandlerTest.java&quot;/>&#xD;&#xA;&lt;editorState selectionHorizontalPixel=&quot;0&quot; selectionLength=&quot;0&quot; selectionOffset=&quot;7937&quot; selectionTopPixel=&quot;2466&quot;/>&#xD;&#xA;&lt;/editor>"/>
+          <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;editor id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;GlobalExceptionHandlerTest.java&quot; partName=&quot;GlobalExceptionHandlerTest.java&quot; title=&quot;GlobalExceptionHandlerTest.java&quot; tooltip=&quot;auth-service/src/test/java/com/hms/auth/exception/GlobalExceptionHandlerTest.java&quot;>&#xD;&#xA;&lt;input factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; path=&quot;/auth-service/src/test/java/com/hms/auth/exception/GlobalExceptionHandlerTest.java&quot;/>&#xD;&#xA;&lt;editorState selectionHorizontalPixel=&quot;0&quot; selectionLength=&quot;0&quot; selectionOffset=&quot;7924&quot; selectionTopPixel=&quot;2670&quot;/>&#xD;&#xA;&lt;/editor>"/>
           <tags>Editor</tags>
           <tags>removeOnHide</tags>
           <tags>org.eclipse.jdt.ui.CompilationUnitEditor</tags>
@@ -440,7 +440,6 @@
       <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;view/>"/>
       <tags>View</tags>
       <tags>categoryTag:General</tags>
-      <tags>highlighted</tags>
       <menus xmi:id="_G_noIECaEfGi4Ntqr_Pp9g" elementId="org.eclipse.ui.console.ConsoleView">
         <tags>ViewMenu</tags>
         <tags>menuContribution:menu</tags>
@@ -559,6 +558,7 @@
       <toolbar xmi:id="_MV1RIUCVEfGi4Ntqr_Pp9g" elementId="com.microsoft.copilot.eclipse.ui.chat.ChatView" visible="false"/>
     </sharedElements>
     <sharedElements xsi:type="basic:Part" xmi:id="_LSLbwECVEfGi4Ntqr_Pp9g" elementId="com.microsoft.copilot.eclipse.ui.jobs.JobsView" contributorURI="platform:/plugin/com.microsoft.copilot.eclipse.ui.jobs" contributionURI="bundleclass://com.microsoft.copilot.eclipse.ui.jobs/com.microsoft.copilot.eclipse.ui.jobs.views.JobsView" label="%view.jobsView.label" iconURI="platform:/plugin/com.microsoft.copilot.eclipse.ui.jobs/icons/bg_agents.png" tooltip="%view.jobsView.tooltip" closeable="true">
+      <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;view/>"/>
       <tags>View</tags>
       <tags>categoryTag:GitHub Copilot</tags>
       <toolbar xmi:id="_LSLbwUCVEfGi4Ntqr_Pp9g" elementId="com.microsoft.copilot.eclipse.ui.jobs.toolbar.0" contributorURI="platform:/plugin/com.microsoft.copilot.eclipse.ui.jobs" visible="false">
@@ -628,7 +628,7 @@
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_K2JnEECVEfGi4Ntqr_Pp9g" elementId="org.eclipse.ui.workbench.file">
         <tags>Draggable</tags>
-        <children xsi:type="menu:HandledToolItem" xmi:id="_K2SxAECVEfGi4Ntqr_Pp9g" elementId="print" visible="false" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/print_edit.svg" tooltip="Print" command="_JOUGlkCVEfGi4Ntqr_Pp9g"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_P1qjgEDhEfG_q8ishIF3Jg" elementId="print" visible="false" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/print_edit.svg" tooltip="Print" command="_JOUGlkCVEfGi4Ntqr_Pp9g"/>
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_K2JnEUCVEfGi4Ntqr_Pp9g" elementId="group.edit" toBeRendered="false">
         <tags>toolbarSeparator</tags>
@@ -636,8 +636,8 @@
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_K2JnE0CVEfGi4Ntqr_Pp9g" elementId="org.eclipse.ui.workbench.edit">
         <tags>Draggable</tags>
-        <children xsi:type="menu:HandledToolItem" xmi:id="_K2XCcECVEfGi4Ntqr_Pp9g" elementId="undo" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/undo_edit.svg" tooltip="Undo" enabled="false" command="_JOIgekCVEfGi4Ntqr_Pp9g"/>
-        <children xsi:type="menu:HandledToolItem" xmi:id="_K2YQkECVEfGi4Ntqr_Pp9g" elementId="redo" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/redo_edit.svg" tooltip="Redo" enabled="false" command="_JOMyDkCVEfGi4Ntqr_Pp9g"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_P1wDEEDhEfG_q8ishIF3Jg" elementId="undo" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/undo_edit.svg" tooltip="Undo" enabled="false" command="_JOIgekCVEfGi4Ntqr_Pp9g"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_P1ztcEDhEfG_q8ishIF3Jg" elementId="redo" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/redo_edit.svg" tooltip="Redo" enabled="false" command="_JOMyDkCVEfGi4Ntqr_Pp9g"/>
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_K2K1MECVEfGi4Ntqr_Pp9g" elementId="additions" toBeRendered="false">
         <tags>toolbarSeparator</tags>
@@ -661,7 +661,7 @@
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_K2K1NECVEfGi4Ntqr_Pp9g" elementId="org.eclipse.ui.workbench.navigate">
         <tags>Draggable</tags>
-        <children xsi:type="menu:HandledToolItem" xmi:id="_K2bT4ECVEfGi4Ntqr_Pp9g" elementId="org.eclipse.ui.window.pinEditor" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/pin_editor.svg" tooltip="Pin Editor" enabled="false" type="Check" command="_JOTfjkCVEfGi4Ntqr_Pp9g"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_P12JsEDhEfG_q8ishIF3Jg" elementId="org.eclipse.ui.window.pinEditor" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/pin_editor.svg" tooltip="Pin Editor" enabled="false" type="Check" command="_JOTfjkCVEfGi4Ntqr_Pp9g"/>
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_K2K1NUCVEfGi4Ntqr_Pp9g" elementId="group.editor" toBeRendered="false">
         <tags>toolbarSeparator</tags>
