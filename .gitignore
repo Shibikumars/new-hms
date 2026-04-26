@@ -26,6 +26,6 @@ yarn-error.log*
 .env
 .env.*
 
-# Coverage
-**/coverage/
+# Coverage (removed for repo push)
+# **/coverage/
 /.metadata/
