@@ -16,7 +16,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -95,6 +94,26 @@ class NotificationControllerTest {
                 .param("note", "done")
                 .header("X-User-Role", "ADMIN")
                 .header("X-Username", "ops"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void getPreferences_ok() throws Exception {
+        when(notificationService.getPreference(10L)).thenReturn(new NotificationPreference());
+
+        mockMvc.perform(get("/notifications/preferences")
+                .param("userId", "10")
+                .header("X-User-Role", "ADMIN"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void markRead_ok() throws Exception {
+        when(notificationService.getById(1L)).thenReturn(item);
+        when(notificationService.markRead(1L)).thenReturn(item);
+
+        mockMvc.perform(put("/notifications/1/read")
+                .header("X-User-Role", "ADMIN"))
             .andExpect(status().isOk());
     }
 }

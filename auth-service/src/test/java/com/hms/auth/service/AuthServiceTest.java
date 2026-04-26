@@ -260,7 +260,8 @@ class AuthServiceTest {
         RuntimeException exception = assertThrows(RuntimeException.class,
             () -> authService.login(username, wrongPassword));
 
-        assertEquals("Invalid credentials", exception.getMessage());
+        // InvalidCredentialsException carries the message "Invalid username or password"
+        assertEquals("Invalid username or password", exception.getMessage());
     }
 
     @Test
@@ -373,8 +374,9 @@ class AuthServiceTest {
         request.setPassword("pass");
         request.setRole("ADMIN");
 
-        when(userRepository.count()).thenReturn(1L);
-        when(userRepository.existsByUsernameIgnoreCase("newadmin")).thenReturn(false);
+        // make these stubs lenient to avoid UnnecessaryStubbingException under Mockito strictness
+        lenient().when(userRepository.count()).thenReturn(1L);
+        lenient().when(userRepository.existsByUsernameIgnoreCase("newadmin")).thenReturn(false);
 
         assertThrows(SecurityException.class, () -> authService.register(request, null));
         verify(userRepository, never()).save(any(User.class));
@@ -388,7 +390,7 @@ class AuthServiceTest {
         request.setPassword("pass");
         request.setRole("ADMIN");
 
-        when(userRepository.count()).thenReturn(1L);
+        lenient().when(userRepository.count()).thenReturn(1L);
         when(userRepository.existsByUsernameIgnoreCase("newadmin")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

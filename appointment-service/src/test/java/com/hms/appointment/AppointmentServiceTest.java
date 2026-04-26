@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class AppointmentServiceTest {
 
     @Mock private AppointmentRepository appointmentRepository;
@@ -79,6 +80,7 @@ class AppointmentServiceTest {
     @Test
     void saveAppointment_patientNotFound_shouldThrow() {
         when(patientClient.getPatientById(1L)).thenThrow(new RuntimeException("404"));
+        when(patientClient.getPatientByUserId(1L)).thenThrow(new RuntimeException("404"));
         assertThrows(ResourceNotFoundException.class,
                 () -> appointmentService.saveAppointment(appointment));
     }

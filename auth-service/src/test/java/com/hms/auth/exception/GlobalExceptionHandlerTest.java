@@ -111,7 +111,7 @@ class GlobalExceptionHandlerTest {
      void testInvalidRefreshTokenException() throws Exception {
          mockMvc.perform(get("/test/invalid-refresh"))
                  .andExpect(status().isUnauthorized())
-                 .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
+                  .andExpect(jsonPath("$.message").value("Session expired. Please sign in again."))
                  .andExpect(jsonPath("$.status").value(401));
      }
 

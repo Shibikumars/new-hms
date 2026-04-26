@@ -2,7 +2,7 @@ $services = @("discovery-service", "api-gateway", "auth-service", "patient-servi
 
 foreach ($service in $services) {
     Write-Host "Starting $service..."
-    $cmd = "cd d:\neww_proj\new-hms\$service ; ..\discovery-service\mvnw.cmd spring-boot:run -DskipTests > d:\neww_proj\new-hms\$service.log 2>&1"
+    $cmd = "cd '$PSScriptRoot\$service' ; & '$PSScriptRoot\discovery-service\mvnw.cmd' spring-boot:run -DskipTests > '$PSScriptRoot\$service.log' 2>&1"
     Start-Process powershell -ArgumentList "-WindowStyle Hidden", "-Command", $cmd
     Start-Sleep -Seconds 5
 }

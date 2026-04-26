@@ -15,7 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "hms.security.jwt.secret=test_secret_123456789012345678901234")
 @DisplayName("Auth Service Integration Tests")
 class AuthServiceIntegrationTest {
 

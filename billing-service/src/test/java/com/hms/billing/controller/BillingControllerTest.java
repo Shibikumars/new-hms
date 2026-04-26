@@ -45,7 +45,7 @@ class BillingControllerTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
+        objectMapper = new ObjectMapper().registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         mockMvc = MockMvcBuilders.standaloneSetup(billingController).build();
         invoice = new Invoice();
         invoice.setId(1L);

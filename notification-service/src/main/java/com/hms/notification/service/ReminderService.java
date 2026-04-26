@@ -2,7 +2,6 @@ package com.hms.notification.service;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -10,11 +9,9 @@ import java.util.Map;
 @Service
 public class ReminderService {
 
-    private final NotificationService notificationService;
     private final com.hms.notification.feign.AppointmentClient appointmentClient;
 
-    public ReminderService(NotificationService notificationService, com.hms.notification.feign.AppointmentClient appointmentClient) {
-        this.notificationService = notificationService;
+    public ReminderService(com.hms.notification.feign.AppointmentClient appointmentClient) {
         this.appointmentClient = appointmentClient;
     }
 

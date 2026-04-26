@@ -26,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = "hms.security.jwt.secret=test_secret_123456789012345678901234")
 @AutoConfigureMockMvc
 @DisplayName("AuthController Tests")
+@SuppressWarnings("null")
 class AuthControllerTest {
 
     @Autowired

@@ -92,4 +92,21 @@ public class AuthController {
             return ResponseEntity.status(401).body("Invalid or expired token");
         }
     }
+    @GetMapping("/debug/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> debugListUsers() {
+        return ResponseEntity.ok(authService.debugListUsers());
+    }
+    @DeleteMapping("/debug/users/{username}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUser(@PathVariable String username) {
+        authService.deleteUserByUsername(username);
+        return ResponseEntity.ok(Map.of("message", "User deleted: " + username));
+    }
+    @PostMapping("/debug/super-reset")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> superReset(@RequestParam String password) {
+        authService.resetAllPasswords(password);
+        return ResponseEntity.ok(Map.of("message", "All passwords reset to: " + password));
+    }
 }

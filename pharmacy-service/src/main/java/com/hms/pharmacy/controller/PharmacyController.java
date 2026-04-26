@@ -40,10 +40,11 @@ public class PharmacyController {
 
     @PostMapping("/pharmacy/check-interactions")
     public Map<String, Object> checkInteractions(@RequestBody Map<String, Object> payload) {
-        return Map.of(
-            "hasInteraction", false,
-            "severity", "NONE",
-            "message", "No major interactions detected"
-        );
+        @SuppressWarnings("unchecked")
+        List<Number> ids = (List<Number>) payload.get("medicationIds");
+        if (ids == null) return Map.of("hasInteraction", false, "severity", "NONE", "message", "No IDs provided");
+        
+        List<Long> longIds = ids.stream().map(Number::longValue).toList();
+        return pharmacyService.checkInteractions(longIds);
     }
 }

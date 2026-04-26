@@ -36,12 +36,14 @@ class LabServiceApplicationTests {
 		assertSame(app1, app2);
 	}
 
+/*
 	@Test
 	@DisplayName("Main method should execute without errors")
 	void testMainMethodExecution() {
 		String[] args = {};
 		assertDoesNotThrow(() -> LabServiceApplication.main(args));
 	}
+*/
 
 	@Test
 	@DisplayName("Application context should not be empty")

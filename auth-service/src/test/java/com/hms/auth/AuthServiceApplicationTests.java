@@ -14,7 +14,7 @@ import org.springframework.context.ApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "hms.security.jwt.secret=test_secret_123456789012345678901234")
 @DisplayName("Auth Service Application Tests")
 class AuthServiceApplicationTests {
 

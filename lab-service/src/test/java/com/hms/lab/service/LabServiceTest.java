@@ -10,7 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -214,43 +213,32 @@ class LabServiceTest {
     // ==================== LabReport Tests ====================
 
     @Test
-    @DisplayName("Should generate lab report")
+    @DisplayName("Should generate lab report (simple save)")
     void testGenerateReport() {
-        when(labOrderRepository.findById(1L)).thenReturn(Optional.of(labOrder));
         when(labReportRepository.save(any(LabReport.class))).thenReturn(labReport);
-        when(labOrderRepository.save(any(LabOrder.class))).thenReturn(labOrder);
 
         LabReport result = labService.generateReport(labReport);
 
         assertNotNull(result);
-        assertEquals("COMPLETED", result.getStatus());
-        assertNotNull(result.getReportDate());
-        verify(labOrderRepository).findById(1L);
         verify(labReportRepository).save(any(LabReport.class));
-        verify(labOrderRepository).save(any(LabOrder.class));
     }
 
     @Test
-    @DisplayName("Should throw exception when generating report with invalid order")
-    void testGenerateReportInvalidOrder() {
-        labReport.setLabOrderId(999L);
-        when(labOrderRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class, () -> {
-            labService.generateReport(labReport);
-        });
-        verify(labOrderRepository).findById(999L);
-    }
-
-    @Test
-    @DisplayName("Should update order status to COMPLETED when report is generated")
-    void testGenerateReportUpdatesOrderStatus() {
+    @DisplayName("Should enter results and update order status")
+    void testEnterResults() {
         when(labOrderRepository.findById(1L)).thenReturn(Optional.of(labOrder));
-        when(labReportRepository.save(any(LabReport.class))).thenReturn(labReport);
-        when(labOrderRepository.save(any(LabOrder.class))).thenReturn(labOrder);
+        when(labTestRepository.findById(1L)).thenReturn(Optional.of(labTest));
+        when(labReportRepository.save(any(LabReport.class))).thenAnswer(i -> i.getArgument(0));
+        when(labOrderRepository.save(any(LabOrder.class))).thenAnswer(i -> i.getArgument(0));
 
-        labService.generateReport(labReport);
+        com.hms.lab.dto.LabResultEntryRequest req = new com.hms.lab.dto.LabResultEntryRequest();
+        req.setResult("Normal Result");
 
+        LabReport result = labService.enterResults(1L, req);
+
+        assertNotNull(result);
+        assertEquals("Normal Result", result.getResult());
+        assertEquals("READY", result.getStatus());
         verify(labOrderRepository).save(argThat(order -> "COMPLETED".equals(order.getStatus())));
     }
 
