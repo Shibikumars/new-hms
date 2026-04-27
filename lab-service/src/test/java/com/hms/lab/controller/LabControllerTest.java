@@ -23,11 +23,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(LabController.class)
-<<<<<<< HEAD
 @Import(TestSecurityConfig.class)
-=======
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
->>>>>>> 69d4d70c69b008e3ce7b12ab41ef8ea467566acc
 @DisplayName("Lab Controller Tests")
 class LabControllerTest {
 
@@ -71,7 +68,6 @@ class LabControllerTest {
         labReport.setReportDate(LocalDate.now());
     }
 
-    // ==================== Test Endpoints ====================
 
     @Test
     @DisplayName("Should add new lab test")
@@ -114,7 +110,6 @@ class LabControllerTest {
         verify(labService).getAllTests();
     }
 
-    // ==================== Order Endpoints ====================
 
     @Test
     @DisplayName("Should place new lab order")
@@ -207,7 +202,6 @@ class LabControllerTest {
         verify(labService).getOrdersByDoctor(999L);
     }
 
-    // ==================== Report Endpoints ====================
 
     @Test
     @DisplayName("Should generate lab report")
