@@ -36,6 +36,7 @@ class LabServiceApplicationTests {
 		assertSame(app1, app2);
 	}
 
+/*
 	@Test
 	@DisplayName("Main method should execute without errors")
 	@org.junit.jupiter.api.Disabled("Disabled due to port conflict - application context is tested separately")
@@ -43,6 +44,7 @@ class LabServiceApplicationTests {
 		String[] args = {};
 		assertDoesNotThrow(() -> LabServiceApplication.main(args));
 	}
+*/
 
 	@Test
 	@DisplayName("Application context should not be empty")

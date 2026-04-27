@@ -39,6 +39,7 @@ public class SecurityConfig {
         return http.build();
     }
 
+    @SuppressWarnings("null")
     private static class RoleHeaderFilter extends OncePerRequestFilter {
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

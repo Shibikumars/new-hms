@@ -68,7 +68,7 @@ public class BillingService {
         return invoiceRepository.findAll();
     }
 
-    public Invoice getById(Long invoiceId) {
+    public Invoice getById(@org.springframework.lang.NonNull Long invoiceId) {
         return invoiceRepository.findById(invoiceId).orElseThrow();
     }
 

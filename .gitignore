@@ -29,3 +29,13 @@ yarn-error.log*
 # Coverage (removed for repo push)
 # **/coverage/
 /.metadata/
+
+# Database
+mysql_data/
+
+# IDE Settings
+**/.settings/
+**/.factorypath
+**/.project
+**/.classpath
+

@@ -29,11 +29,11 @@ foreach ($srv in $services) {
     $port = $srv[1]
     Write-Host "Starting $name on port $port..."
     
-    $workDir = "d:\neww_proj\new-hms\$name"
-    $logFile = "d:\neww_proj\new-hms\$name.log"
-    $mvnw = "..\discovery-service\mvnw.cmd"
+    $workDir = "$PSScriptRoot\$name"
+    $logFile = "$PSScriptRoot\$name.log"
+    $mvnw = "$PSScriptRoot\discovery-service\mvnw.cmd"
     
-    $cmd = "cd '$workDir'; &$mvnw spring-boot:run -DskipTests > '$logFile' 2>&1"
+    $cmd = "cd '$workDir'; & '$mvnw' spring-boot:run -DskipTests > '$logFile' 2>&1"
     Start-Process powershell -ArgumentList "-WindowStyle Hidden", "-Command", $cmd
     
     $up = $false

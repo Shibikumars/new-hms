@@ -1,3 +1,2 @@
-ALTER TABLE users 
-ADD COLUMN is_verified BOOLEAN DEFAULT FALSE,
-ADD COLUMN verification_code VARCHAR(10);
+ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN verification_code VARCHAR(10);

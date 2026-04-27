@@ -100,19 +100,11 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             }
             try {
                 ServerHttpRequest.Builder builder = exchange.getRequest().mutate();
-                if (builder == null) {
-                    return chain.filter(exchange);
-                }
-
                 ServerHttpRequest mutatedRequest = builder
                         .header("X-User-Role", normalizedRole != null ? normalizedRole : "")
                         .header("X-Username", username != null ? username : "")
                         .header("X-User-Id", userIdHeader)
                         .build();
-
-                if (exchange.mutate() == null) {
-                    return chain.filter(exchange);
-                }
 
                 return chain.filter(exchange.mutate().request(mutatedRequest).build());
             } catch (NullPointerException ignored) {
@@ -291,7 +283,6 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
     }
 
     private String extractQueryParamFromUri(ServerWebExchange exchange, String key) {
-        if (exchange == null || exchange.getRequest() == null || exchange.getRequest().getURI() == null) return null;
         String query = exchange.getRequest().getURI().getQuery();
         if (query == null || query.isBlank()) return null;
 

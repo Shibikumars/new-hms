@@ -109,7 +109,9 @@ class GlobalExceptionHandlerTest {
     @DisplayName("Should return 500 internal server error status code")
     void testInternalServerErrorStatusCode() throws Exception {
         mockMvc.perform(get("/test/general-error"))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Internal Server Error"))
+                .andExpect(jsonPath("$.status").value(500));
     }
 
     @Test
@@ -126,6 +128,7 @@ class GlobalExceptionHandlerTest {
     void testIllegalArgumentConflict() throws Exception {
         mockMvc.perform(get("/test/illegal-argument-conflict"))
                 .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Username already exists"))
                 .andExpect(jsonPath("$.status").value(409));
     }
 

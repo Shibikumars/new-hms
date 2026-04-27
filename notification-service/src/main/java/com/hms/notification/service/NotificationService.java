@@ -2,37 +2,27 @@ package com.hms.notification.service;
 
 import com.hms.notification.entity.NotificationItem;
 import com.hms.notification.entity.NotificationPreference;
-import com.hms.notification.entity.NotificationEvent;
-import com.hms.notification.feign.BillingClient;
-import com.hms.notification.repository.NotificationEventRepository;
 import com.hms.notification.repository.NotificationPreferenceRepository;
 import com.hms.notification.repository.NotificationRepository;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final NotificationEventRepository notificationEventRepository;
     private final NotificationPreferenceRepository notificationPreferenceRepository;
-    private final BillingClient billingClient;
     private final SimpMessagingTemplate messagingTemplate;
 
     public NotificationService(
         NotificationRepository notificationRepository,
-        NotificationEventRepository notificationEventRepository,
         NotificationPreferenceRepository notificationPreferenceRepository,
-        BillingClient billingClient,
         SimpMessagingTemplate messagingTemplate
     ) {
         this.notificationRepository = notificationRepository;
-        this.notificationEventRepository = notificationEventRepository;
         this.notificationPreferenceRepository = notificationPreferenceRepository;
-        this.billingClient = billingClient;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -49,7 +39,7 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
-    public NotificationItem getById(Long notificationId) {
+    public NotificationItem getById(@org.springframework.lang.NonNull Long notificationId) {
         return notificationRepository.findById(notificationId)
             .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Not found"));
     }
@@ -84,6 +74,7 @@ public class NotificationService {
     }
 
     private void dispatchNotification(NotificationItem item) {
+        if (item.getUserId() == null) return;
         NotificationPreference prefs = getPreference(item.getUserId());
         
         // 1. WebSocket (Live Push)

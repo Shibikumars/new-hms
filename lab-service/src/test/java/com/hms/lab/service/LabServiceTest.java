@@ -10,7 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -214,18 +213,22 @@ class LabServiceTest {
     // ==================== LabReport Tests ====================
 
     @Test
-    @DisplayName("Should generate lab report")
+    @DisplayName("Should generate lab report (simple save)")
     void testGenerateReport() {
         when(labReportRepository.save(any(LabReport.class))).thenReturn(labReport);
 
         LabReport result = labService.generateReport(labReport);
 
         assertNotNull(result);
+<<<<<<< HEAD
         assertEquals("COMPLETED", result.getStatus());
+=======
+>>>>>>> 69d4d70c69b008e3ce7b12ab41ef8ea467566acc
         verify(labReportRepository).save(any(LabReport.class));
     }
 
     @Test
+<<<<<<< HEAD
     @DisplayName("Should throw exception when generating report with invalid order")
     void testGenerateReportInvalidOrder() {
         // The generateReport method in LabService doesn't validate the order
@@ -245,10 +248,28 @@ class LabServiceTest {
         // The generateReport method doesn't update order status
         // Removing this test as it doesn't match the service behavior
         when(labReportRepository.save(any(LabReport.class))).thenReturn(labReport);
+=======
+    @DisplayName("Should enter results and update order status")
+    void testEnterResults() {
+        when(labOrderRepository.findById(1L)).thenReturn(Optional.of(labOrder));
+        when(labTestRepository.findById(1L)).thenReturn(Optional.of(labTest));
+        when(labReportRepository.save(any(LabReport.class))).thenAnswer(i -> i.getArgument(0));
+        when(labOrderRepository.save(any(LabOrder.class))).thenAnswer(i -> i.getArgument(0));
+>>>>>>> 69d4d70c69b008e3ce7b12ab41ef8ea467566acc
 
-        labService.generateReport(labReport);
+        com.hms.lab.dto.LabResultEntryRequest req = new com.hms.lab.dto.LabResultEntryRequest();
+        req.setResult("Normal Result");
 
+<<<<<<< HEAD
         verify(labReportRepository).save(any(LabReport.class));
+=======
+        LabReport result = labService.enterResults(1L, req);
+
+        assertNotNull(result);
+        assertEquals("Normal Result", result.getResult());
+        assertEquals("READY", result.getStatus());
+        verify(labOrderRepository).save(argThat(order -> "COMPLETED".equals(order.getStatus())));
+>>>>>>> 69d4d70c69b008e3ce7b12ab41ef8ea467566acc
     }
 
     @Test

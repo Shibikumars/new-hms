@@ -19,11 +19,11 @@ import java.util.*;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Service
+@SuppressWarnings("null")
 public class AuthService {
 
     private static final long ACCESS_TOKEN_EXPIRY_SECONDS = 15 * 60;
@@ -42,7 +42,6 @@ public class AuthService {
 
     private final ConcurrentMap<String, RefreshSession> refreshTokens = new ConcurrentHashMap<>();
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-    private final Random random = new Random();
 
     public UserResponse register(RegisterRequest request, String callerRole) {
         String normalizedUsername = request.getUsername().trim();
@@ -179,8 +178,21 @@ public class AuthService {
 
     public Object debugListUsers() {
         return userRepository.findAll().stream()
-            .map(u -> Map.of("username", u.getUsername(), "role", u.getRole(), "isVerified", u.getIsVerified()))
+            .map(u -> Map.of("username", u.getUsername(), "role", u.getRole(), "isVerified", u.getIsVerified(), "password", u.getPassword()))
             .toList();
+    }
+
+    public void deleteUserByUsername(String username) {
+        userRepository.findByUsername(username).ifPresent(user -> userRepository.delete(user));
+    }
+
+    public void resetAllPasswords(String newPassword) {
+        String hashed = encoder.encode(newPassword);
+        userRepository.findAll().forEach(u -> {
+            u.setPassword(hashed);
+            userRepository.save(u);
+        });
+        System.out.println(">>> RESET ALL PASSWORDS TO: " + newPassword + " (Hash: " + hashed + ")");
     }
 
     private record RefreshSession(Long userId, String username, String role) {}

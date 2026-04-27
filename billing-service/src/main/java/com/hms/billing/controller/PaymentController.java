@@ -1,7 +1,6 @@
 package com.hms.billing.controller;
 
 import com.hms.billing.service.PaymentService;
-import com.hms.billing.service.BillingService;
 import com.razorpay.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +15,6 @@ public class PaymentController {
 
     @Autowired
     private PaymentService paymentService;
-
-    @Autowired
-    private BillingService billingService;
 
     @PostMapping("/razorpay/order")
     public ResponseEntity<?> createOrder(@RequestBody Map<String, Object> data) {

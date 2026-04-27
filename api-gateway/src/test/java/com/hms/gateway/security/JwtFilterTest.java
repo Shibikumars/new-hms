@@ -277,7 +277,7 @@ class JwtFilterTest {
     void testNullAuthorizationHeader() {
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders() {
             @Override
-            public String getFirst(String headerName) {
+            public String getFirst(@org.springframework.lang.NonNull String headerName) {
                 return null;
             }
         };

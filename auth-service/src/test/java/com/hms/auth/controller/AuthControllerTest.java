@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @TestPropertySource(locations = "classpath:application-test.yml")
 @DisplayName("AuthController Tests")
+@SuppressWarnings("null")
 class AuthControllerTest {
 
     @Autowired

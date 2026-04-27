@@ -5,7 +5,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.hms.appointment.controller.AppointmentController;
 import com.hms.appointment.entity.Appointment;
 import com.hms.appointment.exception.GlobalExceptionHandler;
-import com.hms.appointment.exception.ResourceNotFoundException;
 import com.hms.appointment.service.AppointmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

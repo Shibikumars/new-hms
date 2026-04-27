@@ -295,7 +295,7 @@ export class PatientPortalComponent implements OnInit {
 
   checkProfile(userId: number): void {
     // Try API first, fallback to localStorage
-    this.patientApi.getById(userId).pipe(
+    this.patientApi.getByUserId(userId).pipe(
       catchError((err) => {
         // Fallback to localStorage when API fails
         const patients = JSON.parse(localStorage.getItem('patients') || '[]');

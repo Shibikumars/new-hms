@@ -1,7 +1,6 @@
 package com.hms.appointment.service;
 
 import com.hms.appointment.dto.DoctorDTO;
-import com.hms.appointment.dto.PatientDTO;
 import com.hms.appointment.dto.TimeSlotDTO;
 import com.hms.appointment.entity.Appointment;
 import com.hms.appointment.exception.DoctorUnavailableException;
@@ -24,6 +23,7 @@ import java.util.Set;
 import java.util.ArrayList;
 
 @Service
+@SuppressWarnings("null")
 public class AppointmentService {
 
     @Autowired
@@ -58,6 +58,7 @@ public class AppointmentService {
         } catch (Exception e) {
             throw new ResourceNotFoundException("Doctor not found with id: " + appointment.getDoctorId());
         }
+
 
         // 3. Set Fee and Type (Defaults)
         if (appointment.getFeeAmount() == null) appointment.setFeeAmount(500.0);
@@ -209,15 +210,5 @@ public class AppointmentService {
         }
 
         return slots;
-    }
-
-    private int convertTo24Hour(String time) {
-        if (time.endsWith("AM")) {
-            int hour = Integer.parseInt(time.replace("AM", ""));
-            return (hour == 12) ? 0 : hour;
-        } else {
-            int hour = Integer.parseInt(time.replace("PM", ""));
-            return (hour == 12) ? 12 : hour + 12;
-        }
     }
 }

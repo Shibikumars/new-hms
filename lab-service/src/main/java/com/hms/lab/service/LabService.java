@@ -33,7 +33,7 @@ public class LabService {
         this.notificationClient = notificationClient;
     }
 
-    public LabTest addTest(LabTest test) {
+    public LabTest addTest(@org.springframework.lang.NonNull LabTest test) {
         return labTestRepository.save(test);
     }
 
@@ -43,12 +43,12 @@ public class LabService {
 
     public List<LabTest> getAllTests() { return getTestsCatalog(); }
 
-    public LabTest getTestById(Long id) {
+    public LabTest getTestById(@org.springframework.lang.NonNull Long id) {
         return labTestRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Lab test not found with id: " + id));
     }
 
-    public LabReport generateReport(LabReport report) {
+    public LabReport generateReport(@org.springframework.lang.NonNull LabReport report) {
         return labReportRepository.save(report);
     }
 
@@ -64,7 +64,7 @@ public class LabService {
         return labOrderRepository.findAll();
     }
 
-    public LabReport enterResults(Long orderId, LabResultEntryRequest input) {
+    public LabReport enterResults(@org.springframework.lang.NonNull Long orderId, LabResultEntryRequest input) {
         LabOrder order = labOrderRepository.findById(orderId)
             .orElseThrow(() -> new ResourceNotFoundException("Lab order not found with id: " + orderId));
         LabTest test = labTestRepository.findById(order.getTestId())
@@ -128,7 +128,7 @@ public class LabService {
         } catch (Exception ignored) {}
     }
 
-    public LabReport verifyReport(Long reportId, LabReportVerificationRequest request) {
+    public LabReport verifyReport(@org.springframework.lang.NonNull Long reportId, LabReportVerificationRequest request) {
         LabReport report = labReportRepository.findById(reportId)
             .orElseThrow(() -> new ResourceNotFoundException("Lab report not found with id: " + reportId));
         
@@ -151,7 +151,7 @@ public class LabService {
         System.out.println("JASPER_REPORTS [Engine]: PDF generated for Report " + report.getId());
     }
 
-    public Map<String, Object> getReportPdf(Long reportId) {
+    public Map<String, Object> getReportPdf(@org.springframework.lang.NonNull Long reportId) {
         LabReport report = labReportRepository.findById(reportId)
             .orElseThrow(() -> new ResourceNotFoundException("Lab report not found"));
         

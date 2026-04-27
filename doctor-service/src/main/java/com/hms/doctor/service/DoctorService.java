@@ -16,7 +16,7 @@ public class DoctorService {
     @Autowired
     private DoctorRepository doctorRepository;
 
-    public Doctor saveDoctor(Doctor doctor) {
+    public Doctor saveDoctor(@org.springframework.lang.NonNull Doctor doctor) {
         return doctorRepository.save(doctor);
     }
 
@@ -59,15 +59,15 @@ public class DoctorService {
             .collect(Collectors.toList());
     }
 
-    public Optional<Doctor> getDoctorById(Long id) {
+    public Optional<Doctor> getDoctorById(@org.springframework.lang.NonNull Long id) {
         return doctorRepository.findById(id);
     }
 
-    public Optional<Doctor> getDoctorByUserId(Long userId) {
+    public Optional<Doctor> getDoctorByUserId(@org.springframework.lang.NonNull Long userId) {
         return doctorRepository.findByUserId(userId);
     }
 
-    public Doctor updateDoctor(Long id, Doctor doctorDetails) {
+    public Doctor updateDoctor(@org.springframework.lang.NonNull Long id, Doctor doctorDetails) {
         Doctor doctor = doctorRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id: " + id));
         doctor.setFullName(doctorDetails.getFullName());
@@ -85,7 +85,7 @@ public class DoctorService {
         return doctorRepository.save(doctor);
     }
 
-    public void deleteDoctor(Long id) {
+    public void deleteDoctor(@org.springframework.lang.NonNull Long id) {
         if (!doctorRepository.existsById(id)) {
             throw new ResourceNotFoundException("Doctor not found with id: " + id);
         }
