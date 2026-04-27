@@ -1,1 +1,1 @@
-ALTER TABLE appointments ADD COLUMN chief_complaint TEXT;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS chief_complaint TEXT

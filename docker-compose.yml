@@ -262,6 +262,18 @@ services:
     networks:
       - hms-net
 
+  frontend:
+    build:
+      context: ./frontend-angular
+    container_name: hms-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    networks:
+      - hms-net
+
 networks:
   hms-net:
     driver: bridge
