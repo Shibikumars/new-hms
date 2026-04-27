@@ -1,6 +1,7 @@
 package com.hms.gateway;
 
 import com.hms.gateway.security.JwtFilter;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,7 @@ import org.springframework.context.ApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = "hms.security.jwt.secret=test_secret_123456789012345678901234")
+@SpringBootTest(properties = {"hms.security.jwt.secret=test_secret_123456789012345678901234", "server.port=0"})
 @DisplayName("API Gateway Application Tests")
 class ApiGatewayApplicationTests {
 
@@ -44,9 +45,9 @@ class ApiGatewayApplicationTests {
 	}
 
 	@Test
-	@DisplayName("Main method should execute without errors")
+		@DisplayName("Main method should execute without errors")
 	void testMainMethod() {
-		String[] args = {};
+		String[] args = {"--server.port=0"};
 		String originalSecret = System.getProperty("HMS_JWT_SECRET");
 		try {
 			System.setProperty("HMS_JWT_SECRET", "test_secret_123456789012345678901234");

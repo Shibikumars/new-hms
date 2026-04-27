@@ -14,7 +14,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestPropertySource(properties = {
 	"eureka.client.register-with-eureka=false",
 	"eureka.client.fetch-registry=false",
-	"eureka.instance.prefer-ip-address=true"
+	"eureka.instance.prefer-ip-address=true",
+	"server.port=0"
 })
 @DisplayName("Discovery Service Application Tests")
 class DiscoveryServiceApplicationTests {
@@ -31,7 +32,7 @@ class DiscoveryServiceApplicationTests {
 	@Test
 	@DisplayName("Should have EnableEurekaServer annotation")
 	void testEurekaServerAnnotation() {
-		assertTrue(applicationContext.containsBean("eurekaServerConfigBean"));
+		assertDoesNotThrow(() -> applicationContext.getBean(EurekaServerConfigBean.class));
 	}
 
 	@Test
@@ -51,7 +52,7 @@ class DiscoveryServiceApplicationTests {
 	@Test
 	@DisplayName("Main method should execute without errors")
 	void testMainMethodExecution() {
-		String[] args = {};
+		String[] args = {"--server.port=0"};
 		assertDoesNotThrow(() -> DiscoveryServiceApplication.main(args));
 	}
 
@@ -66,7 +67,7 @@ class DiscoveryServiceApplicationTests {
 	@Test
 	@DisplayName("Should contain Eureka server components")
 	void testEurekaServerComponents() {
-		assertTrue(applicationContext.containsBean("eurekaServerConfigBean"));
+		assertDoesNotThrow(() -> applicationContext.getBean(EurekaServerConfigBean.class));
 		assertNotNull(applicationContext.getBean(EurekaServerConfigBean.class));
 	}
 

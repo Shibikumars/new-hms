@@ -260,7 +260,7 @@ class AuthServiceTest {
         RuntimeException exception = assertThrows(RuntimeException.class,
             () -> authService.login(username, wrongPassword));
 
-        assertEquals("Invalid credentials", exception.getMessage());
+        assertEquals("Invalid username or password", exception.getMessage());
     }
 
     @Test
@@ -374,7 +374,6 @@ class AuthServiceTest {
         request.setRole("ADMIN");
 
         when(userRepository.count()).thenReturn(1L);
-        when(userRepository.existsByUsernameIgnoreCase("newadmin")).thenReturn(false);
 
         assertThrows(SecurityException.class, () -> authService.register(request, null));
         verify(userRepository, never()).save(any(User.class));

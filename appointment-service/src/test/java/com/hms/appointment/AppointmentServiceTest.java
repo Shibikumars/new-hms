@@ -78,8 +78,8 @@ class AppointmentServiceTest {
     // ── saveAppointment: patient not found ───────────────────────────────────
     @Test
     void saveAppointment_patientNotFound_shouldThrow() {
-        when(patientClient.getPatientById(anyLong())).thenReturn(null);
-        when(doctorClient.getDoctorById(anyLong())).thenReturn(null); // ADD THIS LINE
+        when(patientClient.getPatientById(anyLong())).thenThrow(new RuntimeException("Patient not found"));
+        when(patientClient.getPatientByUserId(anyLong())).thenThrow(new RuntimeException("Patient not found"));
         assertThrows(ResourceNotFoundException.class, () ->
             appointmentService.saveAppointment(appointment));
     }

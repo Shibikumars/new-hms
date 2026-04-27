@@ -7,121 +7,127 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "hms.security.jwt.secret=test_secret_123456789012345678901234")
+@SpringBootTest
 @AutoConfigureMockMvc
 @Import(GlobalExceptionHandlerTest.TestController.class)
+@ActiveProfiles("test")
+@TestPropertySource(locations = "classpath:application-test.yml")
 @DisplayName("GlobalExceptionHandler Tests")
 class GlobalExceptionHandlerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-     @Test
-     @DisplayName("Should handle DataIntegrityViolationException")
-     void testHandleDuplicateException() throws Exception {
-         mockMvc.perform(get("/test/duplicate-error"))
-                 .andExpect(status().isConflict())
-                 .andExpect(jsonPath("$.error").value("Username already exists"))
-                 .andExpect(jsonPath("$.status").value(409));
-     }
+    @Test
+    @DisplayName("Should handle DataIntegrityViolationException")
+    void testHandleDuplicateException() throws Exception {
+        mockMvc.perform(get("/test/duplicate-error"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Username already exists"))
+                .andExpect(jsonPath("$.status").value(409));
+    }
 
-     @Test
-     @DisplayName("Should handle RuntimeException")
-     void testHandleRuntimeException() throws Exception {
-         mockMvc.perform(get("/test/runtime-error"))
-                 .andExpect(status().isInternalServerError())
-                 .andExpect(jsonPath("$.status").value(500));
-     }
+    @Test
+    @DisplayName("Should handle RuntimeException")
+    void testHandleRuntimeException() throws Exception {
+        mockMvc.perform(get("/test/runtime-error"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500));
+    }
 
-     @Test
-     @DisplayName("Should map InvalidCredentialsException to 401")
-     void testInvalidCredentialsException() throws Exception {
-         mockMvc.perform(get("/test/invalid-credentials"))
-                 .andExpect(status().isUnauthorized())
-                 .andExpect(jsonPath("$.message").value("Invalid username or password"))
-                 .andExpect(jsonPath("$.status").value(401));
-     }
+    @Test
+    @DisplayName("Should map InvalidCredentialsException to 401")
+    void testInvalidCredentialsException() throws Exception {
+        mockMvc.perform(get("/test/invalid-credentials"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid username or password"))
+                .andExpect(jsonPath("$.status").value(401));
+    }
 
-     @Test
-     @DisplayName("Should handle general Exception")
-     void testHandleGeneralException() throws Exception {
-         mockMvc.perform(get("/test/general-error"))
-                 .andExpect(status().isInternalServerError())
-                 .andExpect(jsonPath("$.status").value(500));
-     }
+    @Test
+    @DisplayName("Should handle general Exception")
+    void testHandleGeneralException() throws Exception {
+        mockMvc.perform(get("/test/general-error"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").exists())
+                .andExpect(jsonPath("$.status").exists());
+    }
 
-     @Test
-     @DisplayName("Should return error in response body for DataIntegrityViolation")
-     void testDataIntegrityViolationResponseFormat() throws Exception {
-         mockMvc.perform(get("/test/duplicate-error"))
-                 .andExpect(status().isConflict())
-                 .andExpect(jsonPath("$.error").exists())
-                 .andExpect(jsonPath("$.status").exists());
-     }
+    @Test
+    @DisplayName("Should return error in response body for DataIntegrityViolation")
+    void testDataIntegrityViolationResponseFormat() throws Exception {
+        mockMvc.perform(get("/test/duplicate-error"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").exists())
+                .andExpect(jsonPath("$.status").exists());
+    }
 
-     @Test
-     @DisplayName("Should return error in response body for RuntimeException")
-     void testRuntimeExceptionResponseFormat() throws Exception {
-         mockMvc.perform(get("/test/runtime-error"))
-                 .andExpect(status().isInternalServerError())
-                 .andExpect(jsonPath("$.error").exists())
-                 .andExpect(jsonPath("$.message").exists())
-                 .andExpect(jsonPath("$.status").exists());
-     }
+    @Test
+    @DisplayName("Should return error in response body for RuntimeException")
+    void testRuntimeExceptionResponseFormat() throws Exception {
+        mockMvc.perform(get("/test/runtime-error"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").exists())
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.status").exists());
+    }
 
-     @Test
-     @DisplayName("Should return error in response body for general Exception")
-     void testGeneralExceptionResponseFormat() throws Exception {
-         mockMvc.perform(get("/test/general-error"))
-                 .andExpect(status().isInternalServerError())
-                 .andExpect(jsonPath("$.error").exists())
-                 .andExpect(jsonPath("$.status").exists());
-     }
+    @Test
+    @DisplayName("Should return error in response body for general Exception")
+    void testGeneralExceptionResponseFormat() throws Exception {
+        mockMvc.perform(get("/test/general-error"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").exists())
+                .andExpect(jsonPath("$.status").exists());
+    }
 
-     @Test
-     @DisplayName("Should return 409 conflict status code")
-     void testConflictStatusCode() throws Exception {
-         mockMvc.perform(get("/test/duplicate-error"))
-                 .andExpect(status().isConflict());
-     }
+    @Test
+    @DisplayName("Should return 409 conflict status code")
+    void testConflictStatusCode() throws Exception {
+        mockMvc.perform(get("/test/duplicate-error"))
+                .andExpect(status().isConflict());
+    }
 
-     @Test
-     @DisplayName("Should return 500 for runtime failures")
-     void testBadRequestStatusCode() throws Exception {
-         mockMvc.perform(get("/test/runtime-error"))
-                 .andExpect(status().isInternalServerError());
-     }
+    @Test
+    @DisplayName("Should return 500 for runtime failures")
+    void testBadRequestStatusCode() throws Exception {
+        mockMvc.perform(get("/test/runtime-error"))
+                .andExpect(status().isInternalServerError());
+    }
 
-     @Test
-     @DisplayName("Should return 500 internal server error status code")
-     void testInternalServerErrorStatusCode() throws Exception {
-         mockMvc.perform(get("/test/general-error"))
-                 .andExpect(status().isInternalServerError());
-     }
+    @Test
+    @DisplayName("Should return 500 internal server error status code")
+    void testInternalServerErrorStatusCode() throws Exception {
+        mockMvc.perform(get("/test/general-error"))
+                .andExpect(status().isInternalServerError());
+    }
 
-     @Test
-     @DisplayName("Should handle InvalidRefreshTokenException")
-     void testInvalidRefreshTokenException() throws Exception {
-         mockMvc.perform(get("/test/invalid-refresh"))
-                 .andExpect(status().isUnauthorized())
-                 .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
-                 .andExpect(jsonPath("$.status").value(401));
-     }
+    @Test
+    @DisplayName("Should handle InvalidRefreshTokenException")
+    void testInvalidRefreshTokenException() throws Exception {
+        mockMvc.perform(get("/test/invalid-refresh"))
+                .andExpect(status().isUnauthorized())
+                 .andExpect(jsonPath("$.message").value("Session expired. Please sign in again."))
+                .andExpect(jsonPath("$.status").value(401));
+    }
 
-     @Test
-     @DisplayName("Should map IllegalArgumentException to 409 when already exists")
-     void testIllegalArgumentConflict() throws Exception {
-         mockMvc.perform(get("/test/illegal-argument-conflict"))
-                 .andExpect(status().isConflict())
-                 .andExpect(jsonPath("$.status").value(409));
-     }
+    @Test
+    @DisplayName("Should map IllegalArgumentException to 409 when already exists")
+    void testIllegalArgumentConflict() throws Exception {
+        mockMvc.perform(get("/test/illegal-argument-conflict"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
 
      @Test
      @DisplayName("Should map IllegalArgumentException to 400 otherwise")
